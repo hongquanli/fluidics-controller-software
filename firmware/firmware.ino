@@ -2,6 +2,17 @@ static const int pin_manual_control_enable = 24;
 static const int pin_pressure_vacuum = 25; 
 static const int pin_analog_in = A12; // pin 26
 
+static const int pin_LED_error = 23;
+static const int pin_LED_1 = 22;
+
+static const int pin_valve_C1 = 4;
+static const int pin_valve_C2 = 5;
+static const int pin_valve_C3 = 6;
+static const int pin_valve_C4 = 7;
+static const int pin_valve_C5 = 8;
+static const int pin_valve_C6 = 9;
+static const int pin_valve_C7 = 14;
+
 const int check_manual_input_interval_us = 5000;
 IntervalTimer Timer_check_manual_input;
 
@@ -21,10 +32,30 @@ int disc_pump_rx_ptr = 0;
 
 void setup() 
 {
+  pinMode(pin_manual_control_enable, INPUT_PULLUP);
+  pinMode(pin_pressure_vacuum, INPUT);
+  
+  pinMode(pin_LED_error, OUTPUT);
+  pinMode(pin_LED_1, OUTPUT);
+
+  pinMode(pin_valve_C1,OUTPUT);
+  pinMode(pin_valve_C2,OUTPUT);
+  pinMode(pin_valve_C3,OUTPUT);
+  pinMode(pin_valve_C4,OUTPUT);
+  pinMode(pin_valve_C5,OUTPUT);
+  pinMode(pin_valve_C6,OUTPUT);
+  pinMode(pin_valve_C7,OUTPUT);
+
+  analogWriteResolution(10);
+  
+  // interval timer for checking manual input
   Timer_check_manual_input.begin(set_check_manual_input_flag,check_manual_input_interval_us);
 
   // disc pump serial
-  Serial8.begin(115200);
+  UART_disc_pump.begin(115200);
+  UART_disc_pump.print("#W1,1000\n"); // limit pump power to 1000 mW
+  UART_disc_pump.print("#W10,0\n");
+  UART_disc_pump.print("#W11,0\n");
   
 }
 
@@ -34,7 +65,7 @@ void loop() {
   if(flag_check_manual_inputs)
   {
     // check manual control
-    flag_manual_control_enabled = digitalRead(pin_manual_control_enable);
+    flag_manual_control_enabled = 1 - digitalRead(pin_manual_control_enable);
 
     // if manual input is enabled, check mode (pressure vs vacuum) and analog_in, set the pump power accordingly
     if(flag_manual_control_enabled)
@@ -55,6 +86,14 @@ void loop() {
         disc_pump_enabled = true;
         set_disc_pump_power(disc_pump_power);
         set_disc_pump_enabled(disc_pump_enabled);
+        analogWrite(pin_LED_1,disc_pump_power);
+        analogWrite(pin_valve_C1,disc_pump_power);
+        analogWrite(pin_valve_C2,disc_pump_power);
+        analogWrite(pin_valve_C3,disc_pump_power);
+        analogWrite(pin_valve_C4,disc_pump_power);
+        analogWrite(pin_valve_C5,disc_pump_power);
+        analogWrite(pin_valve_C6,disc_pump_power);
+        analogWrite(pin_valve_C7,disc_pump_power);
       }
       else
       {
@@ -62,6 +101,14 @@ void loop() {
         disc_pump_enabled = false;
         set_disc_pump_enabled(disc_pump_enabled);
         set_disc_pump_power(disc_pump_power);
+        analogWrite(pin_LED_1,disc_pump_power);
+        analogWrite(pin_valve_C1,disc_pump_power);
+        analogWrite(pin_valve_C2,disc_pump_power);
+        analogWrite(pin_valve_C3,disc_pump_power);
+        analogWrite(pin_valve_C4,disc_pump_power);
+        analogWrite(pin_valve_C5,disc_pump_power);
+        analogWrite(pin_valve_C6,disc_pump_power);
+        analogWrite(pin_valve_C7,disc_pump_power);
       }
     }
     flag_check_manual_inputs = false;
@@ -107,16 +154,9 @@ bool write_disc_pump_command(char* cmd_str)
 
 bool set_disc_pump_enabled(bool enabled)
 {
-  if(enabled==true)
-  {
-    char cmd[] = "#W0,1\n";
-    return write_disc_pump_command(cmd);
-  }
-  else
-  {
-    char cmd[] = "#W0,0\n";
-    return write_disc_pump_command(cmd);
-  }
+  char cmd_str[32];
+  sprintf(cmd_str,"#W0,%d\n",enabled);
+  return write_disc_pump_command(cmd_str);
 }
 
 bool set_disc_pump_power(float power)
