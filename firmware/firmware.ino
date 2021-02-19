@@ -1,9 +1,13 @@
+#include <Wire.h>
+
 static const int pin_manual_control_enable = 24;
 static const int pin_pressure_vacuum = 25; 
 static const int pin_analog_in = A12; // pin 26
 
 static const int pin_LED_error = 23;
 static const int pin_LED_1 = 22;
+
+static const int pin_sensor_select = 15;
 
 static const int pin_valve_C1 = 4;
 static const int pin_valve_C2 = 5;
@@ -30,13 +34,31 @@ int number_of_attemps = 0;
 char disc_pump_rx_buffer[32];
 int disc_pump_rx_ptr = 0;
 
+// flow sensor, reference: https://github.com/Sensirion/arduino-liquid-flow-snippets/blob/master/SF06/example_19_DIY_flow_meter_SF06/example_19_DIY_flow_meter_SF06.ino
+const int SLF3x_ADDRESS = 0x08;
+const float SCALE_FACTOR_FLOW = 500.0; // Scale Factor for flow rate measurement
+const float SCALE_FACTOR_TEMP = 200.0; // Scale Factor for temperature measurement
+const char *UNIT_FLOW = " ml/min"; // physical unit of the flow rate measurement
+const char *UNIT_TEMP = " deg C"; //physical unit of the temperature measurement
+int ret;
+int16_t signed_flow_value;
+float scaled_flow_value;
+byte sensor_flow_crc;
+
 void setup() 
 {
+  // USB serial
+  Serial.begin(2000000);
+  delayMicroseconds(5000);
+  Serial.println("Connected"); // not showing up
+  
   pinMode(pin_manual_control_enable, INPUT_PULLUP);
   pinMode(pin_pressure_vacuum, INPUT);
   
   pinMode(pin_LED_error, OUTPUT);
   pinMode(pin_LED_1, OUTPUT);
+
+  pinMode(pin_sensor_select, OUTPUT);
 
   pinMode(pin_valve_C1,OUTPUT);
   pinMode(pin_valve_C2,OUTPUT);
@@ -56,6 +78,47 @@ void setup()
   UART_disc_pump.print("#W1,1000\n"); // limit pump power to 1000 mW
   UART_disc_pump.print("#W10,0\n");
   UART_disc_pump.print("#W11,0\n");
+
+  // I2C sensors
+  Wire1.begin();
+  
+  select_sensor_2();
+  /*
+  // soft reset
+  do {
+    // Soft reset the sensor
+    Wire1.beginTransmission(0x00);
+    Wire1.write(0x06);
+    ret = Wire1.endTransmission();
+    if (ret != 0) {
+      Serial.println("Error while sending soft reset command, retrying...");
+      delay(500); // wait long enough for chip reset to complete
+    }
+  } while (ret != 0);
+  */
+
+  do {
+    // Soft reset the sensor
+    Wire1.beginTransmission(0x00);
+    Wire1.write(0x06);
+    ret = Wire1.endTransmission();
+    if (ret != 0) {
+      Serial.println("Error while sending soft reset command, retrying...");
+      delay(500); // wait long enough for chip reset to complete
+    }
+  } while (ret != 0);
+
+  do {
+    // To perform a measurement, first send 0x3608 to switch to continuous
+    Wire1.beginTransmission(SLF3x_ADDRESS);
+    Wire1.write(0x36);
+    Wire1.write(0x08);
+    ret = Wire1.endTransmission();
+    if (ret != 0) {
+      Serial.println("Error starting measurement ...");
+      delay(500); // wait long enough for chip reset to complete
+    }
+  } while (ret != 0);
   
 }
 
@@ -112,8 +175,44 @@ void loop() {
       }
     }
     flag_check_manual_inputs = false;
-  }
 
+    /*
+    // sensor measurement
+    Wire1.requestFrom(SLF3x_ADDRESS, 3);
+    signed_flow_value  = Wire1.read() << 8; // read the MSB from the sensor
+    signed_flow_value |= Wire1.read();      // read the LSB from the sensor
+    sensor_flow_crc    = Wire1.read();
+    scaled_flow_value = ((float) signed_flow_value) / SCALE_FACTOR_FLOW;
+    Serial.println(scaled_flow_value);
+    */
+
+    Wire1.requestFrom(SLF3x_ADDRESS, 9);
+    if (Wire1.available() < 9)
+    {
+      Serial.println("I2C read error");
+      return;
+    }
+    
+    uint16_t sensor_flow_value  = Wire1.read() << 8; // read the MSB from the sensor
+    sensor_flow_value |= Wire1.read();      // read the LSB from the sensor
+    byte sensor_flow_crc    = Wire1.read();
+    uint16_t sensor_temp_value  = Wire1.read() << 8; // read the MSB from the sensor
+    sensor_temp_value |= Wire1.read();      // read the LSB from the sensor
+    byte sensor_temp_crc    = Wire1.read();
+    uint16_t aux_value          = Wire1.read() << 8; // read the MSB from the sensor
+    aux_value         |= Wire1.read();      // read the LSB from the sensor
+    byte aux_crc            = Wire1.read();
+      
+    int signed_temp_value = (int16_t) sensor_temp_value;
+    float scaled_temp_value = ((float) signed_temp_value) / SCALE_FACTOR_TEMP;
+    int signed_flow_value = (int16_t) sensor_flow_value;
+    float scaled_flow_value = ((float) signed_flow_value) / SCALE_FACTOR_FLOW;
+    
+    Serial.print(scaled_temp_value);
+    Serial.print('\t');
+    Serial.println(scaled_flow_value);
+    // Serial.println("test");
+  }
 }
 
 void set_check_manual_input_flag()
@@ -164,4 +263,14 @@ bool set_disc_pump_power(float power)
   char cmd_str[32];
   sprintf(cmd_str,"#W23,%f\n",power);
   UART_disc_pump.print(cmd_str);
+}
+
+void select_sensor_2()
+{
+  digitalWrite(pin_sensor_select,HIGH);
+}
+
+void select_sensor_1()
+{
+  digitalWrite(pin_sensor_select,LOW);
 }
