@@ -1,5 +1,7 @@
 #include <Wire.h>
 
+#define DEBUG_WITH_SERIAL true
+
 static const int pin_manual_control_enable = 24;
 static const int pin_pressure_vacuum = 25; 
 static const int pin_analog_in = A12; // pin 26
@@ -45,6 +47,11 @@ int16_t signed_flow_value;
 float scaled_flow_value;
 byte sensor_flow_crc;
 
+// IDEX selector valve
+#define UART_Titan Serial5
+int uart_titan_rx_ptr = 0;
+char uart_titan_rx_buffer[32];
+
 void setup() 
 {
   // USB serial
@@ -79,24 +86,13 @@ void setup()
   UART_disc_pump.print("#W10,0\n");
   UART_disc_pump.print("#W11,0\n");
 
+  // Titan selector valve serial
+  UART_Titan.begin(19200);
+
   // I2C sensors
   Wire1.begin();
   
   select_sensor_2();
-  /*
-  // soft reset
-  do {
-    // Soft reset the sensor
-    Wire1.beginTransmission(0x00);
-    Wire1.write(0x06);
-    ret = Wire1.endTransmission();
-    if (ret != 0) {
-      Serial.println("Error while sending soft reset command, retrying...");
-      delay(500); // wait long enough for chip reset to complete
-    }
-  } while (ret != 0);
-  */
-
   do {
     // Soft reset the sensor
     Wire1.beginTransmission(0x00);
@@ -119,6 +115,67 @@ void setup()
       delay(500); // wait long enough for chip reset to complete
     }
   } while (ret != 0);
+
+  delay(500);
+
+  // test selector valve control
+  int valve_pos = 12;
+  Serial.println("setting valve to pos 12...");
+  set_selector_valve_position_blocking(valve_pos);
+  Serial.println("----------------------------");
+
+  delay(1000);
+  check_selector_valve_position();
+  uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
+  Serial.println(uart_titan_rx_buffer);
+  Serial.println("----------------------------");
+
+  // set valve pos
+  valve_pos = 5;
+  Serial.println("setting valve to pos 12...");
+  set_selector_valve_position_blocking(valve_pos);
+  Serial.println("----------------------------");
+
+  delay(1000);
+  check_selector_valve_position();
+  uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
+  Serial.println(uart_titan_rx_buffer);
+  Serial.println("----------------------------");
+
+  /*
+  Serial.println("wait for 2 seconds");
+  delay(2000);
+  Serial.println("setting valve to pos 5...");
+  set_selector_valve_position_blocking(5);
+  Serial.println("checking valve position...");
+  check_selector_valve_position();
+  Serial.println("----------------------------");
+
+  Serial.println("wait for 2 seconds");
+  delay(2000);
+  Serial.println("setting valve to pos 7...");
+  set_selector_valve_position_blocking(7);
+  Serial.println("checking valve position...");
+  check_selector_valve_position();
+  Serial.println("----------------------------");
+
+  Serial.println("wait for 2 seconds");
+  delay(2000);
+  Serial.println("setting valve to pos 9...");
+  set_selector_valve_position_blocking(9);
+  Serial.println("checking valve position...");
+  check_selector_valve_position();
+  Serial.println("----------------------------");
+
+  Serial.println("wait for 2 seconds");
+  delay(2000);
+  Serial.println("setting valve to pos 10...");
+  set_selector_valve_position_blocking(10);
+//  Serial.println("wait for 2 seconds");
+//  delay(2000);
+  Serial.println("checking valve position...");
+  check_selector_valve_position();
+  */
   
 }
 
@@ -207,10 +264,12 @@ void loop() {
     float scaled_temp_value = ((float) signed_temp_value) / SCALE_FACTOR_TEMP;
     int signed_flow_value = (int16_t) sensor_flow_value;
     float scaled_flow_value = ((float) signed_flow_value) / SCALE_FACTOR_FLOW;
-    
+
+    /*
     Serial.print(scaled_temp_value);
     Serial.print('\t');
     Serial.println(scaled_flow_value);
+    */
     // Serial.println("test");
   }
 }
@@ -273,4 +332,85 @@ void select_sensor_2()
 void select_sensor_1()
 {
   digitalWrite(pin_sensor_select,LOW);
+}
+
+bool write_selector_valve_command(char* cmd_str)
+{
+  // empty the UART buffer
+  while(UART_Titan.available())
+    UART_Titan.read();
+  
+  for(int i = 0;i<3;i++) // attempt 3 times
+  {
+    if(DEBUG_WITH_SERIAL)
+    {
+        Serial.print("> sending ");
+        Serial.println(cmd_str);
+    }
+    UART_Titan.print(cmd_str);
+    UART_Titan.flush(); // Wait for any transmitted data still in buffers to actually transmit
+    delayMicroseconds(3000); // @@@ change to timeout-based appraoch?
+    uart_titan_rx_ptr = 0;
+    while(UART_Titan.available())
+    {
+      uart_titan_rx_buffer[uart_titan_rx_ptr++] = UART_Titan.read();
+      if(DEBUG_WITH_SERIAL)
+      {
+          Serial.print("  > received is ");
+          Serial.println(uart_titan_rx_buffer[uart_titan_rx_ptr-1]);
+      }
+    }
+    if( uart_titan_rx_ptr > 0 && uart_titan_rx_buffer[uart_titan_rx_ptr-1] == '\r')
+      return true;
+  }
+  if(DEBUG_WITH_SERIAL)
+      Serial.println("> 3 failed attempts");
+  return false;
+}
+
+bool set_selector_valve_position(int pos)
+{
+  if(DEBUG_WITH_SERIAL)
+  {
+      Serial.print("> setting valve position to ");
+      Serial.println(pos);
+  }
+  char cmd_str[32];
+  sprintf(cmd_str,"P%02X\r",pos);
+  return write_selector_valve_command(cmd_str);
+}
+
+bool check_selector_valve_position()
+{
+  if(DEBUG_WITH_SERIAL)
+    Serial.println("> sending check selector valve position command");
+    
+  // During the valve motion profile, driver board will not accept any commands 
+  // and will respond to any incoming data with ‘*’ [0x2A].
+  char cmd_str[32];
+  sprintf(cmd_str,"S\r");
+  return write_selector_valve_command(cmd_str);
+  // false will be returned during motion (the command will be sent three times and '*' will be returned)
+  // when true is returned, the valve position is in the rx buffer
+}
+
+bool set_selector_valve_position_blocking(int pos)
+{
+  bool command_sent = set_selector_valve_position(pos);
+  if(command_sent == false)
+    if(DEBUG_WITH_SERIAL)
+      Serial.println("> UART write command failed");
+    return false; // in the future can return an error code
+  
+  while(check_selector_valve_position() == false) 
+  {
+    if(DEBUG_WITH_SERIAL)
+      Serial.println("> valve in motion");
+  }
+  // to do: add timeout
+
+  if(DEBUG_WITH_SERIAL)
+      Serial.println("> exit the blocking call");
+
+  return true;
 }
