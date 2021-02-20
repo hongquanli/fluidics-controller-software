@@ -119,28 +119,36 @@ void setup()
   delay(500);
 
   // test selector valve control
-  int valve_pos = 12;
-  Serial.println("setting valve to pos 12...");
-  set_selector_valve_position_blocking(valve_pos);
   Serial.println("----------------------------");
-
-  delay(1000);
+  int valve_pos = 1;
+  set_selector_valve_position_blocking(valve_pos);
   check_selector_valve_position();
   uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
   Serial.println(uart_titan_rx_buffer);
-  Serial.println("----------------------------");
 
   // set valve pos
-  valve_pos = 5;
-  Serial.println("setting valve to pos 12...");
-  set_selector_valve_position_blocking(valve_pos);
   Serial.println("----------------------------");
-
-  delay(1000);
+  valve_pos = 5;
+  set_selector_valve_position_blocking(valve_pos);
   check_selector_valve_position();
   uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
   Serial.println(uart_titan_rx_buffer);
+
+  // set valve pos
   Serial.println("----------------------------");
+  valve_pos = 9;
+  set_selector_valve_position_blocking(valve_pos);
+  check_selector_valve_position();
+  uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
+  Serial.println(uart_titan_rx_buffer);
+  
+  // set valve pos
+  Serial.println("----------------------------");
+  valve_pos = 24;
+  set_selector_valve_position_blocking(valve_pos);
+  check_selector_valve_position();
+  uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
+  Serial.println(uart_titan_rx_buffer);
 
   /*
   Serial.println("wait for 2 seconds");
@@ -334,62 +342,78 @@ void select_sensor_1()
   digitalWrite(pin_sensor_select,LOW);
 }
 
-bool write_selector_valve_command(char* cmd_str)
-{
-  // empty the UART buffer
-  while(UART_Titan.available())
-    UART_Titan.read();
-  
+bool write_selector_valve_read_command(char* cmd_str)
+{  
   for(int i = 0;i<3;i++) // attempt 3 times
   {
+    // empty the UART buffer
+    while(UART_Titan.available())
+      UART_Titan.read();
+      
+    UART_Titan.print(cmd_str);
+    UART_Titan.flush(); // Wait for any transmitted data still in buffers to actually transmit
+    elapsedMillis time_elapsed_ms;
+    uart_titan_rx_ptr = 0;
+    while(time_elapsed_ms<5) // timeout after 5ms
+    {
+      while(UART_Titan.available())
+        uart_titan_rx_buffer[uart_titan_rx_ptr++] = UART_Titan.read();
+      if(uart_titan_rx_ptr > 0 && uart_titan_rx_buffer[uart_titan_rx_ptr-1] == '\r')
+        return true;
+    }
+  }
+  if(DEBUG_WITH_SERIAL)
+      Serial.println("> 2 failed attempts");
+  return false;
+}
+
+bool write_selector_valve_move_command(char* cmd_str)
+{
+  for(int i = 0;i<2;i++) // attempt 2 times
+  {
+    /*
     if(DEBUG_WITH_SERIAL)
     {
         Serial.print("> sending ");
         Serial.println(cmd_str);
     }
+    */
+    
+    // empty the UART buffer
+    while(UART_Titan.available())
+      UART_Titan.read();
+    
     UART_Titan.print(cmd_str);
     UART_Titan.flush(); // Wait for any transmitted data still in buffers to actually transmit
-    delayMicroseconds(3000); // @@@ change to timeout-based appraoch?
+    elapsedMillis time_elapsed_ms;
     uart_titan_rx_ptr = 0;
-    while(UART_Titan.available())
+    while( time_elapsed_ms < 5000) // timeout after 5 second if the '/r' is not returned
     {
-      uart_titan_rx_buffer[uart_titan_rx_ptr++] = UART_Titan.read();
-      if(DEBUG_WITH_SERIAL)
-      {
-          Serial.print("  > received is ");
-          Serial.println(uart_titan_rx_buffer[uart_titan_rx_ptr-1]);
-      }
+      while(UART_Titan.available())
+        uart_titan_rx_buffer[uart_titan_rx_ptr++] = UART_Titan.read();
+      if(uart_titan_rx_ptr > 0 && uart_titan_rx_buffer[uart_titan_rx_ptr-1] == '\r') // can change to just read up to one byte
+        return true;
     }
-    if( uart_titan_rx_ptr > 0 && uart_titan_rx_buffer[uart_titan_rx_ptr-1] == '\r')
-      return true;
   }
   if(DEBUG_WITH_SERIAL)
-      Serial.println("> 3 failed attempts");
+      Serial.println("> 2 failed attempts");
   return false;
 }
 
 bool set_selector_valve_position(int pos)
 {
-  if(DEBUG_WITH_SERIAL)
-  {
-      Serial.print("> setting valve position to ");
-      Serial.println(pos);
-  }
   char cmd_str[32];
   sprintf(cmd_str,"P%02X\r",pos);
-  return write_selector_valve_command(cmd_str);
+  return write_selector_valve_move_command(cmd_str);
 }
 
 bool check_selector_valve_position()
 {
-  if(DEBUG_WITH_SERIAL)
-    Serial.println("> sending check selector valve position command");
-    
   // During the valve motion profile, driver board will not accept any commands 
   // and will respond to any incoming data with ‘*’ [0x2A].
   char cmd_str[32];
   sprintf(cmd_str,"S\r");
-  return write_selector_valve_command(cmd_str);
+  return write_selector_valve_read_command(cmd_str);
   // false will be returned during motion (the command will be sent three times and '*' will be returned)
   // when true is returned, the valve position is in the rx buffer
 }
