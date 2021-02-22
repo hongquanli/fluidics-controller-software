@@ -3,7 +3,7 @@
 #define DEBUG_WITH_SERIAL true
 
 static const int pin_manual_control_enable = 24;
-static const int pin_pressure_vacuum = 25; 
+static const int pin_pressure_vacuum = 25;
 static const int pin_analog_in = A12; // pin 26
 
 static const int pin_LED_error = 23;
@@ -38,7 +38,8 @@ int disc_pump_rx_ptr = 0;
 
 // flow sensor, reference: https://github.com/Sensirion/arduino-liquid-flow-snippets/blob/master/SF06/example_19_DIY_flow_meter_SF06/example_19_DIY_flow_meter_SF06.ino
 const int SLF3x_ADDRESS = 0x08;
-const float SCALE_FACTOR_FLOW = 500.0; // Scale Factor for flow rate measurement
+const float SCALE_FACTOR_FLOW = 10.0; // Scale Factor for flow rate measurement, ul/min, SLF3S-0600F
+//const float SCALE_FACTOR_FLOW = 500.0; // Scale Factor for flow rate measurement, ml/min, SLF3S-1300F
 const float SCALE_FACTOR_TEMP = 200.0; // Scale Factor for temperature measurement
 const char *UNIT_FLOW = " ml/min"; // physical unit of the flow rate measurement
 const char *UNIT_TEMP = " deg C"; //physical unit of the temperature measurement
@@ -52,33 +53,33 @@ byte sensor_flow_crc;
 int uart_titan_rx_ptr = 0;
 char uart_titan_rx_buffer[32];
 
-void setup() 
+void setup()
 {
   // USB serial
   Serial.begin(2000000);
   delayMicroseconds(5000);
   Serial.println("Connected"); // not showing up
-  
+
   pinMode(pin_manual_control_enable, INPUT_PULLUP);
   pinMode(pin_pressure_vacuum, INPUT);
-  
+
   pinMode(pin_LED_error, OUTPUT);
   pinMode(pin_LED_1, OUTPUT);
 
   pinMode(pin_sensor_select, OUTPUT);
 
-  pinMode(pin_valve_C1,OUTPUT);
-  pinMode(pin_valve_C2,OUTPUT);
-  pinMode(pin_valve_C3,OUTPUT);
-  pinMode(pin_valve_C4,OUTPUT);
-  pinMode(pin_valve_C5,OUTPUT);
-  pinMode(pin_valve_C6,OUTPUT);
-  pinMode(pin_valve_C7,OUTPUT);
+  pinMode(pin_valve_C1, OUTPUT);
+  pinMode(pin_valve_C2, OUTPUT);
+  pinMode(pin_valve_C3, OUTPUT);
+  pinMode(pin_valve_C4, OUTPUT);
+  pinMode(pin_valve_C5, OUTPUT);
+  pinMode(pin_valve_C6, OUTPUT);
+  pinMode(pin_valve_C7, OUTPUT);
 
   analogWriteResolution(10);
-  
+
   // interval timer for checking manual input
-  Timer_check_manual_input.begin(set_check_manual_input_flag,check_manual_input_interval_us);
+  Timer_check_manual_input.begin(set_check_manual_input_flag, check_manual_input_interval_us);
 
   // disc pump serial
   UART_disc_pump.begin(115200);
@@ -91,7 +92,7 @@ void setup()
 
   // I2C sensors
   Wire1.begin();
-  
+
   select_sensor_2();
   do {
     // Soft reset the sensor
@@ -116,112 +117,57 @@ void setup()
     }
   } while (ret != 0);
 
-  delay(500);
-
-  // test selector valve control
-  Serial.println("----------------------------");
-  int valve_pos = 1;
-  set_selector_valve_position_blocking(valve_pos);
-  check_selector_valve_position();
-  uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
-  Serial.println(uart_titan_rx_buffer);
-
-  // set valve pos
-  Serial.println("----------------------------");
-  valve_pos = 5;
-  set_selector_valve_position_blocking(valve_pos);
-  check_selector_valve_position();
-  uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
-  Serial.println(uart_titan_rx_buffer);
-
-  // set valve pos
-  Serial.println("----------------------------");
-  valve_pos = 9;
-  set_selector_valve_position_blocking(valve_pos);
-  check_selector_valve_position();
-  uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
-  Serial.println(uart_titan_rx_buffer);
-  
-  // set valve pos
-  Serial.println("----------------------------");
-  valve_pos = 24;
-  set_selector_valve_position_blocking(valve_pos);
-  check_selector_valve_position();
-  uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
-  Serial.println(uart_titan_rx_buffer);
+  delay(100); // 60 ms needed for reliable measurements to begin
 
   /*
-  Serial.println("wait for 2 seconds");
-  delay(2000);
-  Serial.println("setting valve to pos 5...");
-  set_selector_valve_position_blocking(5);
-  Serial.println("checking valve position...");
-  check_selector_valve_position();
-  Serial.println("----------------------------");
-
-  Serial.println("wait for 2 seconds");
-  delay(2000);
-  Serial.println("setting valve to pos 7...");
-  set_selector_valve_position_blocking(7);
-  Serial.println("checking valve position...");
-  check_selector_valve_position();
-  Serial.println("----------------------------");
-
-  Serial.println("wait for 2 seconds");
-  delay(2000);
-  Serial.println("setting valve to pos 9...");
-  set_selector_valve_position_blocking(9);
-  Serial.println("checking valve position...");
-  check_selector_valve_position();
-  Serial.println("----------------------------");
-
-  Serial.println("wait for 2 seconds");
-  delay(2000);
-  Serial.println("setting valve to pos 10...");
-  set_selector_valve_position_blocking(10);
-//  Serial.println("wait for 2 seconds");
-//  delay(2000);
-  Serial.println("checking valve position...");
-  check_selector_valve_position();
+    for(int i = 1;i<=24;i++)
+    {
+    // test selector valve control
+    Serial.println("----------------------------");
+    set_selector_valve_position_blocking(i);
+    check_selector_valve_position();
+    uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
+    Serial.println(uart_titan_rx_buffer);
+    }
   */
-  
+
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
 
-  if(flag_check_manual_inputs)
+  if (flag_check_manual_inputs)
   {
     // check manual control
     flag_manual_control_enabled = 1 - digitalRead(pin_manual_control_enable);
 
     // if manual input is enabled, check mode (pressure vs vacuum) and analog_in, set the pump power accordingly
-    if(flag_manual_control_enabled)
+    if (flag_manual_control_enabled)
     {
 
       // set mode (pressure vs vacuum)
       mode_pressure_vacuum = digitalRead(pin_pressure_vacuum);
-      if(mode_pressure_vacuum == 0 )
+      if (mode_pressure_vacuum == 0 )
         set_mode_to_vacuum();
       else
         set_mode_to_pressure();
 
       // set pump power
       analog_in = analogRead(pin_analog_in);
-      if(analog_in>23) // only enable the pump when the analog_in is > 23 (/1023)
+      if (analog_in > 23) // only enable the pump when the analog_in is > 23 (/1023)
       {
         disc_pump_power = analog_in - 23;
         disc_pump_enabled = true;
         set_disc_pump_power(disc_pump_power);
         set_disc_pump_enabled(disc_pump_enabled);
-        analogWrite(pin_LED_1,disc_pump_power);
-        analogWrite(pin_valve_C1,disc_pump_power);
-        analogWrite(pin_valve_C2,disc_pump_power);
-        analogWrite(pin_valve_C3,disc_pump_power);
-        analogWrite(pin_valve_C4,disc_pump_power);
-        analogWrite(pin_valve_C5,disc_pump_power);
-        analogWrite(pin_valve_C6,disc_pump_power);
-        analogWrite(pin_valve_C7,disc_pump_power);
+        analogWrite(pin_LED_1, disc_pump_power);
+        analogWrite(pin_valve_C1, disc_pump_power);
+        analogWrite(pin_valve_C2, disc_pump_power);
+        analogWrite(pin_valve_C3, disc_pump_power);
+        analogWrite(pin_valve_C4, disc_pump_power);
+        analogWrite(pin_valve_C5, disc_pump_power);
+        analogWrite(pin_valve_C6, disc_pump_power);
+        analogWrite(pin_valve_C7, disc_pump_power);
       }
       else
       {
@@ -229,26 +175,26 @@ void loop() {
         disc_pump_enabled = false;
         set_disc_pump_enabled(disc_pump_enabled);
         set_disc_pump_power(disc_pump_power);
-        analogWrite(pin_LED_1,disc_pump_power);
-        analogWrite(pin_valve_C1,disc_pump_power);
-        analogWrite(pin_valve_C2,disc_pump_power);
-        analogWrite(pin_valve_C3,disc_pump_power);
-        analogWrite(pin_valve_C4,disc_pump_power);
-        analogWrite(pin_valve_C5,disc_pump_power);
-        analogWrite(pin_valve_C6,disc_pump_power);
-        analogWrite(pin_valve_C7,disc_pump_power);
+        analogWrite(pin_LED_1, disc_pump_power);
+        analogWrite(pin_valve_C1, disc_pump_power);
+        analogWrite(pin_valve_C2, disc_pump_power);
+        analogWrite(pin_valve_C3, disc_pump_power);
+        analogWrite(pin_valve_C4, disc_pump_power);
+        analogWrite(pin_valve_C5, disc_pump_power);
+        analogWrite(pin_valve_C6, disc_pump_power);
+        analogWrite(pin_valve_C7, disc_pump_power);
       }
     }
     flag_check_manual_inputs = false;
 
     /*
-    // sensor measurement
-    Wire1.requestFrom(SLF3x_ADDRESS, 3);
-    signed_flow_value  = Wire1.read() << 8; // read the MSB from the sensor
-    signed_flow_value |= Wire1.read();      // read the LSB from the sensor
-    sensor_flow_crc    = Wire1.read();
-    scaled_flow_value = ((float) signed_flow_value) / SCALE_FACTOR_FLOW;
-    Serial.println(scaled_flow_value);
+      // sensor measurement
+      Wire1.requestFrom(SLF3x_ADDRESS, 3);
+      signed_flow_value  = Wire1.read() << 8; // read the MSB from the sensor
+      signed_flow_value |= Wire1.read();      // read the LSB from the sensor
+      sensor_flow_crc    = Wire1.read();
+      scaled_flow_value = ((float) signed_flow_value) / SCALE_FACTOR_FLOW;
+      Serial.println(scaled_flow_value);
     */
 
     Wire1.requestFrom(SLF3x_ADDRESS, 9);
@@ -257,7 +203,7 @@ void loop() {
       Serial.println("I2C read error");
       return;
     }
-    
+
     uint16_t sensor_flow_value  = Wire1.read() << 8; // read the MSB from the sensor
     sensor_flow_value |= Wire1.read();      // read the LSB from the sensor
     byte sensor_flow_crc    = Wire1.read();
@@ -267,17 +213,16 @@ void loop() {
     uint16_t aux_value          = Wire1.read() << 8; // read the MSB from the sensor
     aux_value         |= Wire1.read();      // read the LSB from the sensor
     byte aux_crc            = Wire1.read();
-      
+
     int signed_temp_value = (int16_t) sensor_temp_value;
     float scaled_temp_value = ((float) signed_temp_value) / SCALE_FACTOR_TEMP;
     int signed_flow_value = (int16_t) sensor_flow_value;
     float scaled_flow_value = ((float) signed_flow_value) / SCALE_FACTOR_FLOW;
 
-    /*
     Serial.print(scaled_temp_value);
     Serial.print('\t');
     Serial.println(scaled_flow_value);
-    */
+
     // Serial.println("test");
   }
 }
@@ -303,16 +248,16 @@ void set_mode_to_pressure()
 bool write_disc_pump_command(char* cmd_str)
 {
   int cmd_length = strlen(cmd_str);
-  for(int i = 0;i<3;i++) // attempt 3 times
+  for (int i = 0; i < 3; i++) // attempt 3 times
   {
     UART_disc_pump.clear(); // clear RX buffer
     UART_disc_pump.print(cmd_str);
     UART_disc_pump.flush(); // Wait for any transmitted data still in buffers to actually transmit
     delayMicroseconds(1000); // @@@ change to timeout-based appraoch
     disc_pump_rx_ptr = 0;
-    while(UART_disc_pump.available())
+    while (UART_disc_pump.available())
       disc_pump_rx_buffer[disc_pump_rx_ptr++] = UART_disc_pump.read();
-    if( cmd_length == disc_pump_rx_ptr && strncmp(cmd_str,disc_pump_rx_buffer,disc_pump_rx_ptr) == 0 )
+    if ( cmd_length == disc_pump_rx_ptr && strncmp(cmd_str, disc_pump_rx_buffer, disc_pump_rx_ptr) == 0 )
       return true;
   }
   return false; // not receiving the sent command within 1 ms for 3 attempts
@@ -321,98 +266,98 @@ bool write_disc_pump_command(char* cmd_str)
 bool set_disc_pump_enabled(bool enabled)
 {
   char cmd_str[32];
-  sprintf(cmd_str,"#W0,%d\n",enabled);
+  sprintf(cmd_str, "#W0,%d\n", enabled);
   return write_disc_pump_command(cmd_str);
 }
 
 bool set_disc_pump_power(float power)
 {
   char cmd_str[32];
-  sprintf(cmd_str,"#W23,%f\n",power);
+  sprintf(cmd_str, "#W23,%f\n", power);
   UART_disc_pump.print(cmd_str);
 }
 
 void select_sensor_2()
 {
-  digitalWrite(pin_sensor_select,HIGH);
+  digitalWrite(pin_sensor_select, HIGH);
 }
 
 void select_sensor_1()
 {
-  digitalWrite(pin_sensor_select,LOW);
+  digitalWrite(pin_sensor_select, LOW);
 }
 
 bool write_selector_valve_read_command(char* cmd_str)
-{  
-  for(int i = 0;i<3;i++) // attempt 3 times
+{
+  for (int i = 0; i < 3; i++) // attempt 3 times
   {
     // empty the UART buffer
-    while(UART_Titan.available())
+    while (UART_Titan.available())
       UART_Titan.read();
-      
+
     UART_Titan.print(cmd_str);
     UART_Titan.flush(); // Wait for any transmitted data still in buffers to actually transmit
     elapsedMillis time_elapsed_ms;
     uart_titan_rx_ptr = 0;
-    while(time_elapsed_ms<5) // timeout after 5ms
+    while (time_elapsed_ms < 5) // timeout after 5ms
     {
-      while(UART_Titan.available())
+      while (UART_Titan.available())
         uart_titan_rx_buffer[uart_titan_rx_ptr++] = UART_Titan.read();
-      if(uart_titan_rx_ptr > 0 && uart_titan_rx_buffer[uart_titan_rx_ptr-1] == '\r')
+      if (uart_titan_rx_ptr > 0 && uart_titan_rx_buffer[uart_titan_rx_ptr - 1] == '\r')
         return true;
     }
   }
-  if(DEBUG_WITH_SERIAL)
-      Serial.println("> 2 failed attempts");
+  if (DEBUG_WITH_SERIAL)
+    Serial.println("> 2 failed attempts");
   return false;
 }
 
 bool write_selector_valve_move_command(char* cmd_str)
 {
-  for(int i = 0;i<2;i++) // attempt 2 times
+  for (int i = 0; i < 2; i++) // attempt 2 times
   {
     /*
-    if(DEBUG_WITH_SERIAL)
-    {
+      if(DEBUG_WITH_SERIAL)
+      {
         Serial.print("> sending ");
         Serial.println(cmd_str);
-    }
+      }
     */
-    
+
     // empty the UART buffer
-    while(UART_Titan.available())
+    while (UART_Titan.available())
       UART_Titan.read();
-    
+
     UART_Titan.print(cmd_str);
     UART_Titan.flush(); // Wait for any transmitted data still in buffers to actually transmit
     elapsedMillis time_elapsed_ms;
     uart_titan_rx_ptr = 0;
-    while( time_elapsed_ms < 5000) // timeout after 5 second if the '/r' is not returned
+    while ( time_elapsed_ms < 5000) // timeout after 5 second if the '/r' is not returned
     {
-      while(UART_Titan.available())
+      while (UART_Titan.available())
         uart_titan_rx_buffer[uart_titan_rx_ptr++] = UART_Titan.read();
-      if(uart_titan_rx_ptr > 0 && uart_titan_rx_buffer[uart_titan_rx_ptr-1] == '\r') // can change to just read up to one byte
+      if (uart_titan_rx_ptr > 0 && uart_titan_rx_buffer[uart_titan_rx_ptr - 1] == '\r') // can change to just read up to one byte
         return true;
     }
   }
-  if(DEBUG_WITH_SERIAL)
-      Serial.println("> 2 failed attempts");
+  if (DEBUG_WITH_SERIAL)
+    Serial.println("> 2 failed attempts");
   return false;
 }
 
 bool set_selector_valve_position(int pos)
 {
   char cmd_str[32];
-  sprintf(cmd_str,"P%02X\r",pos);
+  sprintf(cmd_str, "P%02X\r", pos);
   return write_selector_valve_move_command(cmd_str);
 }
 
 bool check_selector_valve_position()
 {
-  // During the valve motion profile, driver board will not accept any commands 
+  // During the valve motion profile, driver board will not accept any commands
   // and will respond to any incoming data with ‘*’ [0x2A].
   char cmd_str[32];
-  sprintf(cmd_str,"S\r");
+  sprintf(cmd_str, "S\r");
   return write_selector_valve_read_command(cmd_str);
   // false will be returned during motion (the command will be sent three times and '*' will be returned)
   // when true is returned, the valve position is in the rx buffer
@@ -421,20 +366,20 @@ bool check_selector_valve_position()
 bool set_selector_valve_position_blocking(int pos)
 {
   bool command_sent = set_selector_valve_position(pos);
-  if(command_sent == false)
-    if(DEBUG_WITH_SERIAL)
+  if (command_sent == false)
+    if (DEBUG_WITH_SERIAL)
       Serial.println("> UART write command failed");
-    return false; // in the future can return an error code
-  
-  while(check_selector_valve_position() == false) 
+  return false; // in the future can return an error code
+
+  while (check_selector_valve_position() == false)
   {
-    if(DEBUG_WITH_SERIAL)
+    if (DEBUG_WITH_SERIAL)
       Serial.println("> valve in motion");
   }
   // to do: add timeout
 
-  if(DEBUG_WITH_SERIAL)
-      Serial.println("> exit the blocking call");
+  if (DEBUG_WITH_SERIAL)
+    Serial.println("> exit the blocking call");
 
   return true;
 }
