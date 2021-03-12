@@ -1,4 +1,5 @@
 #include <Wire.h>
+#include <SPI.h>
 
 #define DEBUG_WITH_SERIAL true
 
@@ -18,6 +19,10 @@ static const int pin_valve_C4 = 7;
 static const int pin_valve_C5 = 8;
 static const int pin_valve_C6 = 9;
 static const int pin_valve_C7 = 14;
+
+static const int pin_33996_CS_0 = 10;
+static const int pin_33996_PWM = 41;
+static const int pin_33996_nRST = 40;
 
 const int check_manual_input_interval_us = 5000;
 IntervalTimer Timer_check_manual_input;
@@ -52,6 +57,9 @@ byte sensor_flow_crc;
 #define UART_Titan Serial5
 int uart_titan_rx_ptr = 0;
 char uart_titan_rx_buffer[32];
+
+// 33996
+uint16_t NXP33996_state = 0x0000;
 
 void setup()
 {
@@ -119,6 +127,29 @@ void setup()
 
   delay(100); // 60 ms needed for reliable measurements to begin
 
+  // 33996 and SPI
+  pinMode(pin_33996_CS_0,OUTPUT);
+  pinMode(pin_33996_PWM,OUTPUT);
+  pinMode(pin_33996_nRST,OUTPUT);
+  SPI.begin();
+  SPI.setClockDivider(SPI_CLOCK_DIV4);
+  SPI.setDataMode(SPI_MODE1);
+  SPI.setBitOrder(MSBFIRST);
+  digitalWrite(pin_33996_nRST,HIGH);
+
+  //
+  for(int k = 0;k<10;k++)
+  {
+    for(int i=0;i<16;i++)
+    {
+      NXP33996_turn_on(i);
+      NXP33996_update();
+      delay(200);
+      NXP33996_turn_off(i);
+      NXP33996_update();
+    }
+  }
+  
   /*
     for(int i = 1;i<=24;i++)
     {
@@ -382,4 +413,27 @@ bool set_selector_valve_position_blocking(int pos)
     Serial.println("> exit the blocking call");
 
   return true;
+}
+
+void NXP33996_clear_all()
+{
+  NXP33996_state = (uint16_t)0x0000;
+}
+
+void NXP33996_turn_on(int id)
+{
+  NXP33996_state |= (uint16_t)0x0001 << id;
+}
+
+void NXP33996_turn_off(int id)
+{
+  NXP33996_state &= ~((uint16_t)0x0001 << id);
+}
+
+void NXP33996_update()
+{
+  digitalWrite(pin_33996_CS_0,LOW);
+  SPI.transfer(0x00);
+  SPI.transfer16(NXP33996_state); //16 output bits
+  digitalWrite(pin_33996_CS_0,HIGH);
 }
