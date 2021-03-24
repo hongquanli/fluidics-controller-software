@@ -137,7 +137,7 @@ void setup()
   SPI.setBitOrder(MSBFIRST);
   digitalWrite(pin_33996_nRST,HIGH);
 
-  //
+  /*
   for(int k = 0;k<10;k++)
   {
     for(int i=0;i<16;i++)
@@ -149,11 +149,12 @@ void setup()
       NXP33996_update();
     }
   }
-  
+  */
+
+  // test selector valve control
   /*
     for(int i = 1;i<=24;i++)
     {
-    // test selector valve control
     Serial.println("----------------------------");
     set_selector_valve_position_blocking(i);
     check_selector_valve_position();
@@ -161,6 +162,14 @@ void setup()
     Serial.println(uart_titan_rx_buffer);
     }
   */
+  for(int i = 1;i<=3;i++)
+    {
+    Serial.println("----------------------------");
+    set_selector_valve_position_blocking(i);
+    check_selector_valve_position();
+    uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
+    Serial.println(uart_titan_rx_buffer);
+    }
 
 }
 
@@ -177,7 +186,7 @@ void loop() {
     {
 
       // set mode (pressure vs vacuum)
-      mode_pressure_vacuum = digitalRead(pin_pressure_vacuum);
+      mode_pressure_vacuum = digitalRead(pin_pressure_vacuum); // GND - vacuum; VCC - pressure
       if (mode_pressure_vacuum == 0 )
         set_mode_to_vacuum();
       else
@@ -192,13 +201,13 @@ void loop() {
         set_disc_pump_power(disc_pump_power);
         set_disc_pump_enabled(disc_pump_enabled);
         analogWrite(pin_LED_1, disc_pump_power);
-        analogWrite(pin_valve_C1, disc_pump_power);
-        analogWrite(pin_valve_C2, disc_pump_power);
+        //analogWrite(pin_valve_C1, disc_pump_power);
+        //analogWrite(pin_valve_C2, disc_pump_power);
         analogWrite(pin_valve_C3, disc_pump_power);
         analogWrite(pin_valve_C4, disc_pump_power);
         analogWrite(pin_valve_C5, disc_pump_power);
-        analogWrite(pin_valve_C6, disc_pump_power);
-        analogWrite(pin_valve_C7, disc_pump_power);
+        //analogWrite(pin_valve_C6, disc_pump_power);
+        //analogWrite(pin_valve_C7, disc_pump_power);
       }
       else
       {
@@ -207,13 +216,13 @@ void loop() {
         set_disc_pump_enabled(disc_pump_enabled);
         set_disc_pump_power(disc_pump_power);
         analogWrite(pin_LED_1, disc_pump_power);
-        analogWrite(pin_valve_C1, disc_pump_power);
-        analogWrite(pin_valve_C2, disc_pump_power);
+        //analogWrite(pin_valve_C1, disc_pump_power);
+        //analogWrite(pin_valve_C2, disc_pump_power);
         analogWrite(pin_valve_C3, disc_pump_power);
         analogWrite(pin_valve_C4, disc_pump_power);
         analogWrite(pin_valve_C5, disc_pump_power);
-        analogWrite(pin_valve_C6, disc_pump_power);
-        analogWrite(pin_valve_C7, disc_pump_power);
+        //analogWrite(pin_valve_C6, disc_pump_power);
+        //analogWrite(pin_valve_C7, disc_pump_power);
       }
     }
     flag_check_manual_inputs = false;
@@ -263,14 +272,29 @@ void set_check_manual_input_flag()
   flag_check_manual_inputs = true;
 }
 
+/************************************************
+******************** valving ********************
+************************************************/
+
 void set_mode_to_vacuum()
 {
   // set solenoid valve states
+  digitalWrite(pin_valve_C6,HIGH);
+  digitalWrite(pin_valve_C7,HIGH);
+
+  // for testing only, to be removed
+  set_selector_valve_position_blocking(2);
+  digitalWrite(pin_valve_C1,LOW);
 }
 
 void set_mode_to_pressure()
 {
   // set solenoid valve states
+  digitalWrite(pin_valve_C6,LOW);
+  digitalWrite(pin_valve_C7,LOW);
+
+  digitalWrite(pin_valve_C1,HIGH);
+  set_selector_valve_position_blocking(1);
 }
 
 /************************************************
