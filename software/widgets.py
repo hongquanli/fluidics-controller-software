@@ -109,26 +109,31 @@ class SequenceEntry(QWidget):
         super().__init__(*args, **kwargs)
         self.sequence_name = sequence_name
         self.port_name = port_name
-        self.add_components()
-
-    def add_components(self):
-        self.label = QLabel(self.sequence_name)
-        self.checkbox_run = QCheckBox('Include')
-        self.entry_flow_time = QDoubleSpinBox()
-        self.entry_incubation_time = QDoubleSpinBox()
-        self.entry_repeat = QSpinBox()
-
-        self.grid_layout = QGridLayout()
-        self.grid_layout.addWidget(self.label,0,0)
-        self.grid_layout.addWidget(self.checkbox_run,0,1)
-        self.grid_layout.addWidget(QLabel('Flow Time (s)'),0,2)
-        self.grid_layout.addWidget(self.entry_flow_time,0,3)
-        self.grid_layout.addWidget(QLabel('Incubation Time (s)'),0,4)
-        self.grid_layout.addWidget(self.entry_incubation_time,0,5)
-        self.grid_layout.addWidget(QLabel('Repeat'),0,6)
-        self.grid_layout.addWidget(self.entry_repeat,0,7)
-        self.setLayout(self.grid_layout)
-
+        '''
+        # using list 
+        self.attributes = []
+        self.attributes.append(QLabel(self.sequence_name))
+        self.attributes.append(QCheckBox('Include'))
+        self.attributes.append(QDoubleSpinBox())
+        self.attributes.append(QDoubleSpinBox()) # incubation_time
+        self.attributes.append(QSpinBox()) # repeat
+        '''
+        # using dictionary
+        self.attributes_key = SEQUENCE_ATTRIBUTES_KEYS
+        self.attributes = {}
+        self.attributes['Label'] = QLabel(self.sequence_name)
+        self.attributes['Include'] = QCheckBox()
+        self.attributes['Flow Time (s)'] = QDoubleSpinBox()
+        self.attributes['Flow Time (s)'].setMinimum(1)
+        self.attributes['Flow Time (s)'].setMaximum(FLOW_TIME_MAX)
+        self.attributes['Incubation Time (s)'] = QDoubleSpinBox()
+        self.attributes['Incubation Time (s)'].setMinimum(0)
+        self.attributes['Incubation Time (s)'].setMaximum(INCUBATION_TIME_MAX)
+        self.attributes['Repeat'] = QSpinBox()
+        self.attributes['Repeat'].setMinimum(1)
+        self.attributes['Repeat'].setMaximum(5)
+        # manually make sure the keys are included in SEQUENCE_ATTRIBUTES_KEYS
+        
 class SequenceWidget(QFrame):
 
     log_message = Signal(str)
@@ -151,6 +156,38 @@ class SequenceWidget(QFrame):
 
     def add_components(self):
 
+        tableWidget = QTableWidget(6,5,self)
+        tableWidget.setHorizontalHeaderLabels(SEQUENCE_ATTRIBUTES_KEYS)
+        
+        # create the sequences, set the attributes and add the sequences into the tabel
+        self.sequences = {}
+        for i in range(len(SEQUENCE_NAME)):
+            sequence_name = SEQUENCE_NAME[i]
+            self.sequences[sequence_name] = SequenceEntry(sequence_name)
+            # insert into the table
+            for j in range(len(SEQUENCE_ATTRIBUTES_KEYS)):
+                attribute_key = SEQUENCE_ATTRIBUTES_KEYS[j]
+                tableWidget.setCellWidget(i,j,self.sequences[sequence_name].attributes[attribute_key])
+            # tableWidget.setCellWidget(i,0,self.sequences[sequence_name].attributes['Label'])
+
+        '''
+        hbox = QHBoxLayout()
+        hbox.addWidget(tableWidget)
+        self.setLayout(hbox)
+        '''
+        
+        # button
+        self.button_run = QPushButton('Run Selected Sequences')
+
+        vbox = QVBoxLayout()
+        vbox.addWidget(tableWidget)
+        vbox.addWidget(self.button_run)
+        hbox = QHBoxLayout()
+        hbox.addWidget(QLabel('[Sequences]'))
+        hbox.addLayout(vbox)
+        self.setLayout(hbox)
+
+        '''
         self.sequenceEntry1 = SequenceEntry(sequence_name = 'Strip')
         self.sequenceEntry2 = SequenceEntry(sequence_name = 'Wash (Post-Strip)')
         self.sequenceEntry3 = SequenceEntry(sequence_name = 'Ligate')
@@ -175,6 +212,7 @@ class SequenceWidget(QFrame):
         hbox.addWidget(QLabel('[Sequences]'))
         hbox.addLayout(vbox)
         self.setLayout(hbox)
+        '''
 
         '''
         self.entry_port = QSpinBox()
