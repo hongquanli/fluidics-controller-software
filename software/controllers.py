@@ -184,6 +184,7 @@ class FluidController(QObject):
 	def __init__(self):
 		QObject.__init__(self)
 		self.fluid_controller = fluid_controller()
+		self.sequences_abort_requested = False
 
 	def prime_selector_valve_port(self,bypass,flow_rate_ul_per_s,valve_port):
 		status = self.fluid_controller.prime_selector_valve_port(bypass,flow_rate_ul_per_s,valve_port)
@@ -226,12 +227,21 @@ class FluidController(QObject):
 		self.log_message.emit(utils.timestamp() + status)
 		QApplication.processEvents()
 
+	def run_sequence(self,sequence_name,flow_time,incubation_time):
+		self.sequences_abort_requested = False
+		# incubation time - negative number means no removal
+		print(sequence_name + ' - flow time: ' + str(flow_time) + ' s, incubation time: ' + str(incubation_time) + ' s [negative number means no removal]')
+
+	def request_abort_sequences(self):
+		self.sequences_abort_requested = True
+
 class FluidController_simulation(QObject):
 	
 	log_message = Signal(str)
 
 	def __init__(self):
 		QObject.__init__(self)
+		self.sequences_abort_requested = False
 		
 	def prime_selector_valve_port(self,bypass,flow_rate_ul_per_s,valve_port):
 		status = 'completed'
@@ -262,6 +272,13 @@ class FluidController_simulation(QObject):
 		time.sleep
 		pass
 
+	def run_sequence(self,sequence_name,flow_time,incubation_time):
+		# incubation time - negative number means no removal
+		self.sequences_abort_requested = False
+		print(sequence_name + ' - flow time: ' + str(flow_time) + ' s, incubation time: ' + str(incubation_time) + ' s [negative number means no removal]')
+
+	def request_abort_sequences(self):
+		self.sequences_abort_requested = True
 
 class ExperimentController(QObject):
 

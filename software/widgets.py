@@ -122,16 +122,19 @@ class SequenceEntry(QWidget):
         self.attributes_key = SEQUENCE_ATTRIBUTES_KEYS
         self.attributes = {}
         self.attributes['Sequence'] = QLabel(self.sequence_name)
-        self.attributes['Include'] = QCheckBox()
+        self.attributes['Fluidic Port'] = QSpinBox()
+        self.attributes['Fluidic Port'].setMinimum(1) # 0: virtual port - does not care
+        self.attributes['Fluidic Port'].setMaximum(24)
         self.attributes['Flow Time (s)'] = QDoubleSpinBox()
-        self.attributes['Flow Time (s)'].setMinimum(1)
-        self.attributes['Flow Time (s)'].setMaximum(FLOW_TIME_MAX)
-        self.attributes['Incubation Time (s)'] = QDoubleSpinBox()
-        self.attributes['Incubation Time (s)'].setMinimum(0)
-        self.attributes['Incubation Time (s)'].setMaximum(INCUBATION_TIME_MAX)
+        self.attributes['Flow Time (s)'].setMinimum(0) # -1: no flow
+        self.attributes['Flow Time (s)'].setMaximum(FLOW_TIME_MAX) 
+        self.attributes['Incubation Time (min)'] = QDoubleSpinBox()
+        self.attributes['Incubation Time (min)'].setMinimum(0) # -1: no incubation
+        self.attributes['Incubation Time (min)'].setMaximum(INCUBATION_TIME_MAX_MIN)
         self.attributes['Repeat'] = QSpinBox()
         self.attributes['Repeat'].setMinimum(1)
         self.attributes['Repeat'].setMaximum(5)
+        self.attributes['Include'] = QCheckBox()
         # manually make sure the keys are included in SEQUENCE_ATTRIBUTES_KEYS
         
 class SequenceWidget(QFrame):
@@ -141,22 +144,13 @@ class SequenceWidget(QFrame):
     def __init__(self, fluidController, main=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fluidController = fluidController
+        self.abort_requested = False
         self.add_components()
         self.setFrameStyle(QFrame.Panel | QFrame.Raised)
 
-    # sequences
-    '''
-    1. strip - volume (time) [1.2 ml] - wait time - number of times [2]
-    2. wash (post-strip) - volume (time) [1.2 ml] - wait time - number of cycles [3]
-    3. sequencing mixture - all available - wait time
-    4. wash (post ligation) - volume (time) - wait time - number of cycles [3]
-    4. imaging buffer - volume (time) [1.2 ml]
-    5. DAPI - volume (time) [1.2 ml] - wait time
-    '''
-
     def add_components(self):
 
-        tableWidget = QTableWidget(6,5,self)
+        tableWidget = QTableWidget(len(SEQUENCE_NAME),len(SEQUENCE_ATTRIBUTES_KEYS),self)
         tableWidget.setHorizontalHeaderLabels(SEQUENCE_ATTRIBUTES_KEYS)
         
         # create the sequences, set the attributes and add the sequences into the tabel
@@ -164,11 +158,60 @@ class SequenceWidget(QFrame):
         for i in range(len(SEQUENCE_NAME)):
             sequence_name = SEQUENCE_NAME[i]
             self.sequences[sequence_name] = SequenceEntry(sequence_name)
-            # insert into the table
+            # insert attributes of the current sequence into the table
             for j in range(len(SEQUENCE_ATTRIBUTES_KEYS)):
                 attribute_key = SEQUENCE_ATTRIBUTES_KEYS[j]
                 tableWidget.setCellWidget(i,j,self.sequences[sequence_name].attributes[attribute_key])
             # tableWidget.setCellWidget(i,0,self.sequences[sequence_name].attributes['Label'])
+
+        # set sequence-specific attributes
+        self.sequences['Add Imaging Buffer'].attributes['Incubation Time (min)'].setMinimum(-1)
+        self.sequences['Add Imaging Buffer'].attributes['Incubation Time (min)'].setValue(-1)
+        self.sequences['Remove Imaging Buffer'].attributes['Flow Time (s)'].setMinimum(-1)
+        self.sequences['Remove Imaging Buffer'].attributes['Flow Time (s)'].setValue(-1)
+        self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setMinimum(-1)
+        self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setValue(-1)
+        self.sequences['Add Imaging Buffer'].attributes['Incubation Time (min)'].setEnabled(False)
+        self.sequences['Remove Imaging Buffer'].attributes['Flow Time (s)'].setEnabled(False)
+        self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setEnabled(False)
+        self.sequences['Ligate'].attributes['Repeat'].setEnabled(False)
+        self.sequences['Add Imaging Buffer'].attributes['Repeat'].setEnabled(False)
+        self.sequences['Remove Imaging Buffer'].attributes['Repeat'].setEnabled(False)
+        self.sequences['Remove Imaging Buffer'].attributes['Incubation Time (min)'].setEnabled(False)
+        self.sequences['Stain with DAPI'].attributes['Repeat'].setEnabled(False)
+        self.sequences['Remove Imaging Buffer'].attributes['Fluidic Port'].setMinimum(0)
+        self.sequences['Remove Imaging Buffer'].attributes['Fluidic Port'].setValue(0)
+        self.sequences['Remove Imaging Buffer'].attributes['Fluidic Port'].setEnabled(False)
+
+        '''
+        # changed to disable instead of no buttons
+        self.sequences['Ligate'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
+        self.sequences['Add Imaging Buffer'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
+        self.sequences['Remove Imaging Buffer'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
+        self.sequences['Stain with DAPI'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
+        '''
+
+        # (temporary) set sequence-specific attributes - to do: load from file
+        self.sequences['Strip'].attributes['Repeat'].setValue(2)
+        self.sequences['Strip'].attributes['Incubation Time (min)'].setValue(600/60)
+        self.sequences['Wash (Post-Strip)'].attributes['Repeat'].setValue(3)
+        self.sequences['Wash (Post-Strip)'].attributes['Incubation Time (min)'].setValue(300/60)
+        self.sequences['Ligate'].attributes['Incubation Time (min)'].setValue(3600*3/60)
+        self.sequences['Wash (Post-Ligation)'].attributes['Repeat'].setValue(3)
+        self.sequences['Wash (Post-Ligation)'].attributes['Incubation Time (min)'].setValue(600/60)
+
+        # (temporary) port mapping - to be done through _def.py
+        self.sequences['Strip'].attributes['Fluidic Port'].setValue(10)
+        self.sequences['Strip'].attributes['Fluidic Port'].setEnabled(False)
+        self.sequences['Wash (Post-Strip)'].attributes['Fluidic Port'].setValue(8)
+        self.sequences['Wash (Post-Strip)'].attributes['Fluidic Port'].setEnabled(False)
+        self.sequences['Wash (Post-Ligation)'].attributes['Fluidic Port'].setValue(9)
+        self.sequences['Wash (Post-Ligation)'].attributes['Fluidic Port'].setEnabled(False)
+        self.sequences['Add Imaging Buffer'].attributes['Fluidic Port'].setValue(9)
+        self.sequences['Add Imaging Buffer'].attributes['Fluidic Port'].setEnabled(False)
+        self.sequences['Stain with DAPI'].attributes['Fluidic Port'].setValue(6)
+        self.sequences['Stain with DAPI'].attributes['Fluidic Port'].setEnabled(False)
+        self.sequences['Ligate'].attributes['Fluidic Port'].setMaximum(4)
 
         # set table size
         tableWidget.resizeColumnsToContents()
@@ -177,125 +220,78 @@ class SequenceWidget(QFrame):
                    tableWidget.horizontalHeader().height())
 
         # button
-        self.button_run = QPushButton('Run Selected Sequences')
         self.button_save = QPushButton('Save Sequence Setttings')
         self.button_load = QPushButton('Load Sequence Setttings')
+        self.button_run = QPushButton('Run Selected Sequences')
+        self.button_stop = QPushButton('Abort')
 
         vbox = QVBoxLayout()
         vbox.addWidget(tableWidget)
-        '''
-        vbox.addWidget(self.button_run)
-        grid_save_load_btns = QGridLayout()
-        grid_save_load_btns.addWidget(self.button_save,0,0)
-        grid_save_load_btns.addWidget(self.button_load,0,1)
-        vbox.addLayout(grid_save_load_btns)
-        '''
         grid_btns = QGridLayout()
-        grid_btns.addWidget(self.button_run,0,0,1,2)
-        grid_btns.addWidget(self.button_save,1,0)
-        grid_btns.addWidget(self.button_load,1,1)
+        # grid_btns.addWidget(self.button_run,0,0,1,2)
+        grid_btns.addWidget(self.button_save,0,0)
+        grid_btns.addWidget(self.button_load,0,1)
+        # grid_btns.addWidget(self.button_run,1,0,1,2)
+        grid_btns.addWidget(self.button_run,1,0)
+        grid_btns.addWidget(self.button_stop,1,1)
         vbox.addLayout(grid_btns)
         self.setLayout(vbox)
 
-        '''
-        self.sequenceEntry1 = SequenceEntry(sequence_name = 'Strip')
-        self.sequenceEntry2 = SequenceEntry(sequence_name = 'Wash (Post-Strip)')
-        self.sequenceEntry3 = SequenceEntry(sequence_name = 'Ligate')
-        self.sequenceEntry4 = SequenceEntry(sequence_name = 'Wash (Post-Ligation')
-        self.sequenceEntry5 = SequenceEntry(sequence_name = 'Add Imaging Buffer')
-        self.sequenceEntry6 = SequenceEntry(sequence_name = 'Stain with DAPI')
+        # make connections
+        self.button_run.clicked.connect(self.run_sequences)
+        self.button_stop.clicked.connect(self.stop_sequence)
+        #self.button_stop.setEnabled(False) # the current implementation of run_sequences is blocking, yet abort is possible through a flag in FluidController. Actually the flag can be in the widget. Maybe use in both places, so that for example, wait can be aborted
+        self.button_save.setEnabled(False) # saving settings to be implemented, disable the button for now
+        self.button_load.setEnabled(False) # loading settings to be implemented, disable the button for now
 
-        self.button_run = QPushButton('Run Selected Sequences')
-
-        grid_layout = QGridLayout()
-        grid_layout.addWidget(self.sequenceEntry1,0,0)
-        grid_layout.addWidget(self.sequenceEntry2,1,0)
-        grid_layout.addWidget(self.sequenceEntry3,2,0)
-        grid_layout.addWidget(self.sequenceEntry4,3,0)
-        grid_layout.addWidget(self.sequenceEntry5,4,0)
-        grid_layout.addWidget(self.sequenceEntry6,5,0)
-
-        vbox = QVBoxLayout()
-        vbox.addLayout(grid_layout)
-        vbox.addWidget(self.button_run)
-        hbox = QHBoxLayout()
-        hbox.addWidget(QLabel('[Sequences]'))
-        hbox.addLayout(vbox)
-        self.setLayout(hbox)
-        '''
-
-        '''
-        self.entry_port = QSpinBox()
-        self.entry_port.setMinimum(0) 
-        self.entry_port.setMaximum(20) 
-        self.entry_port.setSingleStep(1)
-        self.entry_port.setValue(1)
-
-        self.entry_volume_ul = QDoubleSpinBox()
-        self.entry_volume_ul.setMinimum(0)
-        self.entry_volume_ul.setMaximum(1000) 
-        self.entry_volume_ul.setSingleStep(5)
-        self.entry_volume_ul.setValue(50)
-
-        self.entry_flowrate_ul_per_s = QDoubleSpinBox()
-        self.entry_flowrate_ul_per_s.setMinimum(0) 
-        self.entry_flowrate_ul_per_s.setMaximum(35) 
-        self.entry_flowrate_ul_per_s.setSingleStep(0.1)
-        self.entry_flowrate_ul_per_s.setValue(1)
-
-        self.checkbox_bypass = QCheckBox('bypass')
-
-        self.button_flow_fluid = QPushButton('Flow Fluid')
-        self.button_flow_fluid.clicked.connect(self.flow_fluid)
-        
-        hbox = QHBoxLayout() 
-        hbox.addWidget(QLabel('[Sequences]'))
-        hbox.addWidget(QLabel('Port'))
-        hbox.addWidget(self.entry_port)
-        hbox.addWidget(QLabel('Volume (uL)'))
-        hbox.addWidget(self.entry_volume_ul)
-        hbox.addWidget(QLabel('Flowrate (uL/s)'))
-        hbox.addWidget(self.entry_flowrate_ul_per_s)
-        hbox.addWidget(self.checkbox_bypass)
-        hbox.addWidget(self.button_flow_fluid)
-        self.setLayout(hbox)
-        '''
-
-    def flow_fluid(self):
-        pass
-        '''
-        if self.checkbox_bypass.isChecked() == True:
-            bypass = BYPASS.TRUE
-            flow_through = 'by pass'
-        else:
-            bypass = BYPASS.FALSE
-            flow_through = 'flow cell'
-        volume_ul = self.entry_volume_ul.value()
-        flowrate_ul_per_s = self.entry_flowrate_ul_per_s.value()
-        port = self.entry_port.value()
-
-
+    def run_sequences(self):
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Information)
-
         msg.setText("Confirm your action")
-        msg.setInformativeText("Click OK to flow " + str(volume_ul) + " ul from port " + str(port) + " through " + flow_through + ", which will take " + "{:.1f}".format(volume_ul/flowrate_ul_per_s/60) + " min." )
+        msg.setInformativeText("Click OK to run the selected sequences")
         msg.setWindowTitle("Confirmation")
         msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
         msg.setDefaultButton(QMessageBox.Cancel)
-    
+
         retval = msg.exec_()
         if QMessageBox.Ok == retval:
-            self.log_message.emit(utils.timestamp() + 'flow ' + str(volume_ul) + ' ul buffer from port ' + str(port) + ' through ' + flow_through + ' at ' + str(flowrate_ul_per_s) + ' ul/s.')
-            QApplication.processEvents()
-            self.fluidController.flow(volume_ul,flowrate_ul_per_s,port,bypass)
-            self.log_message.emit(utils.timestamp() + 'swith flow path to bypass to prevent fluid from continuing to flow into the flow cell due to capilary action.')
-            QApplication.processEvents()
-            self.fluidController.switch_flow_path_to_bypass()
+            self.abort_requested = False
+            # go through sequences and execute *selected* sequences
+            for i in range(len(SEQUENCE_NAME)):
+                current_sequence = self.sequences[SEQUENCE_NAME[i]]
+                if current_sequence.attributes['Include'].isChecked() == True:
+                    for k in range(current_sequence.attributes['Repeat'].value()):
+                        if self.abort_requested == False:
+                            self.log_message.emit(utils.timestamp() + 'Execute ' + SEQUENCE_NAME[i] + ', round ' + str(k+1))
+                            QApplication.processEvents()
+                            # let the backend fluidController execute the sequence
+                            self.fluidController.run_sequence(SEQUENCE_NAME[i],
+                                current_sequence.attributes['Flow Time (s)'].value(),
+                                current_sequence.attributes['Incubation Time (min)'].value())
+                        else:
+                            self.log_message.emit(utils.timestamp() + '! ' + SEQUENCE_NAME[i] + ', round ' + str(k+1) + ' aborted')
+                            QApplication.processEvents()
         else:
             self.log_message.emit(utils.timestamp() + 'no action.')
             QApplication.processEvents()
-    '''
+
+    def stop_sequence(self):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText("Confirm your action")
+        msg.setInformativeText("Click Abort to stop advancing to the next sequence")
+        msg.setWindowTitle("Confirmation")
+        msg.setStandardButtons(QMessageBox.Abort | QMessageBox.Cancel)
+        msg.setDefaultButton(QMessageBox.Cancel)
+        retval = msg.exec_()
+        if QMessageBox.Abort == retval:
+            self.abort_requested = True
+            self.fluidController.request_abort_sequences()
+            self.log_message.emit(utils.timestamp() + 'Abort requested')
+            QApplication.processEvents()
+        else:
+            pass
+
 
 class ManualFlushWidget(QFrame):
 
