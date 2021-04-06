@@ -83,29 +83,6 @@ class PreUseCheckWidget(QFrame):
         self.button_preuse_check.setChecked(False)
         QApplication.processEvents()
 
-class CoverGlassLoadingWidget(QFrame):
-
-    log_message = Signal(str)
-
-    def __init__(self, fluidController, main=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fluidController = fluidController
-        self.add_components()
-        self.setFrameStyle(QFrame.Panel | QFrame.Raised)
-
-    def add_components(self):
-        self.button_prepare_for_sample_loading = QPushButton('Prefill the Flow Cell Inlet Tubing')
-        self.button_prepare_for_sample_loading.clicked.connect(self.prepare_for_sample_loading)
-        hbox = QHBoxLayout() 
-        hbox.addWidget(QLabel('[Sample Loading]'))
-        hbox.addWidget(self.button_prepare_for_sample_loading)
-        self.setLayout(hbox)
-
-    def prepare_for_sample_loading(self,pressed):
-        self.log_message.emit(utils.timestamp() + 'prefill the flow cell inlet tubing for sample loading.')
-        QApplication.processEvents()
-        self.fluidController.prepare_for_sample_loading()
-
 
 class TriggerWidget(QFrame):
 
@@ -127,7 +104,32 @@ class TriggerWidget(QFrame):
         #if pressed:
         self.triggerController.send_trigger()
 
-class ManualFlowWidget(QFrame):
+class SequenceEntry(QWidget):
+    def __init__(self, sequence_name = None, port_name = None, main=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.sequence_name = sequence_name
+        self.port_name = port_name
+        self.add_components()
+
+    def add_components(self):
+        self.label = QLabel(self.sequence_name)
+        self.checkbox_run = QCheckBox('Include')
+        self.entry_flow_time = QDoubleSpinBox()
+        self.entry_incubation_time = QDoubleSpinBox()
+        self.entry_repeat = QSpinBox()
+
+        self.grid_layout = QGridLayout()
+        self.grid_layout.addWidget(self.label,0,0)
+        self.grid_layout.addWidget(self.checkbox_run,0,1)
+        self.grid_layout.addWidget(QLabel('Flow Time (s)'),0,2)
+        self.grid_layout.addWidget(self.entry_flow_time,0,3)
+        self.grid_layout.addWidget(QLabel('Incubation Time (s)'),0,4)
+        self.grid_layout.addWidget(self.entry_incubation_time,0,5)
+        self.grid_layout.addWidget(QLabel('Repeat'),0,6)
+        self.grid_layout.addWidget(self.entry_repeat,0,7)
+        self.setLayout(self.grid_layout)
+
+class SequenceWidget(QFrame):
 
     log_message = Signal(str)
 
@@ -137,7 +139,44 @@ class ManualFlowWidget(QFrame):
         self.add_components()
         self.setFrameStyle(QFrame.Panel | QFrame.Raised)
 
+    # sequences
+    '''
+    1. strip - volume (time) [1.2 ml] - wait time - number of times [2]
+    2. wash (post-strip) - volume (time) [1.2 ml] - wait time - number of cycles [3]
+    3. sequencing mixture - all available - wait time
+    4. wash (post ligation) - volume (time) - wait time - number of cycles [3]
+    4. imaging buffer - volume (time) [1.2 ml]
+    5. DAPI - volume (time) [1.2 ml] - wait time
+    '''
+
     def add_components(self):
+
+        self.sequenceEntry1 = SequenceEntry(sequence_name = 'Strip')
+        self.sequenceEntry2 = SequenceEntry(sequence_name = 'Wash (Post-Strip)')
+        self.sequenceEntry3 = SequenceEntry(sequence_name = 'Ligate')
+        self.sequenceEntry4 = SequenceEntry(sequence_name = 'Wash (Post-Ligation')
+        self.sequenceEntry5 = SequenceEntry(sequence_name = 'Add Imaging Buffer')
+        self.sequenceEntry6 = SequenceEntry(sequence_name = 'Stain with DAPI')
+
+        self.button_run = QPushButton('Run Selected Sequences')
+
+        grid_layout = QGridLayout()
+        grid_layout.addWidget(self.sequenceEntry1,0,0)
+        grid_layout.addWidget(self.sequenceEntry2,1,0)
+        grid_layout.addWidget(self.sequenceEntry3,2,0)
+        grid_layout.addWidget(self.sequenceEntry4,3,0)
+        grid_layout.addWidget(self.sequenceEntry5,4,0)
+        grid_layout.addWidget(self.sequenceEntry6,5,0)
+
+        vbox = QVBoxLayout()
+        vbox.addLayout(grid_layout)
+        vbox.addWidget(self.button_run)
+        hbox = QHBoxLayout()
+        hbox.addWidget(QLabel('[Sequences]'))
+        hbox.addLayout(vbox)
+        self.setLayout(hbox)
+
+        '''
         self.entry_port = QSpinBox()
         self.entry_port.setMinimum(0) 
         self.entry_port.setMaximum(20) 
@@ -172,8 +211,11 @@ class ManualFlowWidget(QFrame):
         hbox.addWidget(self.checkbox_bypass)
         hbox.addWidget(self.button_flow_fluid)
         self.setLayout(hbox)
+        '''
 
     def flow_fluid(self):
+        pass
+        '''
         if self.checkbox_bypass.isChecked() == True:
             bypass = BYPASS.TRUE
             flow_through = 'by pass'
@@ -205,6 +247,7 @@ class ManualFlowWidget(QFrame):
         else:
             self.log_message.emit(utils.timestamp() + 'no action.')
             QApplication.processEvents()
+    '''
 
 class ManualFlushWidget(QFrame):
 
