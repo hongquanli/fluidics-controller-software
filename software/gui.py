@@ -21,7 +21,10 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		# self.triggerController = controllers.TriggerController()
 		# self.triggerController = controllers.TriggerController_simulation()
 		#elf.fluidController = controllers.FluidController()
-		self.fluidController = controllers.FluidController_simulation()
+
+		# self.teensy41 = controllers.Microcontroller()
+		self.teensy41 = controllers.Microcontroller_Simulation()
+		self.fluidController = controllers.FluidController(self.teensy41)
 		self.logger = controllers.Logger()
 
 		# load widgets

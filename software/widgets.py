@@ -268,9 +268,13 @@ class SequenceWidget(QFrame):
                         if self.abort_requested == False:
                             self.log_message.emit(utils.timestamp() + 'Execute ' + SEQUENCE_NAME[i] + ', round ' + str(k+1))
                             QApplication.processEvents()
-                            # let the backend fluidController execute the sequence
-                            self.fluidController.run_sequence(SEQUENCE_NAME[i],
+                            ################################################################
+                            ##### let the backend fluidController execute the sequence #####
+                            ################################################################
+                            self.fluidController.run_sequence(
+                                SEQUENCE_NAME[i],
                                 current_sequence.attributes['Flow Time (s)'].value(),
+                                current_sequence.attributes['Fluidic Port'].value(),
                                 current_sequence.attributes['Incubation Time (min)'].value())
                         else:
                             self.log_message.emit(utils.timestamp() + '! ' + SEQUENCE_NAME[i] + ', round ' + str(k+1) + ' aborted')
