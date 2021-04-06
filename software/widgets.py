@@ -121,7 +121,7 @@ class SequenceEntry(QWidget):
         # using dictionary
         self.attributes_key = SEQUENCE_ATTRIBUTES_KEYS
         self.attributes = {}
-        self.attributes['Label'] = QLabel(self.sequence_name)
+        self.attributes['Sequence'] = QLabel(self.sequence_name)
         self.attributes['Include'] = QCheckBox()
         self.attributes['Flow Time (s)'] = QDoubleSpinBox()
         self.attributes['Flow Time (s)'].setMinimum(1)
