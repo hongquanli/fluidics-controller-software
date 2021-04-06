@@ -170,18 +170,17 @@ class SequenceWidget(QFrame):
                 tableWidget.setCellWidget(i,j,self.sequences[sequence_name].attributes[attribute_key])
             # tableWidget.setCellWidget(i,0,self.sequences[sequence_name].attributes['Label'])
 
-        '''
-        hbox = QHBoxLayout()
-        hbox.addWidget(tableWidget)
-        self.setLayout(hbox)
-        '''
+        # set table size
+        tableWidget.resizeColumnsToContents()
+        tableWidget.setFixedSize(tableWidget.horizontalHeader().length() + 
+                   tableWidget.verticalHeader().width(),tableWidget.verticalHeader().length() + 
+                   tableWidget.horizontalHeader().height())
 
         # button
         self.button_run = QPushButton('Run Selected Sequences')
         self.button_save = QPushButton('Save Sequence Setttings')
         self.button_load = QPushButton('Load Sequence Setttings')
 
-        
         vbox = QVBoxLayout()
         vbox.addWidget(tableWidget)
         '''
