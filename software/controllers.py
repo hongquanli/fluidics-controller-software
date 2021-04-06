@@ -107,13 +107,6 @@ class TriggerController_simulation(QObject):
 fluid control
 '''
 
-def _convert_volume_to_steps(volume):
-	return 
-def _convert_speed_to_4steps(flow_rate_ul_per_s):
-	return 
-def _convert_to_hex_string(number):
-	return format(number,'02X')
-
 class fluid_controller(object):
 	def __init__(self):
 		controller_ports = [
