@@ -32,7 +32,8 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		self.sequenceWidget = widgets.SequenceWidget(self.fluidController)
 		self.manualFlushWidget = widgets.ManualFlushWidget(self.fluidController)
 
-		# layout widgets
+		# layout widgets (linear)
+		'''
 		layout = QGridLayout()
 		layout.addWidget(QLabel('Chiller'),0,0)
 		layout.addWidget(self.chillerWidger,0,1)
@@ -44,6 +45,37 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		layout.addWidget(QLabel('Manual Flush'),9,0) # (End of Experiment)
 		layout.addWidget(self.manualFlushWidget,9,1)
 		layout.addWidget(self.logWidget,10,0,1,2)
+		'''
+
+		# layout widgets (using tabs)  - start
+		tab1_layout = QGridLayout()
+		tab1_layout.addWidget(QLabel('Chiller'),0,0)
+		tab1_layout.addWidget(self.chillerWidger,0,1)
+		tab1_layout.addWidget(QLabel('Pre-Use Check'),1,0)
+		tab1_layout.addWidget(self.preUseCheckWidget,1,1)
+		tab1_layout.addWidget(QLabel('Sequences'),4,0)
+		tab1_layout.addWidget(self.sequenceWidget,4,1)
+		tab1_widget = QWidget()
+		
+		tab1_widget.setLayout(tab1_layout)
+		tab2_widget = QWidget()
+
+		tabWidget = QTabWidget()
+		tabWidget.addTab(tab1_widget, "Run Experiments")
+		tabWidget.addTab(tab2_widget, "Manual Control")
+
+		layout = QGridLayout()
+		layout.addWidget(tabWidget,0,0)
+		# layout.addWidget(self.logWidget,1,0)
+		# @@@ the code below is to put the ListWidget into a frame - code to be improved -  well it doesn't work
+		#self.framedLogWidget = QFrame()
+		#framedLogWidget_layout = QHBoxLayout() 
+		#framedLogWidget_layout.addWidget(self.logWidget)
+		#framedLogWidget_layout.addWidget(QLabel('test')
+		#self.framedLogWidget.setLayout(framedLogWidget_layout)
+		#layout.addWidget(self.framedLogWidget,1,0)
+		layout.addWidget(self.logWidget,1,0)
+		# layout widgets (using tabs)  - end
 
 		# connecting signals to slots
 		self.chillerWidger.log_message.connect(self.logWidget.addItem)
