@@ -67,14 +67,14 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		layout = QGridLayout()
 		layout.addWidget(tabWidget,0,0)
 		# layout.addWidget(self.logWidget,1,0)
-		# @@@ the code below is to put the ListWidget into a frame - code to be improved -  well it doesn't work
-		#self.framedLogWidget = QFrame()
-		#framedLogWidget_layout = QHBoxLayout() 
-		#framedLogWidget_layout.addWidget(self.logWidget)
-		#framedLogWidget_layout.addWidget(QLabel('test')
-		#self.framedLogWidget.setLayout(framedLogWidget_layout)
-		#layout.addWidget(self.framedLogWidget,1,0)
-		layout.addWidget(self.logWidget,1,0)
+		# @@@ the code below is to put the ListWidget into a frame - code may be improved
+		self.framedLogWidget = QFrame()
+		framedLogWidget_layout = QHBoxLayout() 
+		framedLogWidget_layout.addWidget(self.logWidget)
+		self.framedLogWidget.setLayout(framedLogWidget_layout)
+		self.framedLogWidget.setFrameStyle(QFrame.Panel | QFrame.Raised)
+		layout.addWidget(self.framedLogWidget,1,0)
+		#layout.addWidget(self.logWidget,1,0)
 		# layout widgets (using tabs)  - end
 
 		# connecting signals to slots
