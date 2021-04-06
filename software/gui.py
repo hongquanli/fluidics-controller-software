@@ -60,12 +60,13 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		tab1_widget.setLayout(tab1_layout)
 		tab2_widget = QWidget()
 
-		tabWidget = QTabWidget()
-		tabWidget.addTab(tab1_widget, "Run Experiments")
-		tabWidget.addTab(tab2_widget, "Manual Control")
+		self.tabWidget = QTabWidget()
+		self.tabWidget.addTab(tab1_widget, "Run Experiments")
+		self.tabWidget.addTab(tab2_widget, "Manual Control")
+		
 
 		layout = QGridLayout()
-		layout.addWidget(tabWidget,0,0)
+		layout.addWidget(self.tabWidget,0,0)
 		# layout.addWidget(self.logWidget,1,0)
 		# @@@ the code below is to put the ListWidget into a frame - code may be improved
 		self.framedLogWidget = QFrame()
@@ -98,11 +99,20 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		# self.triggerController.log_message.connect(self.logger.log)
 		self.sequenceWidget.log_message.connect(self.logger.log)
 		self.manualFlushWidget.log_message.connect(self.logger.log)
+
+		self.sequenceWidget.signal_disable_manualControlWidget.connect(self.disableManualControlWidget)
+		self.sequenceWidget.signal_enable_manualControlWidget.connect(self.enableManualControlWidget)
 		
 		# transfer the layout to the central widget
 		self.centralWidget = QWidget()
 		self.centralWidget.setLayout(layout)
 		self.setCentralWidget(self.centralWidget)
+
+	def disableManualControlWidget(self):
+		self.tabWidget.setTabEnabled(1,False)
+
+	def enableManualControlWidget(self):
+		self.tabWidget.setTabEnabled(1,True)
 
 	def closeEvent(self, event):
 		event.accept()

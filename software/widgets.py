@@ -140,6 +140,8 @@ class SequenceEntry(QWidget):
 class SequenceWidget(QFrame):
 
     log_message = Signal(str)
+    signal_disable_manualControlWidget = Signal()
+    signal_enable_manualControlWidget = Signal()
 
     def __init__(self, fluidController, main=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -240,6 +242,7 @@ class SequenceWidget(QFrame):
         # make connections
         self.button_run.clicked.connect(self.run_sequences)
         self.button_stop.clicked.connect(self.stop_sequence)
+        # @@@ need to make sure button_stop is still clickable while self.run_sequences() is being executed
         #self.button_stop.setEnabled(False) # the current implementation of run_sequences is blocking, yet abort is possible through a flag in FluidController. Actually the flag can be in the widget. Maybe use in both places, so that for example, wait can be aborted
         self.button_save.setEnabled(False) # saving settings to be implemented, disable the button for now
         self.button_load.setEnabled(False) # loading settings to be implemented, disable the button for now
@@ -256,6 +259,7 @@ class SequenceWidget(QFrame):
         retval = msg.exec_()
         if QMessageBox.Ok == retval:
             self.abort_requested = False
+            self.signal_disable_manualControlWidget.emit()
             # go through sequences and execute *selected* sequences
             for i in range(len(SEQUENCE_NAME)):
                 current_sequence = self.sequences[SEQUENCE_NAME[i]]
@@ -271,6 +275,7 @@ class SequenceWidget(QFrame):
                         else:
                             self.log_message.emit(utils.timestamp() + '! ' + SEQUENCE_NAME[i] + ', round ' + str(k+1) + ' aborted')
                             QApplication.processEvents()
+            self.signal_enable_manualControlWidget.emit()
         else:
             self.log_message.emit(utils.timestamp() + 'no action.')
             QApplication.processEvents()
