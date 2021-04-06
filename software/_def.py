@@ -7,6 +7,59 @@ FLOW_TIME_MAX = 60
 SEQUENCE_ATTRIBUTES_KEYS = ['Sequence','Fluidic Port','Flow Time (s)','Incubation Time (min)','Repeat','Include']
 SEQUENCE_NAME = ['Strip','Wash (Post-Strip)','Ligate','Wash (Post-Ligation)','Add Imaging Buffer','Remove Imaging Buffer','Stain with DAPI']
 
+TIMER_CHECK_MCU_STATE_INTERVAL_MS = 10
+
+# MCU
+MCU_CMD_LENGTH = 10
+MCU_MSG_LENGTH = 20
+
+# MCU - COMPUTER
+T_DIFF_COMPUTER_MCU_MISMATCH_FAULT_THRESHOLD_SECONDS = 3
+
+
+# computer to MCU cmd
+C2M_CLEAR = 0
+
+'''
+
+
+#########################################################
+#########   MCU -> Computer message structure   #########
+#########################################################
+byte 0-1	: computer -> MCU CMD counter (UID)
+byte 2  	: cmd from host computer (error checking through check sum => no need to transmit back the parameters associated with the command)
+		  	<see below for command set>
+byte 3  	: status of the command
+				- 0: in progress
+				- 1: completed without errors
+				- 2: error during execution
+				- 3: error in receiving the cmd (checksum mismatch)
+byte 4  	: MCU internal program being executed
+				- 0: idle
+			  	<see below for command set>
+byte 5  	: state of valve A1,A2,B1,B2,bubble_sensor_1,bubble_sensor_2,x,x
+byte 6  	: state of valve C1-C7, manual input bit
+byte 7-8	: pump power
+byte 9-10	: pressure sensor 1 reading
+byte 11-12	: pressure sensor 2 reading
+byte 13-14	: flow sensor 1 reading
+byte 15-16	: flow sensor 2 reading
+byte 17-19	: reserved
+
+#########################################################
+#########   Computer -> MCU command structure   #########
+#########################################################
+byte 0-1	: computer -> MCU CMD counter
+byte 2		: cmd from host computer
+byte 3-4	: payload 1
+byte 5-6	: payload 2
+byte 7-9	: reserved (including checksum)
+
+
+
+'''
+
+
 # sequences
 '''
 1. strip - volume (time) [1.2 ml] - wait time - number of times [2]
