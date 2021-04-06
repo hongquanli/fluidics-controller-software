@@ -34,12 +34,16 @@ class STARmapAutomationControllerGUI(QMainWindow):
 
 		# layout widgets
 		layout = QGridLayout()
-		layout.addWidget(self.chillerWidger,0,0)
-		layout.addWidget(self.preUseCheckWidget,1,0)
-		layout.addWidget(self.sequenceWidget,4,0)
+		layout.addWidget(QLabel('Chiller'),0,0)
+		layout.addWidget(self.chillerWidger,0,1)
+		layout.addWidget(QLabel('Pre-Use Check'),1,0)
+		layout.addWidget(self.preUseCheckWidget,1,1)
+		layout.addWidget(QLabel('Sequences'),4,0)
+		layout.addWidget(self.sequenceWidget,4,1)
 		# layout.addWidget(self.triggerWidget,8,0)
-		layout.addWidget(self.manualFlushWidget,9,0)
-		layout.addWidget(self.logWidget,10,0)
+		layout.addWidget(QLabel('Manual Flush'),9,0) # (End of Experiment)
+		layout.addWidget(self.manualFlushWidget,9,1)
+		layout.addWidget(self.logWidget,10,0,1,2)
 
 		# connecting signals to slots
 		self.chillerWidger.log_message.connect(self.logWidget.addItem)

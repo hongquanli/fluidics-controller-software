@@ -66,7 +66,7 @@ class PreUseCheckWidget(QFrame):
         vbox.addWidget(self.button_preuse_check)
 
         hbox = QHBoxLayout()
-        hbox.addWidget(QLabel('[Pre-use Check]]'))
+        # hbox.addWidget(QLabel('[Pre-use Check]]'))
         hbox.addLayout(vbox)
 
         self.setLayout(hbox)
@@ -175,7 +175,7 @@ class SequenceWidget(QFrame):
         hbox.addWidget(tableWidget)
         self.setLayout(hbox)
         '''
-        
+
         # button
         self.button_run = QPushButton('Run Selected Sequences')
 
@@ -183,7 +183,7 @@ class SequenceWidget(QFrame):
         vbox.addWidget(tableWidget)
         vbox.addWidget(self.button_run)
         hbox = QHBoxLayout()
-        hbox.addWidget(QLabel('[Sequences]'))
+        # hbox.addWidget(QLabel('[Sequences]'))
         hbox.addLayout(vbox)
         self.setLayout(hbox)
 
@@ -317,7 +317,7 @@ class ManualFlushWidget(QFrame):
         self.button_bleach.clicked.connect(self.bleach)
         
         hbox = QHBoxLayout() 
-        hbox.addWidget(QLabel('[Manual Bleach]'))
+        # hbox.addWidget(QLabel('[Manual Bleach]'))
         hbox.addWidget(QLabel('Volume (uL)'))
         hbox.addWidget(self.entry_volume_ul)
         hbox.addWidget(QLabel('Flowrate (uL/s)'))
@@ -381,7 +381,7 @@ class ChillerWidget(QFrame):
         self.button_check_temp.clicked.connect(self.check_chiller_temperature)
         
         hbox = QHBoxLayout() 
-        hbox.addWidget(QLabel('[Chiller]'))
+        # hbox.addWidget(QLabel('[Chiller]'))
         hbox.addWidget(QLabel('Temperature (degree C)'))
         hbox.addWidget(self.entry_temperature)
         hbox.addWidget(self.button_set_temp)
