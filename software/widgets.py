@@ -178,14 +178,25 @@ class SequenceWidget(QFrame):
 
         # button
         self.button_run = QPushButton('Run Selected Sequences')
+        self.button_save = QPushButton('Save Sequence Setttings')
+        self.button_load = QPushButton('Load Sequence Setttings')
 
+        
         vbox = QVBoxLayout()
         vbox.addWidget(tableWidget)
+        '''
         vbox.addWidget(self.button_run)
-        hbox = QHBoxLayout()
-        # hbox.addWidget(QLabel('[Sequences]'))
-        hbox.addLayout(vbox)
-        self.setLayout(hbox)
+        grid_save_load_btns = QGridLayout()
+        grid_save_load_btns.addWidget(self.button_save,0,0)
+        grid_save_load_btns.addWidget(self.button_load,0,1)
+        vbox.addLayout(grid_save_load_btns)
+        '''
+        grid_btns = QGridLayout()
+        grid_btns.addWidget(self.button_run,0,0,1,2)
+        grid_btns.addWidget(self.button_save,1,0)
+        grid_btns.addWidget(self.button_load,1,1)
+        vbox.addLayout(grid_btns)
+        self.setLayout(vbox)
 
         '''
         self.sequenceEntry1 = SequenceEntry(sequence_name = 'Strip')
