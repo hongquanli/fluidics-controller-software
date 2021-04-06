@@ -108,9 +108,9 @@ fluid control
 '''
 
 def _convert_volume_to_steps(volume):
-	return volume*PUMP.STEPS_PER_UL
+	return 
 def _convert_speed_to_4steps(flow_rate_ul_per_s):
-	return flow_rate_ul_per_s*60*PUMP.FOUR_STEPS_PER_SECOND_FACTOR
+	return 
 def _convert_to_hex_string(number):
 	return format(number,'02X')
 
@@ -134,89 +134,7 @@ class fluid_controller(object):
 		self.serial.write(command_string.encode())
 
 	def _wait_until_operation_is_complete(self,timeout_min=60):
-		time_start = time.time()
-		return_string = ''
-		while True:
-			time.sleep(0.01)
-			if time.time() - time_start > timeout_min*60:
-				utils.print_message('Error: timeout - no return collected from the fluid controller for ' + str(timeout_min) + ' min')
-				# sys.exit(1)
-				return 'operation timed out (not receiving commands from the fluidic system)'
-			# read serial buffer
-			while self.serial.in_waiting > 0:
-				byte = self.serial.read()
-				return_string = return_string + byte.decode('ASCII')
-			# return completed
-			if return_string[-2:] == '\r\n':
-				break
-		if return_string == RETURN.OK:
-			time.sleep(SERIAL.DELAY)
-			return 'operation completed'
-		else:
-			# utils.print_message('Error - Error Code: ' + return_string[:-2])
-			# return 'error received: ' + return_string[:-2]
-			utils.print_message('Returned: ' + return_string[:-2])
-			return 'Returned: ' + return_string[:-2]
-
-	def _fill_syringe(self,medium,volume_ul):
-		if volume_ul > PUMP.VOLUME_UL_MAX:
-			print('[Warning: volume requested exceeds max allowed, set volume to' + str(PUMP.VOLUME_UL_MAX) + ' ul]')
-			volume_ul = PUMP.VOLUME_UL_MAX
-		command_string = 'M4' + ',' + medium + ',' + str(int(volume_ul*PUMP.STEPS_PER_UL))
-		self._send_command(command_string)
-		return self._wait_until_operation_is_complete()
-
-	def _empty_syringe(self,target):
-		command_string = 'M5' + ',' + target
-		self._send_command(command_string)
-		return self._wait_until_operation_is_complete()
-
-
-	def _move_fluid(self,direction,bypass,wait,volume_ul,flow_rate_ul_per_s,valve_port):
-		if volume_ul > PUMP.VOLUME_UL_MAX:
-			print('[Warning: volume requested exceeds max allowed, set volume to' + str(PUMP.VOLUME_UL_MAX) + ' ul]')
-			volume_ul = PUMP.VOLUME_UL_MAX
-		volume_steps = _convert_volume_to_steps(volume_ul)
-		speed_4stpes = _convert_speed_to_4steps(flow_rate_ul_per_s)
-		valve_port_hex_string = _convert_to_hex_string(valve_port)
-		command_string = 'M6' + ',' + direction + ',' + bypass + ',' + wait + ',' + str(int(volume_steps)) + ',' + str(int(speed_4stpes)) + ',' + valve_port_hex_string
-		self._send_command(command_string)
-		return self._wait_until_operation_is_complete()
-
-	# def prime_system(self):
-	# 	# utils.print_message('Prime Fluidic System')
-	# 	port_list = [WASH.PORT,IMAGING_BUFFER.PORT,STRIP.PORT] + LIGATION.PORTS + [NISSL.PORT,DAPI.PORT]
-	# 	flow_rate_ul_per_s = PRIMING.flow_rate_ul_per_s
-	# 	for port in port_list:
-	# 		self.prime_selector_valve_port(BYPASS.TRUE,flow_rate_ul_per_s,port)
-
-	# def flow_ligase_enzyme_mixture(self,i):
-	# 	# utils.print_message(' - Flow Ligase Enzyme Mixture ' + str(i+1))
-	# 	self.flow_flowcell(LIGATION.FLOW_VOLUME_UL,LIGATION.flow_rate_ul_per_s,LIGATION.PORTS[i])
-
-	# def flow_wash_buffer_preimaging(self):
-	# 	# utils.print_message(' - Flow Wash Buffer')
-	# 	self.flow_flowcell(WASH_PREIMAGING.FLOW_VOLUME_UL,WASH_PREIMAGING.flow_rate_ul_per_s,WASH_PREIMAGING.PORT)
-
-	# def flow_wash_buffer_postimaging(self):
-	# 	# utils.print_message(' - Flow Wash Buffer')
-	# 	self.flow_flowcell(WASH_POSTIMAGING.FLOW_VOLUME_UL,WASH_POSTIMAGING.flow_rate_ul_per_s,WASH_POSTIMAGING.PORT)
-
-	# def flow_imaging_buffer(self):
-	# 	# utils.print_message(' - Flow Imaging Buffer')
-	# 	self.flow_flowcell(IMAGING_BUFFER.FLOW_VOLUME_UL,IMAGING_BUFFER.flow_rate_ul_per_s,IMAGING_BUFFER.PORT)
-
-	# def flow_strip_buffer(self):
-	# 	# utils.print_message(' - Flow Strip Buffer')
-	# 	self.flow_flowcell(STRIP.FLOW_VOLUME_UL,STRIP.flow_rate_ul_per_s,STRIP.PORT)
-
-	# def flow_Nissl(self):
-	# 	# utils.print_message(' - Flow Nissl')
-	# 	self.flow_flowcell(NISSL.FLOW_VOLUME_UL,NISSL.flow_rate_ul_per_s,NISSL.PORT)
-
-	# def flow_DAPI(self):
-	# 	# utils.print_message(' - Flow DAPI')
-	# 	self.flow_flowcell(DAPI.FLOW_VOLUME_UL,DAPI.flow_rate_ul_per_s,DAPI.PORT)
+		return
 
 	def _select_valve_port(self,valve_port):
 		valve_port_hex_string = _convert_to_hex_string(valve_port)
@@ -224,41 +142,10 @@ class fluid_controller(object):
 		self._send_command(command_string)
 		return self._wait_until_operation_is_complete()
 
-	def bleach(self,bypass,volume_ul = BLEACH.FLOW_VOLUME_UL,flow_rate_ul_per_s = BLEACH.FLOW_RATE_UL_PER_SECOND):
-		# utils.print_message(' - Flow Bleach')
-		while volume_ul - PUMP.VOLUME_UL_MAX > 0:
-			status = self._fill_syringe(PUMP.MEDIUM_BLEACH,PUMP.VOLUME_UL_MAX)
-			if status != 'operation completed':
-				return 'fill syringe ' + status
-			status = self._move_fluid(PUMP.DIRECTION_PUSH,bypass,PUMP.WITH_WAIT,PUMP.VOLUME_UL_MAX,flow_rate_ul_per_s,BLEACH.PORT)
-			if status != 'operation completed':
-				return 'move fluid ' + status
-			volume_ul = volume_ul - PUMP.VOLUME_UL_MAX
-		if volume_ul > 0:
-			status = self._fill_syringe(PUMP.MEDIUM_BLEACH,volume_ul)
-			if status != 'operation completed':
-				return 'fill syringe ' + status
-			status = self._move_fluid(PUMP.DIRECTION_PUSH,bypass,PUMP.WITH_WAIT,volume_ul,BLEACH.FLOW_RATE_UL_PER_SECOND,BLEACH.PORT)
-			if status != 'operation completed':
-				return 'move fluid ' + status
+	def bleach(self,bypass,volume_ul = 0,flow_rate_ul_per_s = 0):
 		return 'operation completed'
 
 	def flow(self,volume_ul,flow_rate_ul_per_s,valve_port,bypass):
-		while volume_ul - PUMP.VOLUME_UL_MAX > 0:
-			status = self._move_fluid(PUMP.DIRECTION_PULL,bypass,PUMP.WITH_WAIT,PUMP.VOLUME_UL_MAX,flow_rate_ul_per_s,valve_port)
-			if status != 'operation completed':
-				return 'move fluid ' + status
-			status = self._empty_syringe(PUMP.TARGET_WASTE)
-			if status != 'operation completed':
-				return 'empty syringe ' + status
-			volume_ul = volume_ul - PUMP.VOLUME_UL_MAX
-		if volume_ul > 0:
-			status = self._move_fluid(PUMP.DIRECTION_PULL,bypass,PUMP.WITH_WAIT,volume_ul,flow_rate_ul_per_s,valve_port)
-			if status != 'operation completed':
-				return 'move fluid ' + status
-			status = self._empty_syringe(PUMP.TARGET_WASTE)
-			if status != 'operation completed':
-				return 'empty syringe ' + status
 		return 'operation completed'
 
 	def prime_selector_valve_port(self,bypass,flow_rate_ul_per_s,valve_port):
@@ -270,10 +157,10 @@ class fluid_controller(object):
 		return self._wait_until_operation_is_complete()
 
 	def connect_flowcell_to_wash_buffer(self):
-		return self._select_valve_port(WASH.PORT)
+		return 
 
 	def prepare_for_sample_loading(self):
-		return self.flow(volume_ul=WASH.PREFILL_VOLUME,flow_rate_ul_per_s=WASH.PREFILL_SPEED,valve_port=WASH.PORT,bypass=BYPASS.FALSE)
+		return
 
 	def set_chiller_temperature(self,temperature):
 		command_string = 'Cn' + '{:04.1f}'.format(temperature)

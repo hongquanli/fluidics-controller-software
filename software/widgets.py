@@ -25,59 +25,45 @@ class PreUseCheckWidget(QFrame):
         self.setFrameStyle(QFrame.Panel | QFrame.Raised)
 
     def add_components(self):
-        # add checkboxes for ports to be primed 
-        self.checkbox_wash_buffer = QCheckBox('wash buffer')
-        self.checkbox_imaging_buffer = QCheckBox('imaging buffer')
-        self.checkbox_strip_buffer = QCheckBox('strip buffer')
-        self.checkbox_ligation_buffer_1 = QCheckBox('1')
-        self.checkbox_ligation_buffer_2 = QCheckBox('2')
-        self.checkbox_ligation_buffer_3 = QCheckBox('3')
-        self.checkbox_ligation_buffer_4 = QCheckBox('4')
-        self.checkbox_ligation_buffer_5 = QCheckBox('5')
-        self.checkbox_ligation_buffer_6 = QCheckBox('6')
-        self.checkbox_DAPI = QCheckBox('DAPI')
-        self.checkbox_Nissl = QCheckBox('Nissl')
-
-        self.checkbox_wash_buffer.setChecked(True)
-        self.checkbox_imaging_buffer.setChecked(True)
-        self.checkbox_strip_buffer.setChecked(True)
-        self.checkbox_ligation_buffer_1.setChecked(len(LIGATION.PORTS)>=1)
-        self.checkbox_ligation_buffer_2.setChecked(len(LIGATION.PORTS)>=2)
-        self.checkbox_ligation_buffer_3.setChecked(len(LIGATION.PORTS)>=3)
-        self.checkbox_ligation_buffer_4.setChecked(len(LIGATION.PORTS)>=4)
-        self.checkbox_ligation_buffer_5.setChecked(len(LIGATION.PORTS)>=5)
-        self.checkbox_ligation_buffer_6.setChecked(len(LIGATION.PORTS)>=6)
-        self.checkbox_DAPI.setChecked(DAPI.IS_PRESENT)
-        self.checkbox_Nissl.setChecked(NISSL.IS_PRESENT)
-
-        # add buttons
-        self.button_prime_ports_through_bypass = QPushButton('Prime ports')
-        self.button_prime_flowcell = QPushButton('Prime flow cell with wash buffer') 
-        self.button_prime_flowcell.setEnabled(False) # flow cell priming does not work for FCS2 chamber (at least not for 14x24 0.25mm thick gasket - experiments done on 10/24/2020; might work for narrower channels)
         
-        self.button_prime_ports_through_bypass.setCheckable(True)
-        self.button_prime_flowcell.setCheckable(True)
-        
-        self.button_prime_ports_through_bypass.clicked.connect(self.prime_ports_through_bypass)
-        self.button_prime_flowcell.clicked.connect(self.prime_flowcell)
-
+        # create and layout the checkboxes
         hbox_1 = QHBoxLayout()
-        hbox_1.addWidget(self.checkbox_wash_buffer)
-        hbox_1.addWidget(self.checkbox_imaging_buffer)
-        hbox_1.addWidget(self.checkbox_strip_buffer)
-        hbox_1.addWidget(self.checkbox_ligation_buffer_1)
-        hbox_1.addWidget(self.checkbox_ligation_buffer_2)
-        hbox_1.addWidget(self.checkbox_ligation_buffer_3)
-        hbox_1.addWidget(self.checkbox_ligation_buffer_4)
-        hbox_1.addWidget(self.checkbox_ligation_buffer_5)
-        hbox_1.addWidget(self.checkbox_ligation_buffer_6)
-        hbox_1.addWidget(self.checkbox_DAPI)
-        hbox_1.addWidget(self.checkbox_Nissl)
+        num_ports = len(Ports_Name)
+        self.checkbox = []
+        for i in range(num_ports):
+            self.checkbox.append(QCheckBox(Ports_Name[i]))
+            self.checkbox[i].setChecked(True)
+            hbox_1.addWidget(self.checkbox[i])
+
+        # target pressure 
+        self.entry_target_pressure = QDoubleSpinBox()
+        self.entry_target_pressure.setMinimum(0)
+        self.entry_target_pressure.setMaximum(5.0) 
+        self.entry_target_pressure.setSingleStep(0.1)
+        self.entry_target_pressure.setValue(4.0)
+        hbox_2 = QHBoxLayout()
+        hbox_2.addWidget(QLabel('Target Pressure (psi)'))
+        hbox_2.addWidget(self.entry_target_pressure)
+
+        # target vacuum 
+        self.entry_target_vacuum = QDoubleSpinBox()
+        self.entry_target_vacuum.setMinimum(-4.0)
+        self.entry_target_vacuum.setMaximum(0) 
+        self.entry_target_vacuum.setSingleStep(0.1)
+        self.entry_target_vacuum.setValue(-3.0)
+        # hbox_3 = QHBoxLayout()
+        hbox_2.addWidget(QLabel('\t Target Vacuum (psi)'))
+        hbox_2.addWidget(self.entry_target_vacuum)
+       
+        # add buttons
+        self.button_preuse_check = QPushButton('Run Pre-Use Check')
+        self.button_preuse_check.setCheckable(True)
+        self.button_preuse_check.clicked.connect(self.run_preuse_check)
 
         vbox = QVBoxLayout()
         vbox.addLayout(hbox_1)
-        vbox.addWidget(self.button_prime_ports_through_bypass)
-        vbox.addWidget(self.button_prime_flowcell)
+        vbox.addLayout(hbox_2)
+        vbox.addWidget(self.button_preuse_check)
 
         hbox = QHBoxLayout()
         hbox.addWidget(QLabel('[Pre-use Check]]'))
@@ -85,65 +71,17 @@ class PreUseCheckWidget(QFrame):
 
         self.setLayout(hbox)
 
-    def prime_ports_through_bypass(self,pressed):
+    def run_preuse_check(self,pressed):
         if pressed:
-            if self.checkbox_wash_buffer.isChecked():
-                self.log_message.emit(utils.timestamp() + 'priming wash buffer port')
-                QApplication.processEvents()
-                result = self.fluidController.prime_selector_valve_port(BYPASS.TRUE,PRIMING.FLOW_RATE_UL_PER_SECOND,WASH.PORT)
-
-            if self.checkbox_imaging_buffer.isChecked():
-                self.log_message.emit(utils.timestamp() + 'priming imaging buffer port')
-                QApplication.processEvents()
-                result = self.fluidController.prime_selector_valve_port(BYPASS.TRUE,PRIMING.FLOW_RATE_UL_PER_SECOND,IMAGING_BUFFER.PORT)
-
-            if self.checkbox_strip_buffer.isChecked():
-                self.log_message.emit(utils.timestamp() + 'priming strip buffer port')
-                QApplication.processEvents()
-                result = self.fluidController.prime_selector_valve_port(BYPASS.TRUE,PRIMING.FLOW_RATE_UL_PER_SECOND,STRIP.PORT)
-
-            if self.checkbox_ligation_buffer_1.isChecked():
-                self.log_message.emit(utils.timestamp() + 'priming ligation buffer 1 port')
-                QApplication.processEvents()
-                result = self.fluidController.prime_selector_valve_port(BYPASS.TRUE,PRIMING.FLOW_RATE_UL_PER_SECOND,LIGATION.PORTS[0])
-
-            if self.checkbox_ligation_buffer_2.isChecked():
-                self.log_message.emit(utils.timestamp() + 'priming ligation buffer 2 port')
-                QApplication.processEvents()
-                result = self.fluidController.prime_selector_valve_port(BYPASS.TRUE,PRIMING.FLOW_RATE_UL_PER_SECOND,LIGATION.PORTS[1])
-
-            if self.checkbox_ligation_buffer_3.isChecked():
-                self.log_message.emit(utils.timestamp() + 'priming ligation buffer 3 port')
-                QApplication.processEvents()
-                result = self.fluidController.prime_selector_valve_port(BYPASS.TRUE,PRIMING.FLOW_RATE_UL_PER_SECOND,LIGATION.PORTS[2])
-
-            if self.checkbox_ligation_buffer_4.isChecked():
-                self.log_message.emit(utils.timestamp() + 'priming ligation buffer 4 port')
-                QApplication.processEvents()
-                result = self.fluidController.prime_selector_valve_port(BYPASS.TRUE,PRIMING.FLOW_RATE_UL_PER_SECOND,LIGATION.PORTS[3])
-
-            if self.checkbox_ligation_buffer_5.isChecked():
-                self.log_message.emit(utils.timestamp() + 'priming ligation buffer 5 port')
-                QApplication.processEvents()
-                result = self.fluidController.prime_selector_valve_port(BYPASS.TRUE,PRIMING.FLOW_RATE_UL_PER_SECOND,LIGATION.PORTS[4])
-
-            if self.checkbox_ligation_buffer_6.isChecked():
-                self.log_message.emit(utils.timestamp() + 'priming ligation buffer 6 port')
-                QApplication.processEvents()
-                self.fluidController.prime_selector_valve_port(BYPASS.TRUE,PRIMING.FLOW_RATE_UL_PER_SECOND,LIGATION.PORTS[5])
-            self.button_prime_ports_through_bypass.setChecked(False)
-
-                #thread = threading.Thread(target=self.fluidController.prime_selector_valve_port,args=(BYPASS.TRUE,PRIMING.FLOW_RATE_UL_PER_SECOND,WASH.PORT))
-                #thread.start()
-                #thread.join()
-                #print('prime the wash buffer port')
-
-    def prime_flowcell(self,pressed):
-        if pressed:
-            self.log_message.emit(utils.timestamp() + 'priming flow cell')
-            QApplication.processEvents()
-            self.fluidController.prime_selector_valve_port(BYPASS.FALSE,PRIMING.FLOW_RATE_UL_PER_SECOND,WASH.PORT)
-            self.button_prime_flowcell.setChecked(False)
+            for i in range(len(Ports_Name)):
+                if(self.checkbox[i].isChecked()==True):
+                    print('checking port ' + Ports_Name[i] )
+                    self.log_message.emit(utils.timestamp() + 'checking port ' + Ports_Name[i])
+                    QApplication.processEvents()
+                else:
+                    pass
+        self.button_preuse_check.setChecked(False)
+        QApplication.processEvents()
 
 class CoverGlassLoadingWidget(QFrame):
 
@@ -224,7 +162,7 @@ class ManualFlowWidget(QFrame):
         self.button_flow_fluid.clicked.connect(self.flow_fluid)
         
         hbox = QHBoxLayout() 
-        hbox.addWidget(QLabel('[Manual Flow]'))
+        hbox.addWidget(QLabel('[Sequences]'))
         hbox.addWidget(QLabel('Port'))
         hbox.addWidget(self.entry_port)
         hbox.addWidget(QLabel('Volume (uL)'))
@@ -284,13 +222,13 @@ class ManualFlushWidget(QFrame):
         self.entry_volume_ul.setMinimum(0)
         self.entry_volume_ul.setMaximum(1000) 
         self.entry_volume_ul.setSingleStep(5)
-        self.entry_volume_ul.setValue(BLEACH.FLOW_VOLUME_UL)
+        self.entry_volume_ul.setValue(0)
 
         self.entry_flowrate_ul_per_s = QDoubleSpinBox()
         self.entry_flowrate_ul_per_s.setMinimum(0) 
         self.entry_flowrate_ul_per_s.setMaximum(20) 
         self.entry_flowrate_ul_per_s.setSingleStep(0.1)
-        self.entry_flowrate_ul_per_s.setValue(BLEACH.FLOW_RATE_UL_PER_SECOND)
+        self.entry_flowrate_ul_per_s.setValue(0)
 
         self.checkbox_bypass = QCheckBox('bypass')
 
