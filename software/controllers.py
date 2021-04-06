@@ -129,53 +129,6 @@ class fluid_controller(object):
 	def __del__(self):
 		self.serial.close()
 
-	def _send_command(self,command_string):
-		command_string = command_string + '\r\n'
-		self.serial.write(command_string.encode())
-
-	def _wait_until_operation_is_complete(self,timeout_min=60):
-		return
-
-	def _select_valve_port(self,valve_port):
-		valve_port_hex_string = _convert_to_hex_string(valve_port)
-		command_string = 'VP' + valve_port_hex_string
-		self._send_command(command_string)
-		return self._wait_until_operation_is_complete()
-
-	def bleach(self,bypass,volume_ul = 0,flow_rate_ul_per_s = 0):
-		return 'operation completed'
-
-	def flow(self,volume_ul,flow_rate_ul_per_s,valve_port,bypass):
-		return 'operation completed'
-
-	def prime_selector_valve_port(self,bypass,flow_rate_ul_per_s,valve_port):
-		utils.print_message(' - Prime Port ' + str(valve_port))
-		speed_4stpes = _convert_speed_to_4steps(flow_rate_ul_per_s)
-		valve_port_hex_string = _convert_to_hex_string(valve_port)
-		command_string = 'M2' + ',' + bypass + ',' + str(int(speed_4stpes)) + ',' + valve_port_hex_string
-		self._send_command(command_string)
-		return self._wait_until_operation_is_complete()
-
-	def connect_flowcell_to_wash_buffer(self):
-		return 
-
-	def prepare_for_sample_loading(self):
-		return
-
-	def set_chiller_temperature(self,temperature):
-		command_string = 'Cn' + '{:04.1f}'.format(temperature)
-		self._send_command(command_string)
-		return self._wait_until_operation_is_complete() 
-
-	def check_chiller_temperature(self):
-		command_string = 'Cp'
-		self._send_command(command_string)
-		return self._wait_until_operation_is_complete() 
-
-	def switch_flow_path_to_bypass(self):
-		command_string = 'S1'
-		self._send_command(command_string)
-		return self._wait_until_operation_is_complete() 
 
 class FluidController(QObject):
 	
@@ -186,46 +139,10 @@ class FluidController(QObject):
 		self.fluid_controller = fluid_controller()
 		self.sequences_abort_requested = False
 
-	def prime_selector_valve_port(self,bypass,flow_rate_ul_per_s,valve_port):
-		status = self.fluid_controller.prime_selector_valve_port(bypass,flow_rate_ul_per_s,valve_port)
-		self.log_message.emit(utils.timestamp() + status)
-		# self.log_message.emit('')
-		QApplication.processEvents()
-
-	def flow(self,volume_ul,flow_rate_ul_per_s,valve_port,bypass):
-		status = self.fluid_controller.flow(volume_ul,flow_rate_ul_per_s,valve_port,bypass)
+		'''
 		self.log_message.emit(utils.timestamp() + status)
 		QApplication.processEvents()
-
-	def bleach(self,bypass,volume_ul,flow_rate_ul_per_s):
-		status = self.fluid_controller.bleach(bypass,volume_ul,flow_rate_ul_per_s)
-		self.log_message.emit(utils.timestamp() + status)
-		QApplication.processEvents()
-
-	def connect_flowcell_to_wash_buffer(self):
-		status = self.fluid_controller.connect_flowcell_to_wash_buffer()
-		self.log_message.emit(utils.timestamp() + status)
-		QApplication.processEvents()
-
-	def prepare_for_sample_loading(self):
-		status = self.fluid_controller.prepare_for_sample_loading()
-		self.log_message.emit(utils.timestamp() + status)
-		QApplication.processEvents()
-
-	def set_chiller_temperature(self,temperature):
-		status = self.fluid_controller.set_chiller_temperature(temperature)
-		self.log_message.emit(utils.timestamp() + status)
-		QApplication.processEvents()
-
-	def check_chiller_temperature(self):
-		status = self.fluid_controller.check_chiller_temperature()
-		self.log_message.emit(utils.timestamp() + status)
-		QApplication.processEvents()
-
-	def switch_flow_path_to_bypass(self):
-		status = self.fluid_controller.switch_flow_path_to_bypass()
-		self.log_message.emit(utils.timestamp() + status)
-		QApplication.processEvents()
+		'''
 
 	def run_sequence(self,sequence_name,flow_time,incubation_time):
 		self.sequences_abort_requested = False
@@ -242,35 +159,6 @@ class FluidController_simulation(QObject):
 	def __init__(self):
 		QObject.__init__(self)
 		self.sequences_abort_requested = False
-		
-	def prime_selector_valve_port(self,bypass,flow_rate_ul_per_s,valve_port):
-		status = 'completed'
-		self.log_message.emit(utils.timestamp() + status)
-		QApplication.processEvents()
-
-	def flow(self,volume_ul,flow_rate_ul_per_s,valve_port,bypass):
-		status = 'completed'
-		self.log_message.emit(utils.timestamp() + status)
-		QApplication.processEvents()
-
-	def bleach(self,bypass,volume_ul,flow_rate_ul_per_s):
-		status = 'completed'
-		self.log_message.emit(utils.timestamp() + status)
-		QApplication.processEvents()
-
-	def connect_flowcell_to_wash_buffer(self):
-		status = 'completed'
-		self.log_message.emit(utils.timestamp() + status)
-		QApplication.processEvents()
-
-	def prepare_for_sample_loading(self):
-		status = 'completed'
-		self.log_message.emit(utils.timestamp() + status)
-		QApplication.processEvents()
-
-	def switch_flow_path_to_bypass(self):
-		time.sleep
-		pass
 
 	def run_sequence(self,sequence_name,flow_time,incubation_time):
 		# incubation time - negative number means no removal
@@ -279,78 +167,6 @@ class FluidController_simulation(QObject):
 
 	def request_abort_sequences(self):
 		self.sequences_abort_requested = True
-
-class ExperimentController(QObject):
-
-	log_message = Signal(str)
-
-	def __init__(self,triggerController,fluidController):
-		QObject.__init__(self)
-		self.triggerController = triggerController
-		self.fluidController = fluidController
-
-		self.number_of_rounds = NUMBER_OF_ROUNDS
-
-	def flow_ligase_enzyme_mixture(self,i):
-		self.log_message.emit(utils.timestamp() + 'flow ligation buffer')
-		QApplication.processEvents()
-		self.fluidController.flow(LIGATION.FLOW_VOLUME_UL,LIGATION.FLOW_RATE_UL_PER_SECOND,LIGATION.PORTS[i],BYPASS.FALSE)
-
-	def flow_wash_buffer_preimaging(self):
-		self.log_message.emit(utils.timestamp() + 'flow wash buffer (preimaging)')
-		QApplication.processEvents()
-		self.fluidController.flow(WASH_PREIMAGING.FLOW_VOLUME_UL,WASH_PREIMAGING.FLOW_RATE_UL_PER_SECOND,WASH_PREIMAGING.PORT,BYPASS.FALSE)
-
-	def flow_wash_buffer_postimaging(self):
-		self.log_message.emit(utils.timestamp() + 'flow wash buffer (postimaging)')
-		QApplication.processEvents()
-		self.fluidController.flow(WASH_POSTIMAGING.FLOW_VOLUME_UL,WASH_POSTIMAGING.FLOW_RATE_UL_PER_SECOND,WASH_POSTIMAGING.PORT,BYPASS.FALSE)
-
-	def flow_imaging_buffer(self):
-		self.log_message.emit(utils.timestamp() + 'flow imaging buffer')
-		QApplication.processEvents()
-		self.fluidController.flow(IMAGING_BUFFER.FLOW_VOLUME_UL,IMAGING_BUFFER.FLOW_RATE_UL_PER_SECOND,IMAGING_BUFFER.PORT,BYPASS.FALSE)
-
-	def flow_strip_buffer(self):
-		self.log_message.emit(utils.timestamp() + 'flow strip buffer')
-		QApplication.processEvents()
-		self.fluidController.flow(STRIP.FLOW_VOLUME_UL,STRIP.FLOW_RATE_UL_PER_SECOND,STRIP.PORT,BYPASS.FALSE)
-
-	def flow_Nissl(self):
-		self.log_message.emit(utils.timestamp() + 'flow Nissl staining buffer')
-		QApplication.processEvents()
-		self.flow_flowcell(NISSL.FLOW_VOLUME_UL,NISSL.FLOW_RATE_UL_PER_SECOND,NISSL.PORT,BYPASS.FALSE)
-
-	def flow_DAPI(self):
-		self.log_message.emit(utils.timestamp() + 'flow DAPI staining buffer')
-		QApplication.processEvents()
-		self.flow_flowcell(DAPI.FLOW_VOLUME_UL,DAPI.FLOW_RATE_UL_PER_SECOND,DAPI.PORT,BYPASS.FALSE)
-
-	def run_experiment(self):
-		# @@@@TODO: launch a dialog for the user to confirm that the system has been primed
-		for i in range(self.number_of_rounds):
-			self.log_message.emit(utils.timestamp() + '<<< Start Round ' + str(i+1) + ' >>>')
-			# flow ligation buffer
-			self.flow_ligase_enzyme_mixture(i)
-			# incubate
-			self.log_message.emit(utils.timestamp() + 'Incubate for ' + str(LIGATION.INCUBATION_TIME_MIN/60) + ' hours')
-			# time.sleep(LIGATION.INCUBATION_TIME_MIN*60)
-			# flow wash buffer
-			self.flow_wash_buffer_preimaging()
-			# flow imaging buffer
-			self.flow_imaging_buffer()
-			# trigger microscope
-			self.triggerController.send_trigger()
-			# wait for imaging to complete
-			while(self.triggerController.trigger_received == False):
-				time.sleep(1)
-				QApplication.processEvents()
-			self.triggerController.trigger_received = False
-			# flow strip buffer
-			self.flow_strip_buffer()
-			# flow wash buffer
-			self.flow_wash_buffer_postimaging()
-		# @@@TODO: more steps to be added; Make it more interactive - e.g. pause, redo
 
 
 class Logger(QObject):
