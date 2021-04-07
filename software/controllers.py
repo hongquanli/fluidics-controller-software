@@ -280,6 +280,8 @@ class Microcontroller_Command():
 class FluidController(QObject):
 	
 	log_message = Signal(str)
+	signal_sequences_execution_started = Signal()
+	signal_sequences_execution_stopped = Signal()
 
 	def __init__(self,microcontroller):
 		QObject.__init__(self)
@@ -355,6 +357,7 @@ class FluidController(QObject):
 			else:
 				self.sequences_in_progress = False
 				self.timer_update_sequence_execution_state.stop()
+				self.signal_sequences_execution_stopped.emit()
 				if PRINT_DEBUG_INFO:
 					print('no more sequences in the queue')
 				return
@@ -475,13 +478,15 @@ class FluidController(QObject):
 		print('adding sequence to the queue ' + sequence_name + ' - flow time: ' + str(flow_time_s) + ' s, incubation time: ' + str(incubation_time_min) + ' s [negative number means no removal]')
 		sequence_to_add = Sequence(sequence_name,fluidic_port,flow_time_s,incubation_time_min,pressure_setting,round_)
 		self.queue_sequence.put(sequence_to_add)
-		self.abort_sequences_requested = False
-		self.sequences_in_progress = True
-		self.timer_update_sequence_execution_state.start()
 			
 	def request_abort_sequences(self):
 		self.abort_sequences_requested = True
 
+	def start_sequence_execution(self):
+		self.abort_sequences_requested = False
+		self.sequences_in_progress = True
+		self.signal_sequences_execution_started.emit()
+		self.timer_update_sequence_execution_state.start()
 
 class Logger(QObject):
 

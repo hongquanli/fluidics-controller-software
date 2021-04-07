@@ -152,8 +152,8 @@ class SequenceWidget(QFrame):
 
     def add_components(self):
 
-        tableWidget = QTableWidget(len(SEQUENCE_NAME),len(SEQUENCE_ATTRIBUTES_KEYS),self)
-        tableWidget.setHorizontalHeaderLabels(SEQUENCE_ATTRIBUTES_KEYS)
+        self.tableWidget = QTableWidget(len(SEQUENCE_NAME),len(SEQUENCE_ATTRIBUTES_KEYS),self)
+        self.tableWidget.setHorizontalHeaderLabels(SEQUENCE_ATTRIBUTES_KEYS)
         
         # create the sequences, set the attributes and add the sequences into the tabel
         self.sequences = {}
@@ -163,8 +163,8 @@ class SequenceWidget(QFrame):
             # insert attributes of the current sequence into the table
             for j in range(len(SEQUENCE_ATTRIBUTES_KEYS)):
                 attribute_key = SEQUENCE_ATTRIBUTES_KEYS[j]
-                tableWidget.setCellWidget(i,j,self.sequences[sequence_name].attributes[attribute_key])
-            # tableWidget.setCellWidget(i,0,self.sequences[sequence_name].attributes['Label'])
+                self.tableWidget.setCellWidget(i,j,self.sequences[sequence_name].attributes[attribute_key])
+            # self.tableWidget.setCellWidget(i,0,self.sequences[sequence_name].attributes['Label'])
 
         # set sequence-specific attributes
         self.sequences['Add Imaging Buffer'].attributes['Incubation Time (min)'].setMinimum(-1)
@@ -216,10 +216,10 @@ class SequenceWidget(QFrame):
         self.sequences['Ligate'].attributes['Fluidic Port'].setMaximum(4)
 
         # set table size
-        tableWidget.resizeColumnsToContents()
-        tableWidget.setFixedSize(tableWidget.horizontalHeader().length() + 
-                   tableWidget.verticalHeader().width(),tableWidget.verticalHeader().length() + 
-                   tableWidget.horizontalHeader().height())
+        self.tableWidget.resizeColumnsToContents()
+        self.tableWidget.setFixedSize(self.tableWidget.horizontalHeader().length() + 
+                   self.tableWidget.verticalHeader().width(),self.tableWidget.verticalHeader().length() + 
+                   self.tableWidget.horizontalHeader().height())
 
         # button
         self.button_save = QPushButton('Save Sequence Setttings')
@@ -228,7 +228,7 @@ class SequenceWidget(QFrame):
         self.button_stop = QPushButton('Abort')
 
         vbox = QVBoxLayout()
-        vbox.addWidget(tableWidget)
+        vbox.addWidget(self.tableWidget)
         grid_btns = QGridLayout()
         # grid_btns.addWidget(self.button_run,0,0,1,2)
         grid_btns.addWidget(self.button_save,0,0)
@@ -241,11 +241,12 @@ class SequenceWidget(QFrame):
 
         # make connections
         self.button_run.clicked.connect(self.run_sequences)
-        self.button_stop.clicked.connect(self.stop_sequence)
-        # @@@ need to make sure button_stop is still clickable while self.run_sequences() is being executed
-        #self.button_stop.setEnabled(False) # the current implementation of run_sequences is blocking, yet abort is possible through a flag in FluidController. Actually the flag can be in the widget. Maybe use in both places, so that for example, wait can be aborted
+        self.button_stop.clicked.connect(self.request_to_abort_sequences)
+        # @@@ need to make sure button_stop is still clickable while self.run_sequences() is being executed - done [4/7/2021]
+        self.button_stop.setEnabled(False) # the current implementation of run_sequences is blocking, yet abort is possible through a flag in FluidController. Actually the flag can be in the widget. Maybe use in both places, so that for example, wait can be aborted [addressed 4/7/2021]
         self.button_save.setEnabled(False) # saving settings to be implemented, disable the button for now
         self.button_load.setEnabled(False) # loading settings to be implemented, disable the button for now
+        self.fluidController.signal_sequences_execution_stopped.connect(self.enable_widgets_except_for_abort_btn)
 
     def run_sequences(self):
         msg = QMessageBox()
@@ -259,7 +260,7 @@ class SequenceWidget(QFrame):
         retval = msg.exec_()
         if QMessageBox.Ok == retval:
             self.abort_requested = False
-            self.signal_disable_manualControlWidget.emit()
+            self.disable_widgets_except_for_abort_btn() 
             # go through sequences and execute *selected* sequences
             for i in range(len(SEQUENCE_NAME)):
                 current_sequence = self.sequences[SEQUENCE_NAME[i]]
@@ -277,29 +278,14 @@ class SequenceWidget(QFrame):
                             current_sequence.attributes['Incubation Time (min)'].value(),
                             pressure_setting=None,
                             round_ = k)
-                        # below - abort is not handled in the controller
-                        '''
-                        if self.abort_requested == False:
-                            self.log_message.emit(utils.timestamp() + 'Execute ' + SEQUENCE_NAME[i] + ', round ' + str(k+1))
-                            QApplication.processEvents()
-                            ################################################################
-                            ##### let the backend fluidController execute the sequence #####
-                            ################################################################
-                            self.fluidController.add_sequence(
-                                SEQUENCE_NAME[i],
-                                current_sequence.attributes['Flow Time (s)'].value(),
-                                current_sequence.attributes['Fluidic Port'].value(),
-                                current_sequence.attributes['Incubation Time (min)'].value())
-                        else:
-                            self.log_message.emit(utils.timestamp() + '! ' + SEQUENCE_NAME[i] + ', round ' + str(k+1) + ' aborted')
-                            QApplication.processEvents()
-                        '''
-            self.signal_enable_manualControlWidget.emit()
+            self.fluidController.start_sequence_execution()
+
+            # self.signal_enable_manualControlWidget.emit()
         else:
             self.log_message.emit(utils.timestamp() + 'no action.')
             QApplication.processEvents()
 
-    def stop_sequence(self):
+    def request_to_abort_sequences(self):
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Information)
         msg.setText("Confirm your action")
@@ -316,6 +302,19 @@ class SequenceWidget(QFrame):
         else:
             pass
 
+    def disable_widgets_except_for_abort_btn(self):
+        self.signal_disable_manualControlWidget.emit()
+        self.tableWidget.setEnabled(False)
+        self.button_run.setEnabled(False)
+        self.button_stop.setEnabled(True)
+        QApplication.processEvents()
+
+    def enable_widgets_except_for_abort_btn(self):
+        self.tableWidget.setEnabled(True)
+        self.button_run.setEnabled(True)
+        self.button_stop.setEnabled(False)
+        self.signal_enable_manualControlWidget.emit()
+        QApplication.processEvents()
 
 class ManualFlushWidget(QFrame):
 
