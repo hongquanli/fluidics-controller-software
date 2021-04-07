@@ -221,6 +221,14 @@ class SequenceWidget(QFrame):
                    self.tableWidget.verticalHeader().width(),self.tableWidget.verticalHeader().length() + 
                    self.tableWidget.horizontalHeader().height())
 
+        # settings loading and saveing
+        self.lineEdit_setting_file = QLineEdit()
+        self.lineEdit_setting_file.setReadOnly(True)
+        self.lineEdit_setting_file.setText('[ Click Browse to Select a Setting File ]')
+        self.btn_select_setting_file = QPushButton('Browse')
+        self.btn_select_setting_file.setDefault(False)
+        self.btn_select_setting_file.setIcon(QIcon('icon/folder.png'))
+
         # button
         self.button_save = QPushButton('Save Sequence Setttings')
         self.button_load = QPushButton('Load Sequence Setttings')
@@ -229,11 +237,15 @@ class SequenceWidget(QFrame):
 
         vbox = QVBoxLayout()
         vbox.addWidget(self.tableWidget)
+        hbox_settings_loading_and_saving = QHBoxLayout()
+        hbox_settings_loading_and_saving.addWidget(self.lineEdit_setting_file)
+        hbox_settings_loading_and_saving.addWidget(self.btn_select_setting_file)
+        hbox_settings_loading_and_saving.addWidget(self.button_load)
+        hbox_settings_loading_and_saving.addWidget(self.button_save)
+        vbox.addLayout(hbox_settings_loading_and_saving)
         grid_btns = QGridLayout()
-        # grid_btns.addWidget(self.button_run,0,0,1,2)
-        grid_btns.addWidget(self.button_save,0,0)
-        grid_btns.addWidget(self.button_load,0,1)
-        # grid_btns.addWidget(self.button_run,1,0,1,2)
+        # grid_btns.addWidget(self.button_save,0,0)
+        # grid_btns.addWidget(self.button_load,0,1)
         grid_btns.addWidget(self.button_run,1,0)
         grid_btns.addWidget(self.button_stop,1,1)
         vbox.addLayout(grid_btns)
@@ -305,12 +317,20 @@ class SequenceWidget(QFrame):
     def disable_widgets_except_for_abort_btn(self):
         self.signal_disable_manualControlWidget.emit()
         self.tableWidget.setEnabled(False)
+        self.lineEdit_setting_file.setEnabled(False)
+        self.btn_select_setting_file.setEnabled(False)
+        # self.button_load.setEnabled(False)
+        # self.button_save.setEnabled(False)
         self.button_run.setEnabled(False)
         self.button_stop.setEnabled(True)
         QApplication.processEvents()
 
     def enable_widgets_except_for_abort_btn(self):
         self.tableWidget.setEnabled(True)
+        self.lineEdit_setting_file.setEnabled(True)
+        self.btn_select_setting_file.setEnabled(True)
+        # self.button_load.setEnabled(True)
+        # self.button_save.setEnabled(True)
         self.button_run.setEnabled(True)
         self.button_stop.setEnabled(False)
         self.signal_enable_manualControlWidget.emit()
