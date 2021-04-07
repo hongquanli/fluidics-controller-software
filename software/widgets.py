@@ -169,27 +169,27 @@ class SequenceWidget(QFrame):
         # set sequence-specific attributes
         self.sequences['Add Imaging Buffer'].attributes['Incubation Time (min)'].setMinimum(-1)
         self.sequences['Add Imaging Buffer'].attributes['Incubation Time (min)'].setValue(-1)
-        self.sequences['Remove Imaging Buffer'].attributes['Flow Time (s)'].setMinimum(-1)
-        self.sequences['Remove Imaging Buffer'].attributes['Flow Time (s)'].setValue(-1)
+        self.sequences['Remove Medium'].attributes['Flow Time (s)'].setMinimum(-1)
+        self.sequences['Remove Medium'].attributes['Flow Time (s)'].setValue(-1)
         self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setMinimum(-1)
         self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setValue(-1)
         self.sequences['Add Imaging Buffer'].attributes['Incubation Time (min)'].setEnabled(False)
-        self.sequences['Remove Imaging Buffer'].attributes['Flow Time (s)'].setEnabled(False)
+        self.sequences['Remove Medium'].attributes['Flow Time (s)'].setEnabled(False)
         self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setEnabled(False)
         self.sequences['Ligate'].attributes['Repeat'].setEnabled(False)
         self.sequences['Add Imaging Buffer'].attributes['Repeat'].setEnabled(False)
-        self.sequences['Remove Imaging Buffer'].attributes['Repeat'].setEnabled(False)
-        self.sequences['Remove Imaging Buffer'].attributes['Incubation Time (min)'].setEnabled(False)
+        self.sequences['Remove Medium'].attributes['Repeat'].setEnabled(False)
+        self.sequences['Remove Medium'].attributes['Incubation Time (min)'].setEnabled(False)
         self.sequences['Stain with DAPI'].attributes['Repeat'].setEnabled(False)
-        self.sequences['Remove Imaging Buffer'].attributes['Fluidic Port'].setMinimum(0)
-        self.sequences['Remove Imaging Buffer'].attributes['Fluidic Port'].setValue(0)
-        self.sequences['Remove Imaging Buffer'].attributes['Fluidic Port'].setEnabled(False)
+        self.sequences['Remove Medium'].attributes['Fluidic Port'].setMinimum(0)
+        self.sequences['Remove Medium'].attributes['Fluidic Port'].setValue(0)
+        self.sequences['Remove Medium'].attributes['Fluidic Port'].setEnabled(False)
 
         '''
         # changed to disable instead of no buttons
         self.sequences['Ligate'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
         self.sequences['Add Imaging Buffer'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
-        self.sequences['Remove Imaging Buffer'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
+        self.sequences['Remove Medium'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
         self.sequences['Stain with DAPI'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
         '''
 
@@ -275,6 +275,8 @@ class SequenceWidget(QFrame):
         if QMessageBox.Ok == retval:
             self.abort_requested = False
             self.disable_widgets_except_for_abort_btn() 
+            # print a seperator for visuals
+            self.log_message.emit('--------------------------------')
             # go through sequences and execute *selected* sequences
             for i in range(len(SEQUENCE_NAME)):
                 current_sequence = self.sequences[SEQUENCE_NAME[i]]
@@ -287,8 +289,8 @@ class SequenceWidget(QFrame):
                         ################################################################
                         self.fluidController.add_sequence(
                             SEQUENCE_NAME[i],
-                            current_sequence.attributes['Flow Time (s)'].value(),
                             current_sequence.attributes['Fluidic Port'].value(),
+                            current_sequence.attributes['Flow Time (s)'].value(),
                             current_sequence.attributes['Incubation Time (min)'].value(),
                             pressure_setting=None,
                             round_ = k)

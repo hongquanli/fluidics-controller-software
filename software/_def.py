@@ -5,14 +5,14 @@ INCUBATION_TIME_MAX_MIN = 3600*3/60
 FLOW_TIME_MAX = 60
 
 SEQUENCE_ATTRIBUTES_KEYS = ['Sequence','Fluidic Port','Flow Time (s)','Incubation Time (min)','Repeat','Include']
-SEQUENCE_NAME = ['Strip','Wash (Post-Strip)','Ligate','Wash (Post-Ligation)','Add Imaging Buffer','Remove Imaging Buffer','Stain with DAPI']
+SEQUENCE_NAME = ['Strip','Wash (Post-Strip)','Ligate','Stain with DAPI','Wash (Post-Ligation)','Add Imaging Buffer','Remove Medium']
 
 # TIMER_CHECK_MCU_STATE_INTERVAL_MS = 10
 TIMER_CHECK_MCU_STATE_INTERVAL_MS = 500 # for simulation
 TIMER_CHECK_SEQUENCE_EXECUTION_STATE_INTERVAL_MS = 50
 
 # MCU
-MCU_CMD_LENGTH = 10
+MCU_CMD_LENGTH = 15
 MCU_MSG_LENGTH = 20
 
 # MCU - COMPUTER
@@ -21,9 +21,6 @@ T_DIFF_COMPUTER_MCU_MISMATCH_FAULT_THRESHOLD_SECONDS = 3
 class SUBSEQUENCE_TYPE:
 	MCU_CMD = 'MCU CMD'
 	COMPUTER_STOPWATCH = 'COMPUTER STOPWATCH'
-
-# computer to MCU cmd
-C2M_CLEAR = 0
 
 PRINT_DEBUG_INFO = True
 
@@ -34,16 +31,35 @@ class CMD_EXECUTION_STATUS:
 	CMD_CHECKSUM_ERROR = 2
 	CMD_INVALID = 3
 	CMD_EXECUTION_ERROR = 4
-# CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS = 0
-# CMD_EXECUTION_STATUS.IN_PROGRESS = 1
-# CMD_EXECUTION_STATUS.CMD_CHECKSUM_ERROR = 2
-# CMD_EXECUTION_STATUS.CMD_INVALID = 3
-# CMD_EXECUTION_STATUS.CMD_EXECUTION_ERROR = 4
+
+#########################################################
+############   Computer -> MCU command set   ############
+#########################################################
+class CMD_SET:
+	CLEAR = 0
+	REMOVE_MEDIUM = 1
+	ADD_MEDIUM = 2
+
+class CMD_SET_DESCRIPTION:
+	CLEAR = 'Clear'
+	REMOVE_MEDIUM = 'Remove Medium'
+	ADD_MEDIUM = 'Add Medium'
+
+class MCU_CMD_PARAMETERS:
+	CONSTANT_POWER = 0
+	CONSTANT_PRESSURE = 1
+	CONSTANT_FLOW = 2
+	VOLUME_CONTROL = 3
+
+class MCU_CMD_PARAMETERS_DESCRIPTION:
+	CONSTANT_POWER = 'constant power'
+	CONSTANT_PRESSURE = 'constant pressure'
+	CONSTANT_FLOW = 'constant flow'
+	VOLUME_CONTROL = 'volume control'
 
 # status of internal program execution on the MCU
 
 '''
-
 
 #########################################################
 #########   MCU -> Computer message structure   #########
@@ -74,11 +90,11 @@ byte 17-19	: reserved
 #########################################################
 byte 0-1	: computer -> MCU CMD counter
 byte 2		: cmd from host computer
-byte 3-4	: payload 1
-byte 5-6	: payload 2
-byte 7-9	: reserved (including checksum)
-
-
+byte 3		: payload 1 (1 byte) - e.g. control type [constant power, constant pressure, constant flow, volume]
+byte 4		: payload 2 (1 byte) - e.g. fluidic port
+byte 5-6	: payload 3 (2 byte) - e.g. power, pressure, flow rate or volume setting
+byte 7-10	: payload 4 (4 byte) - e.g. duration in ms
+byte 11-14	: reserved (4 byte) (including checksum)
 
 '''
 

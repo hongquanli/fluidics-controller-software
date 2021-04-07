@@ -188,7 +188,7 @@ class Microcontroller_Simulation(object):
 		self.timer_update_command_execution_status.start()
 		if PRINT_DEBUG_INFO:
 			print('### cmd sent to mcu: ' + str(cmd))
-			print('[MCU current cmd uid is ' + str(self.current_cmd_uid) + ' ]')
+			print('[ MCU current cmd uid is ' + str(self.current_cmd_uid) + ' ]')
 
 	def _simulation_update_cmd_execution_status(self):
 		print('simulation - MCU command execution finished')
@@ -197,9 +197,9 @@ class Microcontroller_Simulation(object):
 		# self.cmd_execution_status = CMD_EXECUTION_STATUS.CMD_EXECUTION_ERROR
 		self.timer_update_command_execution_status.stop()
 
-###################################################
-################# FluidController #################
-###################################################
+#######################################################
+################# Sequence Defination #################
+#######################################################
 class Sequence():
 	def __init__(self,sequence_name,fluidic_port,flow_time_s,incubation_time_min,pressure_setting=None,round_=1):
 		self.sequence_name = sequence_name
@@ -214,35 +214,51 @@ class Sequence():
 		self.queue_subsequences = queue.Queue()
 
 		# populate the queue of subsequences, depending on the tyepes of the sequence
-		# case 1: strip, wash (post-strip), ligate, wash (post-ligate)
-		# case 2: add imaging buffer, (stain with DAPI)
+		# case 1: strip, wash (post-strip), ligate, wash (post-ligate), stain with DAPI
+		# case 2: add imaging buffer
 		# case 3: remove imaging buffer (can apply to removing any other liquid)
 
-		'''
-		if flow_time <= 0: # case 3, remove liquid
-			pass
-		'''
-
-		if True:
-			# subsequence 0
-			mcu_command = Microcontroller_Command(1,1,1)
-			mcu_command.set_description('command 1')
-			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
-
+		# case 3, remove medium
+		if sequence_name == 'Remove Medium':
 			# subsequence 1
-			mcu_command = Microcontroller_Command(2,2,2)
-			mcu_command.set_description('command 2')
+			mcu_command = Microcontroller_Command(CMD_SET.REMOVE_MEDIUM)
+			mcu_command.set_description(CMD_SET_DESCRIPTION.REMOVE_MEDIUM)
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 
-			# subsequence 2
-			mcu_command = Microcontroller_Command(3,3,3)
-			mcu_command.set_description('command 3')
+		# case 2, add imaging buffer
+		if sequence_name == 'Add Imaging Buffer':
+			# subsequence 1
+			control_type = MCU_CMD_PARAMETERS.CONSTANT_POWER # *** start with constant power ***
+			if control_type == MCU_CMD_PARAMETERS.CONSTANT_POWER:
+				pump_power = 0.8 # *** make this adjustable in the GUI ***
+				payload3 = pump_power*65535 # *** make this adjustable in the GUI ***
+				payload4 = flow_time_s*1000
+				# *** to do: add timeout limit ***
+				mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,fluidic_port,payload3,payload4)
+				mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
+				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+
+		# case 1, add medium, incubate for specified amount of time, remove medium
+		# use incubation_time_min to detect this kind of command
+		if incubation_time_min > 0:
+			# subsequence 1: add medium
+			control_type = MCU_CMD_PARAMETERS.CONSTANT_POWER # *** start with constant power ***
+			if control_type == MCU_CMD_PARAMETERS.CONSTANT_POWER:
+				pump_power = 0.8 # *** make this adjustable in the GUI ***
+				payload3 = pump_power*65535 # *** make this adjustable in the GUI ***
+				payload4 = flow_time_s*1000
+				# *** to do: add timeout limit ***
+				mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,fluidic_port,payload3,payload4)
+				mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
+				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+
+			# subsequence 2: incubate
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.COMPUTER_STOPWATCH,microcontroller_command=None,stopwatch_time_remaining_seconds=incubation_time_min*60))
+
+			# subsequence 3: remove medium
+			mcu_command = Microcontroller_Command(CMD_SET.REMOVE_MEDIUM)
+			mcu_command.set_description(CMD_SET_DESCRIPTION.REMOVE_MEDIUM)
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
-
-			# subsequence 3
-			mcu_command = Microcontroller_Command(1,1,1)
-			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.COMPUTER_STOPWATCH,microcontroller_command=None,stopwatch_time_remaining_seconds=5))
-
 
 class Subsequence():
 	def __init__(self,subsequence_type=None,microcontroller_command=None,stopwatch_time_remaining_seconds=None):
@@ -251,11 +267,14 @@ class Subsequence():
 		self.stopwatch_time_remaining_seconds = stopwatch_time_remaining_seconds
 
 class Microcontroller_Command():
-	def __init__(self,cmd,payload1=0,payload2=0):
+	def __init__(self,cmd,payload1=0,payload2=0,payload3=0,payload4=0,timeout_limit=0):
 		self.cmd = cmd
 		self.payload1 = payload1
 		self.payload2 = payload2
+		self.payload3 = payload3
+		self.payload4 = payload4
 		self.description = ''
+		self.timeout_limit = timeout_limit
 
 	def get_ready_to_decorate_cmd_packet(self):
 		return self._format_command()
@@ -271,10 +290,14 @@ class Microcontroller_Command():
 		cmd_packet[0] = 0 # reserved byte for UID
 		cmd_packet[1] = 0 # reserved byte for UID
 		cmd_packet[2] = self.cmd
-		cmd_packet[3] = self.payload1 >> 8
-		cmd_packet[4] = self.payload1 & 0xff
-		cmd_packet[5] = self.payload2 >> 8
-		cmd_packet[6] = self.payload2 & 0xff
+		cmd_packet[3] = self.payload1
+		cmd_packet[4] = int(self.payload2)
+		cmd_packet[5] = int(self.payload3) >> 8
+		cmd_packet[6] = int(self.payload3) & 0xff
+		cmd_packet[7] = int(self.payload4) >> 24
+		cmd_packet[8] = (int(self.payload4) >> 16) & 0xff
+		cmd_packet[9] = (int(self.payload4) >> 8) & 0xff
+		cmd_packet[10] = int(self.payload4) & 0xff
 		return cmd_packet
 
 class FluidController(QObject):
@@ -290,7 +313,7 @@ class FluidController(QObject):
 
 		# clear counter on both the computer and the MCU
 		self.computer_to_MCU_command_counter = 0 # this is the UID
-		self.computer_to_MCU_command = C2M_CLEAR # when init the MCU in the firmware, set computer_to_MCU_command = 255 (reserved), so that there will be mismatch until proper communication
+		self.computer_to_MCU_command = CMD_SET.CLEAR # when init the MCU in the firmware, set computer_to_MCU_command = 255 (reserved), so that there will be mismatch until proper communication
 		mcu_cmd = Microcontroller_Command(self.computer_to_MCU_command)
 		cmd_packet = mcu_cmd.get_ready_to_decorate_cmd_packet()
 		cmd_packet = self._add_UID_to_mcu_command_packet(cmd_packet,self.computer_to_MCU_command_counter)
@@ -303,6 +326,9 @@ class FluidController(QObject):
 		self.subsequences_in_progress = False
 		self.current_subsequence = None
 		self.current_stopwatch = None
+
+		self.mcu_subsequence_in_progress = False
+		self.computer_stopwatch_subsequence_in_progress = False
 
 		self.queue_sequence = queue.Queue()
 		self.queue_subsequence = queue.Queue()
@@ -327,15 +353,18 @@ class FluidController(QObject):
 	def _current_stopwatch_timeout_callback(self):
 		self.log_message.emit(utils.timestamp() + '[ countdown of ' + str(self.current_subsequence.stopwatch_time_remaining_seconds/60) + ' min finished ]')
 		QApplication.processEvents()
-		self.current_stopwatch = None
-		self.current_subsequence = None
+		if self.computer_stopwatch_subsequence_in_progress == True:
+			self.current_stopwatch = None
+			self.computer_stopwatch_subsequence_in_progress = False
+			self.current_subsequence = None
 
+	# <<< core portion of the program>>>
 	def _update_sequence_execution_state(self):
 		# previous sequence finished execution, now try to load the next sequence
 		if self.current_sequence == None:
 			# if the queue is not empty, load the next sequence to execute
 			if self.queue_sequence.empty() == False:
-				# start a new sequence if no abort sequence requested
+				# start a new queued sequence if no abort sequence requested
 				if self.abort_sequences_requested == False:
 					self.current_sequence = self.queue_sequence.get()
 					self.log_message.emit(utils.timestamp() + 'Execute ' + self.current_sequence.sequence_name + ', round ' + str(self.current_sequence.round+1))
@@ -358,6 +387,8 @@ class FluidController(QObject):
 				self.sequences_in_progress = False
 				self.timer_update_sequence_execution_state.stop()
 				self.signal_sequences_execution_stopped.emit()
+				self.log_message.emit(utils.timestamp() + 'Finished executing all the selected sequences')
+				QApplication.processEvents()
 				if PRINT_DEBUG_INFO:
 					print('no more sequences in the queue')
 				return
@@ -373,14 +404,14 @@ class FluidController(QObject):
 				if self.abort_sequences_requested == False:
 					# start a new subsequence if no abort sequence requested
 					self.current_subsequence = self.current_sequence.queue_subsequences.get()
-					if PRINT_DEBUG_INFO:
-						print(self.current_subsequence)
 					if self.current_subsequence.type == SUBSEQUENCE_TYPE.MCU_CMD:
 						mcu_cmd = self.current_subsequence.microcontroller_command
 						cmd_packet = mcu_cmd.get_ready_to_decorate_cmd_packet()
 						# update the computer command counter and register the command
 						self.computer_to_MCU_command_counter = self.computer_to_MCU_command_counter + 1 # UID for the command
 						self.computer_to_MCU_command = cmd_packet[2]
+						# set the mcu_subsequence_in_progress flag
+						self.mcu_subsequence_in_progress = True # important: set it *after* the new UID is recorded , *before* sending the new command to MCU
 						# send the command to the microcontroller
 						cmd_with_uid = self._add_UID_to_mcu_command_packet(cmd_packet,self.computer_to_MCU_command_counter)
 						self.microcontroller.send_command(cmd_with_uid)
@@ -392,6 +423,7 @@ class FluidController(QObject):
 						self.current_stopwatch.setInterval(self.current_subsequence.stopwatch_time_remaining_seconds*1000/60) # for simulation, speed up by 60x
 						self.current_stopwatch.timeout.connect(self._current_stopwatch_timeout_callback)
 						self.current_stopwatch.start()
+						self.computer_stopwatch_subsequence_in_progress = True
 						self.log_message.emit(utils.timestamp() + '[ countdown of ' + str(self.current_subsequence.stopwatch_time_remaining_seconds/60) + ' min started ]')
 						QApplication.processEvents()
 				else:
@@ -406,6 +438,16 @@ class FluidController(QObject):
 				self.current_sequence.sequence_finished = True # can be removed
 				self.current_sequence = None
 
+		# case for handling abort request during computer stopwatch countdown
+		if self.computer_stopwatch_subsequence_in_progress == True and self.abort_sequences_requested == True:
+			self.log_message.emit(utils.timestamp() + '[ countdown of ' + str(self.current_subsequence.stopwatch_time_remaining_seconds/60) + ' min aborted ]')
+			QApplication.processEvents()
+			self.current_stopwatch.stop()
+			self.current_stopwatch = None
+			self.computer_stopwatch_subsequence_in_progress = False
+			self.current_subsequence = None
+
+	# <<< core portion of the computer - MCU interation >>>
 	def _check_microcontroller_state(self):
 		# check the microcontroller state, if mcu cmd execution has completed, send new mcu cmd in the queue
 		msg = self.microcontroller.read_received_packet_nowait()
@@ -456,11 +498,16 @@ class FluidController(QObject):
 			'''
 			# command execution in progress
 			if PRINT_DEBUG_INFO:
-				print('cmd being executed on the MCU')
+				print('[ cmd being executed on the MCU ]')
 			return 
 		if MCU_command_execution_status == CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS:
 			# command execucation has completed, can move to the next command
-			self.current_subsequence = None
+			# important: only move to the next subsequence upon completion of a *MCU* subsequence
+			if self.mcu_subsequence_in_progress:
+				self.mcu_subsequence_in_progress = False
+				self.current_subsequence = None
+				if PRINT_DEBUG_INFO:
+					print('moving to the next subsequence (if any)')
 
 		''' moved to handling of queue of subsequences
 		# step 3: send the new command to MCU
