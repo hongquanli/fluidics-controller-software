@@ -155,32 +155,45 @@ class Microcontroller_Simulation(object):
 		self.serial = None
 		self.tx_buffer_length = MCU_CMD_LENGTH
 		self.rx_buffer_length = MCU_MSG_LENGTH
-		utils.print_message('MCU simulator connected')
-		# clear counter
+		utils.print_message('MCU simulator connected')		
 
 		# for simulation 
 		self.timer_update_command_execution_status = QTimer()
-		self.cmd_status = 0
+		self.timer_update_command_execution_status.timeout.connect(self._update_cmd_execution_status)
+		self.cmd_execution_status = 0
+		self.current_cmd = 0
+		self.current_cmd_uid = 0
 	
 	def __del__(self):
 		pass
 
 	def read_received_packet_nowait(self):
-		data=[]
+		msg=[]
 		for i in range(self.rx_buffer_length):
-			data.append(0)
-		data[3] = self.cmd_status
-		return data
+			msg.append(0)
+		msg[0] = self.current_cmd_uid >> 8
+		msg[1] = self.current_cmd_uid & 0xff
+		msg[2] = self.current_cmd
+		msg[3] = self.cmd_execution_status
+		# if PRINT_DEBUG_INFO:
+		# 	print('### msg from the MCU: ' + str(msg) + ']')
+		return msg
 
 	def send_command(self,cmd):
-		self.cmd_status = 0
+		self.current_cmd_uid = (cmd[0] << 8) + cmd[1]
+		self.current_cmd = cmd[2]
+		self.cmd_execution_status = CMD_EXECUTION_STATUS.IN_PROGRESS
 		self.timer_update_command_execution_status.setInterval(2000)
 		self.timer_update_command_execution_status.start()
-		print(cmd)
+		if PRINT_DEBUG_INFO:
+			print('### cmd sent to mcu: ' + str(cmd))
+			print('[MCU currend cmd uid is ' + str(self.current_cmd_uid) + ' ]')
 
-	def update_cmd_status(self):
+	def _update_cmd_execution_status(self):
 		print('simulation - MCU command execution finished')
-		self.cmd_status = 1
+		self.cmd_execution_status = CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS
+		# print('simulation - MCU command execution error')
+		# self.cmd_execution_status = CMD_EXECUTION_STATUS.CMD_EXECUTION_ERROR
 		self.timer_update_command_execution_status.stop()
 
 ###################################################
@@ -233,53 +246,77 @@ class FluidController(QObject):
 		return cmd
 
 	def _check_microcontroller_state(self):
-		packet = self.microcontroller.read_received_packet_nowait()
-		if packet is None:
+		msg = self.microcontroller.read_received_packet_nowait()
+		if msg is None:
 			return
 		# parse packet, step 0: display parsed packet (to add)
-		MCU_received_command_UID = packet[0] << 8 + packet[1]
-		MCU_received_command = packet[2]
-		MCU_command_execution_status = packet[3]
+		MCU_received_command_UID = (msg[0] << 8) + msg[1] # the parentheses around << is necessary !!!
+		MCU_received_command = msg[2]
+		MCU_command_execution_status = msg[3]
+		MCU_waiting_for_the_first_cmd = (MCU_received_command_UID == 0) and (MCU_received_command==0)
 
 		# step 1: check if MCU is "up to date" with the computer in terms of command
 		if (MCU_received_command_UID != self.computer_to_MCU_command_counter) or (MCU_received_command != self.computer_to_MCU_command):
-			print('mismatch')
+			if PRINT_DEBUG_INFO:
+					print('computer\t UID = ' + str(self.computer_to_MCU_command_counter) + ', CMD = ' + str(self.computer_to_MCU_command))
+					print('MCU\t\t UID = ' + str(MCU_received_command_UID) + ', CMD = ' + str(MCU_received_command))
+					print('----------------')
 			if self.timestamp_last_computer_mcu_mismatch == None:
 				self.timestamp_last_computer_mcu_mismatch = time.time() # new mismatch, record time stamp
+				if PRINT_DEBUG_INFO:
+					print('a new MCU received cmd out of sync with computer cmd occured')
 			else:
 				t_diff = time.time() - self.timestamp_last_computer_mcu_mismatch
 				if t_diff > T_DIFF_COMPUTER_MCU_MISMATCH_FAULT_THRESHOLD_SECONDS:
 					print('Fault! MCU and computer out of sync for more than 3 seconds')
 					# @@@@@ to-do: add error handling @@@@@ #
-					return
-		if (MCU_received_command_UID == self.computer_to_MCU_command_counter) and (MCU_received_command == self.computer_to_MCU_command):
+			return
+		else:
 			self.timestamp_last_computer_mcu_mismatch = None
 
 		# step 2: check command execution on MCU
-		if MCU_command_execution_status > 1:
+		if (MCU_command_execution_status != CMD_EXECUTION_STATUS.IN_PROGRESS) and (MCU_command_execution_status != CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS):
+			print('cmd execution error, status code: ' + str(MCU_command_execution_status))
 			# @@@@@ to-do: add error handling @@@@@ #
-			print('cmd execution error')
 			return
-		if MCU_command_execution_status == 1 or ( MCU_received_command_UID == 0 and MCU_received_command == 0): # @@@ to do - improve this line
-			# command execucation has completed, can move to the next command
-			if self.to_microcontroller_command_queque.empty() == False:
-				cmd = self.to_microcontroller_command_queque.get()
+		if MCU_command_execution_status == CMD_EXECUTION_STATUS.IN_PROGRESS:
+			# the commented section below is not necessary, as when MCU_received_command_UID and MCU_received_command are set or initialized to 0, 
+			# MCU_command_execution_status will also be set to CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS, 
+			# i.e. under no circumstances, CMD_EXECUTION_STATUS.IN_PROGRESS would occur when MCU_received_command_UID == 0 and MCU_received_command == 0
+			'''
+			if MCU_received_command_UID == 0 and MCU_received_command == 0:
+				pass # wait for the first command -> go ahead to load new command
 			else:
-				return
-		if MCU_command_execution_status == 0:
-			return
-
+				# command execution in progress
+				if PRINT_DEBUG_INFO:
+					print('cmd being executed on the MCU')
+				return 
+			'''
+			# command execution in progress
+			if PRINT_DEBUG_INFO:
+				print('cmd being executed on the MCU')
+			return 
+		if MCU_command_execution_status == CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS:
+			# command execucation has completed, can move to the next command
+			pass # go ahead to load new command
+	
 		# step 3: send the new command to MCU
-		self.computer_to_MCU_command_counter = self.computer_to_MCU_command_counter + 1
-		cmd = self._add_UID_to_command(self,cmd,self.computer_to_MCU_command_counter)
-		self.microcontroller.send_command(cmd)
-		print('sending the next command')
-		
+		if self.to_microcontroller_command_queque.empty() == False:
+			# get the new command to execute
+			cmd = self.to_microcontroller_command_queque.get()
+			self.computer_to_MCU_command_counter = self.computer_to_MCU_command_counter + 1
+			self.computer_to_MCU_command = cmd[2]
+			# send the command to the microcontroller
+			cmd_with_uid = self._add_UID_to_command(cmd,self.computer_to_MCU_command_counter)
+			self.microcontroller.send_command(cmd_with_uid)
 
 	def run_sequence(self,sequence_name,fluidic_port,flow_time,incubation_time):
-		print(sequence_name + ' - flow time: ' + str(flow_time) + ' s, incubation time: ' + str(incubation_time) + ' s [negative number means no removal]')
+		print('adding sequence to the queue ' + sequence_name + ' - flow time: ' + str(flow_time) + ' s, incubation time: ' + str(incubation_time) + ' s [negative number means no removal]')
 		self.sequences_abort_requested = False
 		self.sequence_in_progress = True
+
+		# need to create a master queue for subsequences
+
 		# incubation time - negative number means no removal
 		# handle different types of sequences
 		# case 1: strip, wash (post-strip), ligate, wash (post-ligate)

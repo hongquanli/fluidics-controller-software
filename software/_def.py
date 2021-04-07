@@ -7,7 +7,8 @@ FLOW_TIME_MAX = 60
 SEQUENCE_ATTRIBUTES_KEYS = ['Sequence','Fluidic Port','Flow Time (s)','Incubation Time (min)','Repeat','Include']
 SEQUENCE_NAME = ['Strip','Wash (Post-Strip)','Ligate','Wash (Post-Ligation)','Add Imaging Buffer','Remove Imaging Buffer','Stain with DAPI']
 
-TIMER_CHECK_MCU_STATE_INTERVAL_MS = 10
+# TIMER_CHECK_MCU_STATE_INTERVAL_MS = 10
+TIMER_CHECK_MCU_STATE_INTERVAL_MS = 500 # for simulation
 
 # MCU
 MCU_CMD_LENGTH = 10
@@ -20,6 +21,21 @@ T_DIFF_COMPUTER_MCU_MISMATCH_FAULT_THRESHOLD_SECONDS = 3
 # computer to MCU cmd
 C2M_CLEAR = 0
 
+PRINT_DEBUG_INFO = True
+
+# status of command execution on the MCU
+class CMD_EXECUTION_STATUS:
+	COMPLETED_WITHOUT_ERRORS = 0
+	IN_PROGRESS = 1
+	CMD_CHECKSUM_ERROR = 2
+	CMD_INVALID = 3
+	CMD_EXECUTION_ERROR = 4
+# CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS = 0
+# CMD_EXECUTION_STATUS.IN_PROGRESS = 1
+# CMD_EXECUTION_STATUS.CMD_CHECKSUM_ERROR = 2
+# CMD_EXECUTION_STATUS.CMD_INVALID = 3
+# CMD_EXECUTION_STATUS.CMD_EXECUTION_ERROR = 4
+
 '''
 
 
@@ -30,10 +46,11 @@ byte 0-1	: computer -> MCU CMD counter (UID)
 byte 2  	: cmd from host computer (error checking through check sum => no need to transmit back the parameters associated with the command)
 		  	<see below for command set>
 byte 3  	: status of the command
-				- 0: in progress
-				- 1: completed without errors
-				- 2: error during execution
-				- 3: error in receiving the cmd (checksum mismatch)
+				- 1: in progress
+				- 0: completed without errors
+				- 2: error in cmd check sum
+				- 3: invalid cmd
+				- 4: error during execution
 byte 4  	: MCU internal program being executed
 				- 0: idle
 			  	<see below for command set>
