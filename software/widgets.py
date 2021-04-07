@@ -265,13 +265,27 @@ class SequenceWidget(QFrame):
                 current_sequence = self.sequences[SEQUENCE_NAME[i]]
                 if current_sequence.attributes['Include'].isChecked() == True:
                     for k in range(current_sequence.attributes['Repeat'].value()):
+                        self.log_message.emit(utils.timestamp() + 'Add ' + SEQUENCE_NAME[i] + ', round ' + str(k+1) + ' to the queue')
+                        QApplication.processEvents()
+                        ################################################################
+                        ##### let the backend fluidController execute the sequence #####
+                        ################################################################
+                        self.fluidController.add_sequence(
+                            SEQUENCE_NAME[i],
+                            current_sequence.attributes['Flow Time (s)'].value(),
+                            current_sequence.attributes['Fluidic Port'].value(),
+                            current_sequence.attributes['Incubation Time (min)'].value(),
+                            pressure_setting=None,
+                            round_ = k)
+                        # below - abort is not handled in the controller
+                        '''
                         if self.abort_requested == False:
                             self.log_message.emit(utils.timestamp() + 'Execute ' + SEQUENCE_NAME[i] + ', round ' + str(k+1))
                             QApplication.processEvents()
                             ################################################################
                             ##### let the backend fluidController execute the sequence #####
                             ################################################################
-                            self.fluidController.run_sequence(
+                            self.fluidController.add_sequence(
                                 SEQUENCE_NAME[i],
                                 current_sequence.attributes['Flow Time (s)'].value(),
                                 current_sequence.attributes['Fluidic Port'].value(),
@@ -279,6 +293,7 @@ class SequenceWidget(QFrame):
                         else:
                             self.log_message.emit(utils.timestamp() + '! ' + SEQUENCE_NAME[i] + ', round ' + str(k+1) + ' aborted')
                             QApplication.processEvents()
+                        '''
             self.signal_enable_manualControlWidget.emit()
         else:
             self.log_message.emit(utils.timestamp() + 'no action.')

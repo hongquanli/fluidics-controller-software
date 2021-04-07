@@ -16,6 +16,7 @@ import serial.tools.list_ports
 import io
 import sys
 import time
+import queue
 from pathlib import Path
 
 from _def import *
@@ -199,8 +200,71 @@ class Microcontroller_Simulation(object):
 ###################################################
 ################# FluidController #################
 ###################################################
+class Sequence():
+	def __init__(self,sequence_name,fluidic_port,flow_time_s,incubation_time_min,pressure_setting=None,round_=1):
+		self.sequence_name = sequence_name
+		self.fluidic_port = fluidic_port
+		self.flow_time_s = flow_time_s
+		self.incubation_time_min = incubation_time_min
+		self.pressure_setting = pressure_setting
+		self.round = round_
 
-import queue
+		self.sequence_started = False
+		self.queue_subsequences = queue.Queue()
+
+		# populate the queue of subsequences, depending on the tyepes of the sequence
+		# case 1: strip, wash (post-strip), ligate, wash (post-ligate)
+		# case 2: add imaging buffer, (stain with DAPI)
+		# case 3: remove imaging buffer (can apply to removing any other liquid)
+
+		'''
+		if flow_time <= 0: # case 3, remove liquid
+			pass
+		'''
+
+		if True:
+			# subsequence 0
+			mcu_command = Microcontroller_Command(1,1,1)
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+
+			# subsequence 1
+			mcu_command = Microcontroller_Command(2,2,2)
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+
+			# subsequence 2
+			mcu_command = Microcontroller_Command(3,3,3)
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+
+			# subsequence 3
+			mcu_command = Microcontroller_Command(1,1,1)
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.COMPUTER_STOPWATCH,microcontroller_command=None,stopwatch_time_remaining_seconds=5))
+
+
+class Subsequence():
+	def __init__(self,subsequence_type=None,microcontroller_command=None,stopwatch_time_remaining_seconds=None):
+		self.subsequence_type = subsequence_type
+		self.cmd = microcontroller_command
+		self.stopwatch_time_remaining_seconds = stopwatch_time_remaining_seconds
+
+class Microcontroller_Command():
+	def __init__(self,cmd,payload1=0,payload2=0):
+		self.cmd = cmd
+		self.payload1 = payload1
+		self.payload2 = payload2
+
+	def get_ready_to_decorate_cmd_packet(self):
+		return self._format_command()
+
+	def _format_command(self):
+		cmd_packet = bytearray(MCU_CMD_LENGTH)
+		cmd_packet[0] = 0 # reserved byte for UID
+		cmd_packet[1] = 0 # reserved byte for UID
+		cmd_packet[2] = self.cmd
+		cmd_packet[3] = self.payload1 >> 8
+		cmd_packet[4] = self.payload1 & 0xff
+		cmd_packet[5] = self.payload2 >> 8
+		cmd_packet[6] = self.payload2 & 0xff
+		return cmd_packet
 
 class FluidController(QObject):
 	
@@ -212,40 +276,68 @@ class FluidController(QObject):
 		self.cmd_length = MCU_CMD_LENGTH
 
 		# clear counter on both the computer and the MCU
-		self.computer_to_MCU_command_counter = 0
+		self.computer_to_MCU_command_counter = 0 # this is the UID
 		self.computer_to_MCU_command = C2M_CLEAR # when init the MCU in the firmware, set computer_to_MCU_command = 255 (reserved), so that there will be mismatch until proper communication
-		cmd = self._format_command(self.computer_to_MCU_command)
-		cmd = self._add_UID_to_command(cmd,self.computer_to_MCU_command_counter)
-		self.microcontroller.send_command(cmd)
+		mcu_cmd = Microcontroller_Command(self.computer_to_MCU_command)
+		cmd_packet = mcu_cmd.get_ready_to_decorate_cmd_packet()
+		cmd_packet = self._add_UID_to_mcu_command_packet(cmd_packet,self.computer_to_MCU_command_counter)
+		self.microcontroller.send_command(cmd_packet)
 
-		self.sequences_abort_requested = False
-		self.sequence_in_progress = False
-		self.to_microcontroller_command_queque = queue.Queue()
+		self.abort_sequences_requested = False
+		self.sequences_in_progress = False
+		self.current_sequence = None
+
+		self.queue_sequence = queue.Queue()
+		self.queue_subsequence = queue.Queue()
+		self.queque_to_Microcontroller_Command = queue.Queue()
 
 		self.timer_check_microcontroller_state = QTimer()
 		self.timer_check_microcontroller_state.setInterval(TIMER_CHECK_MCU_STATE_INTERVAL_MS)
 		self.timer_check_microcontroller_state.timeout.connect(self._check_microcontroller_state)
 		self.timer_check_microcontroller_state.start()
 
+		self.timer_update_sequence_execution_state = QTimer()
+		self.timer_update_sequence_execution_state.setInterval(TIMER_CHECK_SEQUENCE_EXECUTION_STATE_INTERVAL_MS)
+		self.timer_update_sequence_execution_state.timeout.connect(self._update_sequence_execution_state)
+		self.timer_update_sequence_execution_state.start()
+
 		self.timestamp_last_computer_mcu_mismatch = None
 
-	def _format_command(self,command,payload1=0,payload2=0):
-		cmd = bytearray(self.cmd_length)
-		cmd[0] = 0
-		cmd[1] = 0
-		cmd[2] = command
-		cmd[3] = payload1 >> 8
-		cmd[4] = payload1 & 0xff
-		cmd[5] = payload1 >> 8
-		cmd[6] = payload1 & 0xff
-		return cmd
-
-	def _add_UID_to_command(self,cmd,command_UID):
+	def _add_UID_to_mcu_command_packet(self,cmd,command_UID):
 		cmd[0] = command_UID >> 8
 		cmd[1] = command_UID & 0xff
 		return cmd
 
+	def _update_sequence_execution_state(self):
+		if self.sequences_in_progress:
+			if self.current_sequence == None:
+				# if the queue is not empty, load the next sequence to execute
+				if self.queue_sequence.empty() == False:
+					# start a new sequence if no abort sequence requested
+					if self.abort_sequences_requested == False:
+						self.current_sequence = self.queue_sequence.get()
+						self.log_message.emit(utils.timestamp() + 'Execute ' + self.current_sequence.sequence_name + ', round ' + str(self.current_sequence.round))
+						QApplication.processEvents()
+						self.sequence_started = True
+					# abort sequence is requested
+					else:
+						while self.queue_sequence.empty() == False:
+							self.current_sequence = self.queue_sequence.get()
+							self.log_message.emit(utils.timestamp() + '! ' + self.current_sequence.sequence_name + ', round ' + str(self.current_sequence.round) + ' aborted')
+							QApplication.processEvents()
+							self.current_sequence.sequence_started = False
+							# void the sequence
+							self.current_sequence = None 
+	            # if the queue is empty, set the sequences_in_progress flag to False
+				else:
+					self.sequences_in_progress = False
+					if PRINT_DEBUG_INFO:
+						print('no more sequences in the queue')
+			else:
+				return # wait for the current sequence to complete execution
+
 	def _check_microcontroller_state(self):
+		# check the microcontroller state, if mcu cmd execution has completed, send new mcu cmd in the queue
 		msg = self.microcontroller.read_received_packet_nowait()
 		if msg is None:
 			return
@@ -301,46 +393,24 @@ class FluidController(QObject):
 			pass # go ahead to load new command
 	
 		# step 3: send the new command to MCU
-		if self.to_microcontroller_command_queque.empty() == False:
+		if self.queque_to_Microcontroller_Command.empty() == False:
 			# get the new command to execute
-			cmd = self.to_microcontroller_command_queque.get()
+			cmd = self.queque_to_Microcontroller_Command.get()
 			self.computer_to_MCU_command_counter = self.computer_to_MCU_command_counter + 1
 			self.computer_to_MCU_command = cmd[2]
 			# send the command to the microcontroller
-			cmd_with_uid = self._add_UID_to_command(cmd,self.computer_to_MCU_command_counter)
+			cmd_with_uid = self._add_UID_to_mcu_command_packet(cmd,self.computer_to_MCU_command_counter)
 			self.microcontroller.send_command(cmd_with_uid)
 
-	def run_sequence(self,sequence_name,fluidic_port,flow_time,incubation_time):
-		print('adding sequence to the queue ' + sequence_name + ' - flow time: ' + str(flow_time) + ' s, incubation time: ' + str(incubation_time) + ' s [negative number means no removal]')
-		self.sequences_abort_requested = False
-		self.sequence_in_progress = True
-
-		# need to create a master queue for subsequences
-
-		# incubation time - negative number means no removal
-		# handle different types of sequences
-		# case 1: strip, wash (post-strip), ligate, wash (post-ligate)
-		# case 2: add imaging buffer, (stain with DAPI)
-		# case 3: remove imaging buffer (can apply to removing any other liquid)
-
-		cmd_0 = self._format_command(1,1,1);
-		cmd_1 = self._format_command(2,2,2);
-		cmd_2 = self._format_command(3,3,3);
-		self.to_microcontroller_command_queque.put(cmd_0)
-		self.to_microcontroller_command_queque.put(cmd_1)
-		self.to_microcontroller_command_queque.put(cmd_2)
-
-		if flow_time <= 0: # case 3, remove liquid
-			pass
+	def add_sequence(self,sequence_name,fluidic_port,flow_time_s,incubation_time_min,pressure_setting=None,round_=1):
+		print('adding sequence to the queue ' + sequence_name + ' - flow time: ' + str(flow_time_s) + ' s, incubation time: ' + str(incubation_time_min) + ' s [negative number means no removal]')
+		sequence_to_add = Sequence(sequence_name,fluidic_port,flow_time_s,incubation_time_min,pressure_setting,round_)
+		self.queue_sequence.put(sequence_to_add)
+		self.abort_sequences_requested = False
+		self.sequences_in_progress = True		
 			
 	def request_abort_sequences(self):
-		self.sequences_abort_requested = True
-
-		'''
-		self.log_message.emit(utils.timestamp() + status)
-		QApplication.processEvents()
-		'''
-
+		self.abort_sequences_requested = True
 
 
 class Logger(QObject):
