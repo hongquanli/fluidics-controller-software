@@ -82,6 +82,7 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		# layout widgets (using tabs)  - end
 
 		# connecting signals to slots
+		# @@@ to do: addItem and scrollToBottom need to happen in sequence - create a function for this
 		self.chillerWidget.log_message.connect(self.logWidget.addItem)
 		self.preUseCheckWidget.log_message.connect(self.logWidget.addItem)
 		self.fluidController.log_message.connect(self.logWidget.addItem)
@@ -105,6 +106,10 @@ class STARmapAutomationControllerGUI(QMainWindow):
 
 		self.sequenceWidget.signal_disable_manualControlWidget.connect(self.disableManualControlWidget)
 		self.sequenceWidget.signal_enable_manualControlWidget.connect(self.enableManualControlWidget)
+
+		self.fluidController.signal_initialize_stopwatch_display.connect(self.logWidget.addItem)
+		self.fluidController.signal_initialize_stopwatch_display.connect(self.logWidget.scrollToBottom)
+		self.fluidController.signal_update_stopwatch_display.connect(self.update_stopwatch_display)
 		
 		# transfer the layout to the central widget
 		self.centralWidget = QWidget()
@@ -116,6 +121,11 @@ class STARmapAutomationControllerGUI(QMainWindow):
 
 	def enableManualControlWidget(self):
 		self.tabWidget.setTabEnabled(1,True)
+
+	def update_stopwatch_display(self,text):
+		if 'stop watch remaining time' in self.logWidget.item(self.logWidget.count()-1).text():
+			# use this if statement to prevent other messages being overwritten
+			self.logWidget.item(self.logWidget.count()-1).setText(text)
 
 	def closeEvent(self, event):
 		event.accept()

@@ -303,6 +303,8 @@ class Microcontroller_Command():
 class FluidController(QObject):
 	
 	log_message = Signal(str)
+	signal_update_stopwatch_display = Signal(str)
+	signal_initialize_stopwatch_display = Signal(str)
 	signal_sequences_execution_started = Signal()
 	signal_sequences_execution_stopped = Signal()
 
@@ -351,12 +353,12 @@ class FluidController(QObject):
 		return cmd
 
 	def _current_stopwatch_timeout_callback(self):
+		self.current_stopwatch.stop() # make sure to stop the stopwatch first
+		self.computer_stopwatch_subsequence_in_progress = False
 		self.log_message.emit(utils.timestamp() + '[ countdown of ' + str(self.current_subsequence.stopwatch_time_remaining_seconds/60) + ' min finished ]')
 		QApplication.processEvents()
-		if self.computer_stopwatch_subsequence_in_progress == True:
-			self.current_stopwatch = None
-			self.computer_stopwatch_subsequence_in_progress = False
-			self.current_subsequence = None
+		self.current_stopwatch = None
+		self.current_subsequence = None
 
 	# <<< core portion of the program>>>
 	def _update_sequence_execution_state(self):
@@ -425,6 +427,7 @@ class FluidController(QObject):
 						self.current_stopwatch.start()
 						self.computer_stopwatch_subsequence_in_progress = True
 						self.log_message.emit(utils.timestamp() + '[ countdown of ' + str(self.current_subsequence.stopwatch_time_remaining_seconds/60) + ' min started ]')
+						self.signal_initialize_stopwatch_display.emit(utils.timestamp() + '[ stop watch remaining time: ' + str(int(self.current_stopwatch.remainingTime()/1000)) + ' seconds ]') # @@@ change format to to x min x s
 						QApplication.processEvents()
 				else:
 					# abort sequence is requested
@@ -437,6 +440,10 @@ class FluidController(QObject):
 				# finished executing all the subsequences of the current sequence
 				self.current_sequence.sequence_finished = True # can be removed
 				self.current_sequence = None
+
+		# case for updating the stopwatch display
+		if self.computer_stopwatch_subsequence_in_progress == True:
+			self.signal_update_stopwatch_display.emit(utils.timestamp() + '[ stop watch remaining time: ' + str(int(self.current_stopwatch.remainingTime()/1000)) + ' seconds ]') # @@@ change format to to x min x s
 
 		# case for handling abort request during computer stopwatch countdown
 		if self.computer_stopwatch_subsequence_in_progress == True and self.abort_sequences_requested == True:
