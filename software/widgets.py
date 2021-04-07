@@ -215,11 +215,13 @@ class SequenceWidget(QFrame):
         self.sequences['Stain with DAPI'].attributes['Fluidic Port'].setEnabled(False)
         self.sequences['Ligate'].attributes['Fluidic Port'].setMaximum(4)
 
-        # set table size
+        # set table size - reference: https://stackoverflow.com/questions/8766633/how-to-determine-the-correct-size-of-a-qtablewidget
         self.tableWidget.resizeColumnsToContents()
         self.tableWidget.setFixedSize(self.tableWidget.horizontalHeader().length() + 
                    self.tableWidget.verticalHeader().width(),self.tableWidget.verticalHeader().length() + 
                    self.tableWidget.horizontalHeader().height())
+        self.tableWidget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.tableWidget.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         # settings loading and saveing
         self.lineEdit_setting_file = QLineEdit()
