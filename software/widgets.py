@@ -340,6 +340,7 @@ class SequenceWidget(QFrame):
         self.signal_enable_manualControlWidget.emit()
         QApplication.processEvents()
 
+
 class ManualFlushWidget(QFrame):
 
     log_message = Signal(str)
@@ -393,23 +394,6 @@ class ManualFlushWidget(QFrame):
         self.fluidController.bleach(bypass,volume_ul,flowrate_ul_per_s)
 
 
-class ExperimentWidget(QFrame):
-
-    def __init__(self, experimentController, main=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.experimentController = experimentController
-        self.add_components()
-        self.setFrameStyle(QFrame.Panel | QFrame.Raised)
-
-    def add_components(self):
-        self.button_run_experiment = QPushButton('Run Experiment')
-        self.button_run_experiment.clicked.connect(self.experimentController.run_experiment)
-        hbox = QHBoxLayout() 
-        hbox.addWidget(QLabel('[Automated Experiment]'))
-        hbox.addWidget(self.button_run_experiment)
-        self.setLayout(hbox)
-        self.button_run_experiment.setEnabled(False) # disabled until the fluidic handling is made more robust
-
 class ChillerWidget(QFrame):
 
     log_message = Signal(str)
@@ -451,28 +435,3 @@ class ChillerWidget(QFrame):
         self.log_message.emit(utils.timestamp() + 'check chiller temperature.')
         QApplication.processEvents()
         self.fluidController.check_chiller_temperature()
-
-class SwitchToBypassWidget(QFrame):
-
-    log_message = Signal(str)
-
-    def __init__(self, fluidController, main=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fluidController = fluidController
-        self.add_components()
-        self.setFrameStyle(QFrame.Panel | QFrame.Raised)
-
-    def add_components(self):
-
-        self.button_switch_to_bypass = QPushButton('Switch Flow Path to Bypass')
-        self.button_switch_to_bypass.clicked.connect(self.switch_flow_path_to_bypass)
-        
-        hbox = QHBoxLayout() 
-        hbox.addWidget(QLabel('[Switch Flow Path to Bypass]'))
-        hbox.addWidget(self.button_switch_to_bypass)
-        self.setLayout(hbox)
-
-    def switch_flow_path_to_bypass(self):
-        self.log_message.emit(utils.timestamp() + 'switch flow path to bypass.')
-        QApplication.processEvents()
-        self.fluidController.switch_flow_path_to_bypass()
