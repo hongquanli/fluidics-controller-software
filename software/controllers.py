@@ -160,7 +160,7 @@ class Microcontroller_Simulation(object):
 
 		# for simulation 
 		self.timer_update_command_execution_status = QTimer()
-		self.timer_update_command_execution_status.timeout.connect(self._update_cmd_execution_status)
+		self.timer_update_command_execution_status.timeout.connect(self._simulation_update_cmd_execution_status)
 		self.cmd_execution_status = 0
 		self.current_cmd = 0
 		self.current_cmd_uid = 0
@@ -188,9 +188,9 @@ class Microcontroller_Simulation(object):
 		self.timer_update_command_execution_status.start()
 		if PRINT_DEBUG_INFO:
 			print('### cmd sent to mcu: ' + str(cmd))
-			print('[MCU currend cmd uid is ' + str(self.current_cmd_uid) + ' ]')
+			print('[MCU current cmd uid is ' + str(self.current_cmd_uid) + ' ]')
 
-	def _update_cmd_execution_status(self):
+	def _simulation_update_cmd_execution_status(self):
 		print('simulation - MCU command execution finished')
 		self.cmd_execution_status = CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS
 		# print('simulation - MCU command execution error')
@@ -209,7 +209,8 @@ class Sequence():
 		self.pressure_setting = pressure_setting
 		self.round = round_
 
-		self.sequence_started = False
+		self.sequence_started = False  # can be removed
+		self.sequence_finished = False # can be removed
 		self.queue_subsequences = queue.Queue()
 
 		# populate the queue of subsequences, depending on the tyepes of the sequence
@@ -242,8 +243,8 @@ class Sequence():
 
 class Subsequence():
 	def __init__(self,subsequence_type=None,microcontroller_command=None,stopwatch_time_remaining_seconds=None):
-		self.subsequence_type = subsequence_type
-		self.cmd = microcontroller_command
+		self.type = subsequence_type
+		self.microcontroller_command = microcontroller_command
 		self.stopwatch_time_remaining_seconds = stopwatch_time_remaining_seconds
 
 class Microcontroller_Command():
@@ -287,9 +288,13 @@ class FluidController(QObject):
 		self.sequences_in_progress = False
 		self.current_sequence = None
 
+		self.subsequences_in_progress = False
+		self.current_subsequence = None
+		self.current_stopwatch = None
+
 		self.queue_sequence = queue.Queue()
 		self.queue_subsequence = queue.Queue()
-		self.queque_to_Microcontroller_Command = queue.Queue()
+		# self.queque_to_microcontroller_command_packet = queue.Queue() # no longer needed - each cmd correspond to one subsequence
 
 		self.timer_check_microcontroller_state = QTimer()
 		self.timer_check_microcontroller_state.setInterval(TIMER_CHECK_MCU_STATE_INTERVAL_MS)
@@ -299,7 +304,6 @@ class FluidController(QObject):
 		self.timer_update_sequence_execution_state = QTimer()
 		self.timer_update_sequence_execution_state.setInterval(TIMER_CHECK_SEQUENCE_EXECUTION_STATE_INTERVAL_MS)
 		self.timer_update_sequence_execution_state.timeout.connect(self._update_sequence_execution_state)
-		self.timer_update_sequence_execution_state.start()
 
 		self.timestamp_last_computer_mcu_mismatch = None
 
@@ -308,33 +312,84 @@ class FluidController(QObject):
 		cmd[1] = command_UID & 0xff
 		return cmd
 
+	def _current_stopwatch_timeout_callback(self):
+		self.log_message.emit(utils.timestamp() + '[ countdown of ' + str(self.current_subsequence.stopwatch_time_remaining_seconds/60) + ' min finished ]')
+		QApplication.processEvents()
+		self.current_stopwatch = None
+		self.current_subsequence = None
+
 	def _update_sequence_execution_state(self):
-		if self.sequences_in_progress:
-			if self.current_sequence == None:
-				# if the queue is not empty, load the next sequence to execute
-				if self.queue_sequence.empty() == False:
-					# start a new sequence if no abort sequence requested
-					if self.abort_sequences_requested == False:
-						self.current_sequence = self.queue_sequence.get()
-						self.log_message.emit(utils.timestamp() + 'Execute ' + self.current_sequence.sequence_name + ', round ' + str(self.current_sequence.round))
-						QApplication.processEvents()
-						self.sequence_started = True
-					# abort sequence is requested
-					else:
-						while self.queue_sequence.empty() == False:
-							self.current_sequence = self.queue_sequence.get()
-							self.log_message.emit(utils.timestamp() + '! ' + self.current_sequence.sequence_name + ', round ' + str(self.current_sequence.round) + ' aborted')
-							QApplication.processEvents()
-							self.current_sequence.sequence_started = False
-							# void the sequence
-							self.current_sequence = None 
-	            # if the queue is empty, set the sequences_in_progress flag to False
+		# previous sequence finished execution, now try to load the next sequence
+		if self.current_sequence == None:
+			# if the queue is not empty, load the next sequence to execute
+			if self.queue_sequence.empty() == False:
+				# start a new sequence if no abort sequence requested
+				if self.abort_sequences_requested == False:
+					self.current_sequence = self.queue_sequence.get()
+					self.log_message.emit(utils.timestamp() + 'Execute ' + self.current_sequence.sequence_name + ', round ' + str(self.current_sequence.round+1))
+					QApplication.processEvents()
+					self.sequence_started = True # can be removed
+				# abort sequence is requested
 				else:
-					self.sequences_in_progress = False
-					if PRINT_DEBUG_INFO:
-						print('no more sequences in the queue')
+					while self.queue_sequence.empty() == False:
+						self.current_sequence = self.queue_sequence.get()
+						self.log_message.emit(utils.timestamp() + '! ' + self.current_sequence.sequence_name + ', round ' + str(self.current_sequence.round+1) + ' aborted')
+						QApplication.processEvents()
+						self.current_sequence.sequence_started = False
+						# void the sequence
+						self.current_sequence = None 
+					self.log_message.emit(utils.timestamp() + 'Abort completed')
+					QApplication.processEvents()
+					return
+            # if the queue is empty, set the sequences_in_progress flag to False
 			else:
-				return # wait for the current sequence to complete execution
+				self.sequences_in_progress = False
+				self.timer_update_sequence_execution_state.stop()
+				if PRINT_DEBUG_INFO:
+					print('no more sequences in the queue')
+				return
+		# else:
+		# [removed else, so that the new sequence can be executed in the same call of the callback function]
+		# [if there's no current sequence, the function would have already returned]
+
+		# work on the subsequences of the current sequence
+		# [the below code is directly derived from the above]
+		# if the queue is not empty, load the next sequence to execute
+		if self.current_subsequence == None:
+			if self.current_sequence.queue_subsequences.empty() == False:
+				if self.abort_sequences_requested == False:
+					# start a new subsequence if no abort sequence requested
+					self.current_subsequence = self.current_sequence.queue_subsequences.get()
+					if PRINT_DEBUG_INFO:
+						print(self.current_subsequence)
+					if self.current_subsequence.type == SUBSEQUENCE_TYPE.MCU_CMD:
+						mcu_cmd = self.current_subsequence.microcontroller_command
+						cmd_packet = mcu_cmd.get_ready_to_decorate_cmd_packet()
+						# update the computer command counter and register the command
+						self.computer_to_MCU_command_counter = self.computer_to_MCU_command_counter + 1 # UID for the command
+						self.computer_to_MCU_command = cmd_packet[2]
+						# send the command to the microcontroller
+						cmd_with_uid = self._add_UID_to_mcu_command_packet(cmd_packet,self.computer_to_MCU_command_counter)
+						self.microcontroller.send_command(cmd_with_uid)
+					if self.current_subsequence.type == SUBSEQUENCE_TYPE.COMPUTER_STOPWATCH:
+						self.current_stopwatch = QTimer()
+						self.current_stopwatch.setInterval(self.current_subsequence.stopwatch_time_remaining_seconds*1000)
+						self.current_stopwatch.setInterval(self.current_subsequence.stopwatch_time_remaining_seconds*1000/60) # for simulation, speed up by 60x
+						self.current_stopwatch.timeout.connect(self._current_stopwatch_timeout_callback)
+						self.current_stopwatch.start()
+						self.log_message.emit(utils.timestamp() + '[ countdown of ' + str(self.current_subsequence.stopwatch_time_remaining_seconds/60) + ' min started ]')
+						QApplication.processEvents()
+				else:
+					# abort sequence is requested
+					while self.current_sequence.queue_subsequences.empty() == False:
+						self.current_subsequence = self.current_sequence.queue_subsequences.get()
+						self.current_subsequence = None
+					self.current_sequence = None
+					return
+			else:
+				# finished executing all the subsequences of the current sequence
+				self.current_sequence.sequence_finished = True # can be removed
+				self.current_sequence = None
 
 	def _check_microcontroller_state(self):
 		# check the microcontroller state, if mcu cmd execution has completed, send new mcu cmd in the queue
@@ -390,24 +445,27 @@ class FluidController(QObject):
 			return 
 		if MCU_command_execution_status == CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS:
 			# command execucation has completed, can move to the next command
-			pass # go ahead to load new command
-	
+			self.current_subsequence = None
+
+		''' moved to handling of queue of subsequences
 		# step 3: send the new command to MCU
-		if self.queque_to_Microcontroller_Command.empty() == False:
+		if self.queque_to_microcontroller_command_packet.empty() == False:
 			# get the new command to execute
-			cmd = self.queque_to_Microcontroller_Command.get()
+			cmd_packet = self.queque_to_microcontroller_command_packet.get()
 			self.computer_to_MCU_command_counter = self.computer_to_MCU_command_counter + 1
-			self.computer_to_MCU_command = cmd[2]
+			self.computer_to_MCU_command = cmd_packet[2]
 			# send the command to the microcontroller
-			cmd_with_uid = self._add_UID_to_mcu_command_packet(cmd,self.computer_to_MCU_command_counter)
+			cmd_with_uid = self._add_UID_to_mcu_command_packet(cmd_packet,self.computer_to_MCU_command_counter)
 			self.microcontroller.send_command(cmd_with_uid)
+		'''
 
 	def add_sequence(self,sequence_name,fluidic_port,flow_time_s,incubation_time_min,pressure_setting=None,round_=1):
 		print('adding sequence to the queue ' + sequence_name + ' - flow time: ' + str(flow_time_s) + ' s, incubation time: ' + str(incubation_time_min) + ' s [negative number means no removal]')
 		sequence_to_add = Sequence(sequence_name,fluidic_port,flow_time_s,incubation_time_min,pressure_setting,round_)
 		self.queue_sequence.put(sequence_to_add)
 		self.abort_sequences_requested = False
-		self.sequences_in_progress = True		
+		self.sequences_in_progress = True
+		self.timer_update_sequence_execution_state.start()
 			
 	def request_abort_sequences(self):
 		self.abort_sequences_requested = True
