@@ -226,14 +226,17 @@ class Sequence():
 		if True:
 			# subsequence 0
 			mcu_command = Microcontroller_Command(1,1,1)
+			mcu_command.set_description('command 1')
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 
 			# subsequence 1
 			mcu_command = Microcontroller_Command(2,2,2)
+			mcu_command.set_description('command 2')
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 
 			# subsequence 2
 			mcu_command = Microcontroller_Command(3,3,3)
+			mcu_command.set_description('command 3')
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 
 			# subsequence 3
@@ -252,9 +255,16 @@ class Microcontroller_Command():
 		self.cmd = cmd
 		self.payload1 = payload1
 		self.payload2 = payload2
+		self.description = ''
 
 	def get_ready_to_decorate_cmd_packet(self):
 		return self._format_command()
+
+	def get_description(self):
+		return self.description
+
+	def set_description(self,description):
+		self.description = description
 
 	def _format_command(self):
 		cmd_packet = bytearray(MCU_CMD_LENGTH)
@@ -371,6 +381,8 @@ class FluidController(QObject):
 						# send the command to the microcontroller
 						cmd_with_uid = self._add_UID_to_mcu_command_packet(cmd_packet,self.computer_to_MCU_command_counter)
 						self.microcontroller.send_command(cmd_with_uid)
+						self.log_message.emit(utils.timestamp() + '[ microcontroller: ' + self.current_subsequence.microcontroller_command.get_description() +  ' ]')
+						QApplication.processEvents()
 					if self.current_subsequence.type == SUBSEQUENCE_TYPE.COMPUTER_STOPWATCH:
 						self.current_stopwatch = QTimer()
 						self.current_stopwatch.setInterval(self.current_subsequence.stopwatch_time_remaining_seconds*1000)
