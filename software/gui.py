@@ -28,7 +28,7 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		self.logger = controllers.Logger()
 
 		# load widgets
-		self.chillerWidger = widgets.ChillerWidget(self.fluidController)
+		self.chillerWidget = widgets.ChillerWidget(self.fluidController)
 		self.preUseCheckWidget = widgets.PreUseCheckWidget(self.fluidController)
 		self.logWidget = QListWidget()
 		# self.triggerWidget = widgets.TriggerWidget(self.triggerController)
@@ -39,7 +39,7 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		'''
 		layout = QGridLayout()
 		layout.addWidget(QLabel('Chiller'),0,0)
-		layout.addWidget(self.chillerWidger,0,1)
+		layout.addWidget(self.chillerWidget,0,1)
 		layout.addWidget(QLabel('Pre-Use Check'),1,0)
 		layout.addWidget(self.preUseCheckWidget,1,1)
 		layout.addWidget(QLabel('Sequences'),4,0)
@@ -52,8 +52,8 @@ class STARmapAutomationControllerGUI(QMainWindow):
 
 		# layout widgets (using tabs)  - start
 		tab1_layout = QGridLayout()
-		tab1_layout.addWidget(QLabel('Chiller'),0,0)
-		tab1_layout.addWidget(self.chillerWidger,0,1)
+		# tab1_layout.addWidget(QLabel('Chiller'),0,0)
+		# tab1_layout.addWidget(self.chillerWidget,0,1)
 		tab1_layout.addWidget(QLabel('Pre-Use Check'),1,0)
 		tab1_layout.addWidget(self.preUseCheckWidget,1,1)
 		tab1_layout.addWidget(QLabel('Sequences'),4,0)
@@ -82,21 +82,21 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		# layout widgets (using tabs)  - end
 
 		# connecting signals to slots
-		self.chillerWidger.log_message.connect(self.logWidget.addItem)
+		self.chillerWidget.log_message.connect(self.logWidget.addItem)
 		self.preUseCheckWidget.log_message.connect(self.logWidget.addItem)
 		self.fluidController.log_message.connect(self.logWidget.addItem)
 		# self.triggerController.log_message.connect(self.logWidget.addItem)
 		self.sequenceWidget.log_message.connect(self.logWidget.addItem)
 		self.manualFlushWidget.log_message.connect(self.logWidget.addItem)
 
-		self.chillerWidger.log_message.connect(self.logWidget.scrollToBottom)
+		self.chillerWidget.log_message.connect(self.logWidget.scrollToBottom)
 		self.preUseCheckWidget.log_message.connect(self.logWidget.scrollToBottom)
 		self.fluidController.log_message.connect(self.logWidget.scrollToBottom)
 		# self.triggerController.log_message.connect(self.logWidget.scrollToBottom)
 		self.sequenceWidget.log_message.connect(self.logWidget.scrollToBottom)
 		self.manualFlushWidget.log_message.connect(self.logWidget.scrollToBottom)
 		
-		self.chillerWidger.log_message.connect(self.logger.log)
+		self.chillerWidget.log_message.connect(self.logger.log)
 		self.preUseCheckWidget.log_message.connect(self.logger.log)
 		self.fluidController.log_message.connect(self.logger.log)
 		# self.triggerController.log_message.connect(self.logger.log)
