@@ -42,7 +42,7 @@ volatile bool flag_read_sensors = false;
 volatile bool flag_send_update = false;
 
 bool flag_manual_control_enabled = false;
-int mode_pressure_vacuum = 0; // 1: pressure, 0: vacuum
+int mode_pressure_vacuum = 0; // 0: pressure, 1: vacuum
 int analog_in = 0;
 float disc_pump_power = 0;
 bool disc_pump_enabled = false;
@@ -324,7 +324,7 @@ void loop() {
 
       // set mode (pressure vs vacuum)
       mode_pressure_vacuum = digitalRead(pin_pressure_vacuum); // GND - vacuum; VCC - pressure
-      if (mode_pressure_vacuum == 0 )
+      if (mode_pressure_vacuum == 1 )
         set_mode_to_vacuum();
       else
         set_mode_to_pressure();
