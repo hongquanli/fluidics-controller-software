@@ -511,6 +511,54 @@ class ManualFlushWidget(QFrame):
         self.fluidController.bleach(bypass,volume_ul,flowrate_ul_per_s)
 
 
+class ManualControlWidget(QWidget):
+
+    log_message = Signal(str)
+
+    def __init__(self, fluidController, main=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fluidController = fluidController
+        self.add_components()
+        # self.setFrameStyle(QFrame.Panel | QFrame.Raised)
+
+    def add_components(self):
+
+        self.entry_selector_valve_position = QSpinBox()
+        self.entry_selector_valve_position.setMinimum(1)
+        self.entry_selector_valve_position.setMaximum(24)
+        self.entry_selector_valve_position.setFixedWidth(40)
+
+        self.entry_10mm_solenoid_valve_selection = QSpinBox()
+        self.entry_10mm_solenoid_valve_selection.setMinimum(0)
+        self.entry_10mm_solenoid_valve_selection.setMaximum(16)
+        self.entry_10mm_solenoid_valve_selection.setFixedWidth(40)
+
+        hbox1 = QHBoxLayout()
+        tmp = QLabel('Set Selector Valve Position To')
+        tmp.setFixedWidth(190)
+        hbox1.addWidget(tmp)
+        hbox1.addWidget(self.entry_selector_valve_position)
+        hbox1.addStretch()
+
+        hbox2 = QHBoxLayout()
+        tmp = QLabel('Turn On 10mm Solenoid Valve #')
+        tmp.setFixedWidth(190)
+        hbox2.addWidget(tmp)
+        hbox2.addWidget(self.entry_10mm_solenoid_valve_selection)
+        hbox2.addWidget(QLabel('(enter 1-16 to turn on one of the valves, enter 0 to turn off all the valves)'))
+        hbox2.addStretch()
+
+        framedHbox1 = frameWidget(hbox1)
+        framedHbox2 = frameWidget(hbox2)
+
+        vbox = QVBoxLayout()
+        vbox.addWidget(framedHbox1)
+        vbox.addWidget(framedHbox2)
+        vbox.addStretch()
+
+        self.setLayout(vbox)
+
+
 class ChillerWidget(QFrame):
 
     log_message = Signal(str)
@@ -552,3 +600,11 @@ class ChillerWidget(QFrame):
         self.log_message.emit(utils.timestamp() + 'check chiller temperature.')
         QApplication.processEvents()
         self.fluidController.check_chiller_temperature()
+
+
+class frameWidget(QFrame):
+
+    def __init__(self, layout, main=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        self.setLayout(layout)

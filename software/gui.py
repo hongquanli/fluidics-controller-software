@@ -22,8 +22,8 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		# self.triggerController = controllers.TriggerController_simulation()
 		#elf.fluidController = controllers.FluidController()
 
-		self.teensy41 = controllers.Microcontroller()
-		# self.teensy41 = controllers.Microcontroller_Simulation()
+		# self.teensy41 = controllers.Microcontroller()
+		self.teensy41 = controllers.Microcontroller_Simulation()
 		self.fluidController = controllers.FluidController(self.teensy41)
 		self.logger = controllers.Logger()
 
@@ -34,6 +34,7 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		# self.triggerWidget = widgets.TriggerWidget(self.triggerController)
 		self.sequenceWidget = widgets.SequenceWidget(self.fluidController)
 		self.manualFlushWidget = widgets.ManualFlushWidget(self.fluidController)
+		self.manualControlWidget = widgets.ManualControlWidget(self.fluidController)
 		self.microcontrollerStateDisplayWidget = widgets.MicrocontrollerStateDisplayWidget()
 
 		# layout widgets (linear)
@@ -62,7 +63,7 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		tab1_widget = QWidget()
 		
 		tab1_widget.setLayout(tab1_layout)
-		tab2_widget = QWidget()
+		tab2_widget = self.manualControlWidget
 
 		self.tabWidget = QTabWidget()
 		self.tabWidget.addTab(tab1_widget, "Run Experiments")
