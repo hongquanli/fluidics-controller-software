@@ -310,6 +310,7 @@ class FluidController(QObject):
 
 	# for displaying the MCU states
 	signal_MCU_CMD_UID = Signal(int)
+	signal_MCU_CMD = Signal(int)     # @@@ to-do: map the command to the command description
 	signal_pump_power = Signal(str)
 	signal_selector_valve_position = Signal(int)
 	signal_pressure = Signal(str)
@@ -510,6 +511,7 @@ class FluidController(QObject):
 		measurement_vacuum = (_vacuum_raw - MCU_CONSTANTS._output_min) * (MCU_CONSTANTS._p_max - MCU_CONSTANTS._p_min) / (MCU_CONSTANTS._output_max - MCU_CONSTANTS._output_min) + MCU_CONSTANTS._p_min
 
 		self.signal_MCU_CMD_UID.emit(MCU_received_command_UID)
+		self.signal_MCU_CMD.emit(MCU_received_command) # @@@ to-do: map the command to the command description
 		self.signal_pump_power.emit('{:.2f}'.format(measurement_pump_power))
 		self.signal_selector_valve_position.emit(measurement_selector_valve_position)
 		self.signal_pressure.emit('{:.2f}'.format(measurement_pressure))

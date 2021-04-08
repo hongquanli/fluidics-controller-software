@@ -120,6 +120,7 @@ class STARmapAutomationControllerGUI(QMainWindow):
 
 		# connections for displaying the MCU state
 		self.fluidController.signal_MCU_CMD_UID.connect(self.microcontrollerStateDisplayWidget.label_MCU_CMD_UID.setNum)
+		self.fluidController.signal_MCU_CMD.connect(self.microcontrollerStateDisplayWidget.label_CMD.setNum)
 		self.fluidController.signal_pump_power.connect(self.microcontrollerStateDisplayWidget.label_pump_power.setText)
 		self.fluidController.signal_selector_valve_position.connect(self.microcontrollerStateDisplayWidget.label_selector_valve_position.setNum)
 		self.fluidController.signal_pressure.connect(self.microcontrollerStateDisplayWidget.label_pressure.setText)
