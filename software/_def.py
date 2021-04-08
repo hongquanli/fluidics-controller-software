@@ -57,6 +57,13 @@ class MCU_CMD_PARAMETERS_DESCRIPTION:
 	CONSTANT_FLOW = 'constant flow'
 	VOLUME_CONTROL = 'volume control'
 
+class MCU_CONSTANTS:
+	# pressure sensor HSCMRNN030PD2A3(x) HSCMRND030PD3A3(yes)
+	_output_min = 1638; # 10% of 2^14
+	_output_max = 14745; # 90% of 2^14
+	_p_min = -30; # psi
+	_p_max = 30; # psi
+
 # status of internal program execution on the MCU
 
 '''
@@ -78,12 +85,14 @@ byte 4  	: MCU internal program being executed
 			  	<see below for command set>
 byte 5  	: state of valve A1,A2,B1,B2,bubble_sensor_1,bubble_sensor_2,x,x
 byte 6  	: state of valve C1-C7, manual input bit
-byte 7-8	: pump power
-byte 9-10	: pressure sensor 1 reading
-byte 11-12	: pressure sensor 2 reading
-byte 13-14	: flow sensor 1 reading
-byte 15-16	: flow sensor 2 reading
-byte 17-19	: reserved
+byte 7-8	: state of valve D1-D16
+byte 9		: state of selector valve
+byte 10-11	: pump power
+byte 12-13	: pressure sensor 1 reading
+byte 13-15	: pressure sensor 2 reading
+byte 16-17	: flow sensor 1 reading
+byte 18-19	: flow sensor 2 reading
+byte 20-24	: reserved
 
 #########################################################
 #########   Computer -> MCU command structure   #########

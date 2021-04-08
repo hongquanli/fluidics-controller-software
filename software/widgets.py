@@ -341,6 +341,97 @@ class SequenceWidget(QFrame):
         QApplication.processEvents()
 
 
+'''
+#########################################################
+#########   MCU -> Computer message structure   #########
+#########################################################
+byte 0-1    : computer -> MCU CMD counter (UID)
+byte 2      : cmd from host computer (error checking through check sum => no need to transmit back the parameters associated with the command)
+            <see below for command set>
+byte 3      : status of the command
+                - 1: in progress
+                - 0: completed without errors
+                - 2: error in cmd check sum
+                - 3: invalid cmd
+                - 4: error during execution
+byte 4      : MCU internal program being executed
+                - 0: idle
+                <see below for command set>
+byte 5      : state of valve A1,A2,B1,B2,bubble_sensor_1,bubble_sensor_2,x,x
+byte 6      : state of valve C1-C7, manual input bit
+byte 7-8    : pump power
+byte 9-10   : pressure sensor 1 reading
+byte 11-12  : pressure sensor 2 reading
+byte 13-14  : flow sensor 1 reading
+byte 15-16  : flow sensor 2 reading
+byte 17-19  : reserved
+'''
+
+class MicrocontrollerStateDisplayWidget(QFrame):
+    def __init__(self, main=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.add_components()
+        self.setFrameStyle(QFrame.Panel | QFrame.Raised)
+
+    def add_components(self):
+        self.label_MCU_CMD_UID = QLabel()
+        self.entry_CMD = QLabel()
+        self.label_CMD_status = QLabel()
+        self.label_MCU_internal_program = QLabel()
+        self.label_pump_power = QLabel()
+        self.label_selector_valve_position = QLabel()
+        self.label_pressure = QLabel()
+        self.label_vacuum = QLabel()
+        self.label_bubble_sensor_upstream = QLabel()
+        self.label_bubble_sensor_downstream = QLabel()
+
+        self.label_MCU_CMD_UID.setFrameStyle(QFrame.Panel | QFrame.Sunken)        
+        self.entry_CMD.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+        self.label_CMD_status.setFrameStyle(QFrame.Panel | QFrame.Sunken)        
+        self.label_MCU_internal_program.setFrameStyle(QFrame.Panel | QFrame.Sunken)        
+        self.label_pump_power.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+
+        self.label_selector_valve_position.setFrameStyle(QFrame.Panel | QFrame.Sunken)        
+        self.label_pressure.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+        self.label_vacuum.setFrameStyle(QFrame.Panel | QFrame.Sunken)        
+        self.label_bubble_sensor_upstream.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+        self.label_bubble_sensor_downstream.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+
+        hbox1 = QHBoxLayout()
+        hbox2 = QHBoxLayout()
+        # hbox3 = QHBoxLayout()
+        hbox4 = QHBoxLayout()
+
+        hbox1.addWidget(QLabel('CMD UID'))
+        hbox1.addWidget(self.label_MCU_CMD_UID)
+        hbox1.addWidget(QLabel('CMD'))
+        hbox1.addWidget(self.entry_CMD)
+        hbox1.addWidget(QLabel('CMD Status'))
+        hbox1.addWidget(self.label_CMD_status)
+        hbox1.addWidget(QLabel('MCU Internal Program'))
+        hbox1.addWidget(self.label_MCU_internal_program)
+
+        hbox2.addWidget(QLabel('Pump Power'))
+        hbox2.addWidget(self.label_pump_power)
+        hbox2.addWidget(QLabel('Rotary Valve Pos'))
+        hbox2.addWidget(self.label_selector_valve_position)
+
+        hbox4.addWidget(QLabel('Pressure (psi)'))
+        hbox4.addWidget(self.label_pressure)
+        hbox4.addWidget(QLabel('Vacuum (psi)'))
+        hbox4.addWidget(self.label_vacuum)
+        hbox4.addWidget(QLabel('Bubble Sensor (in)'))
+        hbox4.addWidget(self.label_bubble_sensor_upstream) # 0 - liquid present
+        hbox4.addWidget(QLabel('Bubble Sensor (out)'))
+        hbox4.addWidget(self.label_bubble_sensor_downstream) # 0 - liquid present
+
+        vbox = QVBoxLayout()
+        vbox.addLayout(hbox1)
+        vbox.addLayout(hbox2)
+        vbox.addLayout(hbox4)
+        self.setLayout(vbox)
+
+
 class ManualFlushWidget(QFrame):
 
     log_message = Signal(str)

@@ -34,6 +34,7 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		# self.triggerWidget = widgets.TriggerWidget(self.triggerController)
 		self.sequenceWidget = widgets.SequenceWidget(self.fluidController)
 		self.manualFlushWidget = widgets.ManualFlushWidget(self.fluidController)
+		self.microcontrollerStateDisplayWidget = widgets.MicrocontrollerStateDisplayWidget()
 
 		# layout widgets (linear)
 		'''
@@ -67,9 +68,9 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		self.tabWidget.addTab(tab1_widget, "Run Experiments")
 		self.tabWidget.addTab(tab2_widget, "Manual Control")
 		
-
 		layout = QGridLayout()
 		layout.addWidget(self.tabWidget,0,0)
+
 		# layout.addWidget(self.logWidget,1,0)
 		# @@@ the code below is to put the ListWidget into a frame - code may be improved
 		self.framedLogWidget = QFrame()
@@ -77,8 +78,14 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		framedLogWidget_layout.addWidget(self.logWidget)
 		self.framedLogWidget.setLayout(framedLogWidget_layout)
 		self.framedLogWidget.setFrameStyle(QFrame.Panel | QFrame.Raised)
-		layout.addWidget(self.framedLogWidget,1,0)
-		#layout.addWidget(self.logWidget,1,0)
+		'''
+		mcuStateDisplay = QGridLayout()
+		mcuStateDisplay.addWidget(QLabel('Controller State'),0,0)
+		mcuStateDisplay.addWidget(self.microcontrollerStateDisplayWidget,0,1)
+		layout.addLayout(mcuStateDisplay,1,0)
+		'''
+		layout.addWidget(self.microcontrollerStateDisplayWidget,1,0)
+		layout.addWidget(self.framedLogWidget,2,0)
 		# layout widgets (using tabs)  - end
 
 		# connecting signals to slots
@@ -110,6 +117,14 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		self.fluidController.signal_initialize_stopwatch_display.connect(self.logWidget.addItem)
 		self.fluidController.signal_initialize_stopwatch_display.connect(self.logWidget.scrollToBottom)
 		self.fluidController.signal_update_stopwatch_display.connect(self.update_stopwatch_display)
+
+		# connections for displaying the MCU state
+		self.fluidController.signal_MCU_CMD_UID.connect(self.microcontrollerStateDisplayWidget.label_MCU_CMD_UID.setNum)
+		self.fluidController.signal_pump_power.connect(self.microcontrollerStateDisplayWidget.label_pump_power.setNum)
+		self.fluidController.signal_selector_valve_position.connect(self.microcontrollerStateDisplayWidget.label_selector_valve_position.setNum)
+		self.fluidController.signal_pressure.connect(self.microcontrollerStateDisplayWidget.label_pressure.setNum)
+		self.fluidController.signal_vacuum.connect(self.microcontrollerStateDisplayWidget.label_vacuum.setNum)
+
 		
 		# transfer the layout to the central widget
 		self.centralWidget = QWidget()

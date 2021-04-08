@@ -266,6 +266,10 @@ class Subsequence():
 		self.microcontroller_command = microcontroller_command
 		self.stopwatch_time_remaining_seconds = stopwatch_time_remaining_seconds
 
+# utility function for converting pressure sensor raw reading to psi
+def constrain(val, min_val, max_val):
+    return min(max_val, max(min_val, val))
+
 class Microcontroller_Command():
 	def __init__(self,cmd,payload1=0,payload2=0,payload3=0,payload4=0,timeout_limit=0):
 		self.cmd = cmd
@@ -307,6 +311,13 @@ class FluidController(QObject):
 	signal_initialize_stopwatch_display = Signal(str)
 	signal_sequences_execution_started = Signal()
 	signal_sequences_execution_stopped = Signal()
+
+	# for displaying the MCU states
+	signal_MCU_CMD_UID = Signal(int)
+	signal_pump_power = Signal(float)
+	signal_selector_valve_position = Signal(int)
+	signal_pressure = Signal(float)
+	signal_vacuum = Signal(float)
 
 	def __init__(self,microcontroller):
 		QObject.__init__(self)
@@ -460,11 +471,53 @@ class FluidController(QObject):
 		msg = self.microcontroller.read_received_packet_nowait()
 		if msg is None:
 			return
+
+		'''
+		#########################################################
+		#########   MCU -> Computer message structure   #########
+		#########################################################
+		byte 0-1	: computer -> MCU CMD counter (UID)
+		byte 2  	: cmd from host computer (error checking through check sum => no need to transmit back the parameters associated with the command)
+				  	<see below for command set>
+		byte 3  	: status of the command
+						- 1: in progress
+						- 0: completed without errors
+						- 2: error in cmd check sum
+						- 3: invalid cmd
+						- 4: error during execution
+		byte 4  	: MCU internal program being executed
+						- 0: idle
+					  	<see below for command set>
+		byte 5  	: state of valve A1,A2,B1,B2,bubble_sensor_1,bubble_sensor_2,x,x
+		byte 6  	: state of valve C1-C7, manual input bit
+		byte 7-8	: state of valve D1-D16
+		byte 9		: state of selector valve
+		byte 10-11	: pump power
+		byte 12-13	: pressure sensor 1 reading
+		byte 13-15	: pressure sensor 2 reading
+		byte 16-17	: flow sensor 1 reading
+		byte 18-19	: flow sensor 2 reading
+		byte 20-24	: reserved
+
+		'''
 		# parse packet, step 0: display parsed packet (to add)
 		MCU_received_command_UID = (msg[0] << 8) + msg[1] # the parentheses around << is necessary !!!
 		MCU_received_command = msg[2]
 		MCU_command_execution_status = msg[3]
-		MCU_waiting_for_the_first_cmd = (MCU_received_command_UID == 0) and (MCU_received_command==0)
+		MCU_interal_program = msg[4]
+
+		measurement_selector_valve_position = msg[9]
+		measurement_pump_power = float((int(msg[10]) << 11) + msg[8])/65535
+		_pressure_raw = constrain((int(msg[12])<<8) + msg[13],MCU_CONSTANTS._output_min,MCU_CONSTANTS._output_max)
+		_vacuum_raw = constrain((int(msg[14])<<8) + msg[15],MCU_CONSTANTS._output_min,MCU_CONSTANTS._output_max)
+		measurement_pressure = (_pressure_raw - MCU_CONSTANTS._output_min) * (MCU_CONSTANTS._p_max - MCU_CONSTANTS._p_min) / (MCU_CONSTANTS._output_max - MCU_CONSTANTS._output_min) + MCU_CONSTANTS._p_min
+		measurement_vacuum = (_vacuum_raw - MCU_CONSTANTS._output_min) * (MCU_CONSTANTS._p_max - MCU_CONSTANTS._p_min) / (MCU_CONSTANTS._output_max - MCU_CONSTANTS._output_min) + MCU_CONSTANTS._p_min
+
+		self.signal_MCU_CMD_UID.emit(MCU_received_command_UID)
+		self.signal_pump_power.emit(measurement_pump_power)
+		self.signal_selector_valve_position.emit(measurement_selector_valve_position)
+		self.signal_pressure.emit(measurement_pressure)
+		self.signal_vacuum.emit(measurement_vacuum)
 
 		# step 1: check if MCU is "up to date" with the computer in terms of command
 		if (MCU_received_command_UID != self.computer_to_MCU_command_counter) or (MCU_received_command != self.computer_to_MCU_command):
