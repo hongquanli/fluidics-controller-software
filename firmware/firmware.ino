@@ -1,7 +1,8 @@
 #include <Wire.h>
 #include <SPI.h>
 
-#define DEBUG_WITH_SERIAL true
+//#define DEBUG_WITH_SERIAL true
+#define DEBUG_WITH_SERIAL false
 
 static const int pin_manual_control_enable = 24;
 static const int pin_pressure_vacuum = 25;
@@ -29,10 +30,16 @@ static const int pin_33996_CS_0 = 10;
 static const int pin_33996_PWM = 41;
 static const int pin_33996_nRST = 40;
 
-const int check_manual_input_interval_us = 5000;
-IntervalTimer Timer_check_manual_input;
+const int check_manual_input_interval_us = 5000; // 5 ms
+const int read_sensors_interval_us = 5000; // 5 ms
+const int send_update_interval_us = 20000; // 20 ms
+IntervalTimer Timer_check_manual_input; // see https://www.pjrc.com/teensy/td_timing_IntervalTimer.html
+IntervalTimer Timer_read_sensors_input;
+IntervalTimer Timer_send_update_input;
 
 volatile bool flag_check_manual_inputs = false;
+volatile bool flag_read_sensors = false;
+volatile bool flag_send_update = false;
 
 bool flag_manual_control_enabled = false;
 int mode_pressure_vacuum = 0; // 1: pressure, 0: vacuum
@@ -71,12 +78,85 @@ const uint16_t _output_min = 1638; // 10% of 2^14
 const uint16_t _output_max = 14745; // 90% of 2^14
 const float _p_min = -30; // psi
 const float _p_max = 30; // psi
+float pressure_2 = 0; // pressure
+float pressure_1 = 0; // vacuum
+uint16_t pressure_2_raw = 0; 
+uint16_t pressure_1_raw = 0;
+uint16_t flow_2_raw = 0; // upstram
+uint16_t flow_1_raw = 0; // downstream
 
 // bubble sensor 
 static const int pin_OCB350_0_calibrate = 29;
 static const int pin_OCB350_0_B = 30;  // bubble sensor 1 - aspiration bubble sensor
 static const int pin_OCB350_1_calibrate = 31;
 static const int pin_OCB350_1_B = 32;
+
+// communication with the python software
+/*
+#########################################################
+#########   MCU -> Computer message structure   #########
+#########################################################
+byte 0-1  : computer -> MCU CMD counter (UID)
+byte 2    : cmd from host computer (error checking through check sum => no need to transmit back the parameters associated with the command)
+        <see below for command set>
+byte 3    : status of the command
+        - 1: in progress
+        - 0: completed without errors
+        - 2: error in cmd check sum
+        - 3: invalid cmd
+        - 4: error during execution
+byte 4    : MCU internal program being executed
+        - 0: idle
+          <see below for command set>
+byte 5    : state of valve A1,A2,B1,B2,bubble_sensor_1,bubble_sensor_2,x,x
+byte 6    : state of valve C1-C7, manual input bit
+byte 7-8  : state of valve D1-D16
+byte 9    : state of selector valve
+byte 10-11  : pump power
+byte 12-13  : pressure sensor 1 reading (vacuum)
+byte 14-15  : pressure sensor 2 reading (pressure)
+byte 16-17  : flow sensor 1 reading (downstream)
+byte 18-19  : flow sensor 2 reading (upstream)
+byte 20-24  : reserved
+*/
+static const int FROM_MCU_MSG_LENGTH = 25; // search for MCU_MSG_LENGTH in _def.py
+static const int TO_MCU_CMD_LENGTH = 15; // search for MCU_CMD_LENGTH in _def.py
+byte buffer_rx[1000];
+byte buffer_tx[FROM_MCU_MSG_LENGTH];
+volatile int buffer_rx_ptr;
+
+// command sets - these are commands from the computer
+// each of the commands may break down to multiple internal programs in the MCU
+// search for class CMD_SET in _def.py
+static const int CLEAR = 0;
+static const int REMOVE_MEDIUM = 1;
+static const int ADD_MEDIUM = 2;
+
+// command parameters
+// search for class MCU_CMD_PARAMETERS in _def.py
+static const int CONSTANT_POWER = 0;
+static const int CONSTANT_PRESSURE = 1;
+static const int CONSTANT_FLOW = 2;
+static const int VOLUME_CONTROL = 3;
+
+// command execution status constants
+// search for class CMD_EXECUTION_STATUS in _def.py
+static const int COMPLETED_WITHOUT_ERRORS = 0;
+static const int IN_PROGRESS = 1;
+static const int CMD_CHECKSUM_ERROR = 2;
+static const int CMD_INVALID = 3;
+static const int CMD_EXECUTION_ERROR = 4;
+
+// variables related to control by the software program
+uint16_t current_command_uid = 0;
+uint8_t current_command = 0;
+uint8_t command_execution_status = IN_PROGRESS;
+uint8_t internal_program = 0;
+uint8_t selector_valve_position_setValue = 0;
+
+/*************************************************************
+ ************************** SETUP() **************************
+ *************************************************************/
 
 void setup()
 {
@@ -112,9 +192,6 @@ void setup()
   // bubble sensor
   pinMode(pin_OCB350_0_B, INPUT);
   pinMode(pin_OCB350_1_B, INPUT);
-
-  // interval timer for checking manual input
-  Timer_check_manual_input.begin(set_check_manual_input_flag, check_manual_input_interval_us);
 
   // disc pump serial
   UART_disc_pump.begin(115200);
@@ -177,7 +254,7 @@ void setup()
       NXP33996_turn_off(i);
       NXP33996_update();
     }
-  }
+  }  
 
   // test selector valve control
   /*
@@ -195,18 +272,41 @@ void setup()
     // can remove
     if(DEBUG_WITH_SERIAL)
       Serial.println("----------------------------");
-    set_selector_valve_position_blocking(i);
+    selector_valve_position_setValue = i;
+    set_selector_valve_position_blocking(selector_valve_position_setValue);
     check_selector_valve_position();
     uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
     // can remove
     if(DEBUG_WITH_SERIAL)
       Serial.println(uart_titan_rx_buffer);
   }
+
+  Timer_check_manual_input.begin(set_check_manual_input_flag, check_manual_input_interval_us);
+  Timer_read_sensors_input.begin(set_read_sensors_flag, read_sensors_interval_us);
+  Timer_send_update_input.begin(set_send_update_flag, send_update_interval_us);
+
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
 
+  /**************************************************************
+   ********************** check serial input ********************
+   **************************************************************/
+  while(Serial.available())
+  {
+    buffer_rx[buffer_rx_ptr] = Serial.read();
+    buffer_rx_ptr = buffer_rx_ptr + 1;
+    if (buffer_rx_ptr == TO_MCU_CMD_LENGTH) 
+    {
+      buffer_rx_ptr = 0;
+      current_command_uid = uint16_t(buffer_rx[0])*256 + uint16_t(buffer_rx[1]);
+      current_command = buffer_rx[2];
+    }
+  }
+
+  /**************************************************************
+   ********************** check manual input ********************
+   **************************************************************/
   if (flag_check_manual_inputs)
   {
     // check manual control
@@ -257,10 +357,14 @@ void loop() {
       }
     }
     flag_check_manual_inputs = false;
+  }
 
-    /***********************************************************************
-     ******************** reading sensors - to be moved ********************
-     ***********************************************************************/
+  /**************************************************************
+   ************************* read sensors ***********************
+   **************************************************************/
+  if (flag_read_sensors)
+  {
+    flag_read_sensors = false;    
     /*
       // sensor measurement
       Wire1.requestFrom(SLF3x_ADDRESS, 3);
@@ -281,6 +385,7 @@ void loop() {
     }
     uint16_t sensor_flow_value  = Wire1.read() << 8; // read the MSB from the sensor
     sensor_flow_value |= Wire1.read();      // read the LSB from the sensor
+    flow_2_raw = sensor_flow_value;
     byte sensor_flow_crc    = Wire1.read();
     uint16_t sensor_temp_value  = Wire1.read() << 8; // read the MSB from the sensor
     sensor_temp_value |= Wire1.read();      // read the LSB from the sensor
@@ -311,7 +416,8 @@ void loop() {
     uint8_t byte4 = Wire1.read();
     byte _status = byte1 >> 6;
     uint16_t _bridge_data = (byte1 << 8 | byte2) & 0x3FFF;
-    float pressure_2 = float(constrain(_bridge_data, _output_min, _output_max) - _output_min) * (_p_max - _p_min) / (_output_max - _output_min) + _p_min;
+    pressure_2_raw = _bridge_data;
+    pressure_2 = float(constrain(_bridge_data, _output_min, _output_max) - _output_min) * (_p_max - _p_min) / (_output_max - _output_min) + _p_min;
     // uint16_t _temperature_raw = (byte3 << 3 | byte4 >> 5);
     // float temperature_2 = (float(_temperature_raw)/2047.0)*200 - 50;
 
@@ -331,8 +437,15 @@ void loop() {
     byte2 = Wire1.read();
     _status = byte1 >> 6;
     _bridge_data = (byte1 << 8 | byte2) & 0x3FFF;
-    float pressure_1 = float(constrain(_bridge_data, _output_min, _output_max) - _output_min) * (_p_max - _p_min) / (_output_max - _output_min) + _p_min;
+    pressure_1_raw = _bridge_data;
+    pressure_1 = float(constrain(_bridge_data, _output_min, _output_max) - _output_min) * (_p_max - _p_min) / (_output_max - _output_min) + _p_min;
+  }
 
+  /*********************************************************
+   ********************** send update **********************
+   *********************************************************/
+  if(flag_send_update)
+  {
     if(DEBUG_WITH_SERIAL)
     {
       // Serial.print(scaled_temp_value);
@@ -349,12 +462,73 @@ void loop() {
       // Serial.print("pin_OCB350_1_B: ");
       Serial.println(digitalRead(pin_OCB350_0_B));
     }
+    else
+    {
+      /*
+      byte 0-1  : computer -> MCU CMD counter (UID)
+      byte 2    : cmd from host computer (error checking through check sum => no need to transmit back the parameters associated with the command)
+              <see below for command set>
+      byte 3    : status of the command
+              - 1: in progress
+              - 0: completed without errors
+              - 2: error in cmd check sum
+              - 3: invalid cmd
+              - 4: error during execution
+      byte 4    : MCU internal program being executed
+              - 0: idle
+                <see below for command set>
+      byte 5    : state of valve A1,A2,B1,B2,bubble_sensor_1,bubble_sensor_2,x,x
+      byte 6    : state of valve C1-C7, manual input bit
+      byte 7-8  : state of valve D1-D16
+      byte 9    : state of selector valve
+      byte 10-11  : pump power
+      byte 12-13  : pressure sensor 1 reading (vacuum)
+      byte 14-15  : pressure sensor 2 reading (pressure)
+      byte 16-17  : flow sensor 1 reading (downstram)
+      byte 18-19  : flow sensor 2 reading (upstram)
+      byte 20-24  : reserved
+      */
+      buffer_tx[0] = byte(current_command_uid >> 8);
+      buffer_tx[1] = byte(current_command_uid % 256);
+      buffer_tx[2] = current_command;
+      buffer_tx[3] = command_execution_status;
+      buffer_tx[4] = internal_program;
+      buffer_tx[5] = 0; // to do
+      buffer_tx[6] = 0; // to do
+      buffer_tx[7] = byte(NXP33996_state >> 8);
+      buffer_tx[8] = byte(NXP33996_state % 256);
+      buffer_tx[9] = byte(selector_valve_position_setValue);
+      buffer_tx[10] = byte(int(disc_pump_power*65535) >> 8);
+      buffer_tx[11] = byte(int(disc_pump_power*65535) % 256);
+      buffer_tx[12] = byte(pressure_1_raw >> 8); // vacuum
+      buffer_tx[13] = byte(pressure_1_raw % 256 ); // vacuum
+      buffer_tx[14] = byte(pressure_2_raw >> 8); // pressure
+      buffer_tx[15] = byte(pressure_2_raw % 256 ); // vacuum
+      buffer_tx[16] = byte(flow_1_raw >> 8); // pressure
+      buffer_tx[17] = byte(flow_1_raw % 256 ); // vacuum
+      buffer_tx[18] = byte(flow_2_raw >> 8); // pressure
+      buffer_tx[19] = byte(flow_2_raw % 256 ); // vacuum
+      SerialUSB.write(buffer_tx,FROM_MCU_MSG_LENGTH);  
+    }
+    flag_send_update = false;
   }
 }
 
 void set_check_manual_input_flag()
 {
   flag_check_manual_inputs = true;
+}
+
+void set_read_sensors_flag()
+{
+  flag_read_sensors = true;
+}
+
+void set_send_update_flag()
+{
+  flag_send_update = true;
+  if(DEBUG_WITH_SERIAL)
+    Serial.println("flag_send_update = true");
 }
 
 /************************************************
@@ -367,7 +541,8 @@ void set_mode_to_vacuum()
   digitalWrite(pin_valve_A1,HIGH);
   digitalWrite(pin_valve_A2,HIGH);
   // for testing only, to be removed
-  set_selector_valve_position_blocking(2);
+  selector_valve_position_setValue = 2;
+  set_selector_valve_position_blocking(selector_valve_position_setValue);
 }
 
 void set_mode_to_pressure()
@@ -378,7 +553,8 @@ void set_mode_to_pressure()
   digitalWrite(pin_valve_A2,LOW);
 
   // for testing only, to be removed
-  set_selector_valve_position_blocking(1);
+  selector_valve_position_setValue = 1;
+  set_selector_valve_position_blocking(selector_valve_position_setValue);
 }
 
 /************************************************
@@ -413,7 +589,8 @@ bool set_disc_pump_power(float power)
 {
   char cmd_str[32];
   sprintf(cmd_str, "#W23,%f\n", power);
-  UART_disc_pump.print(cmd_str);
+  // UART_disc_pump.print(cmd_str);
+  return write_disc_pump_command(cmd_str);
 }
 
 void select_sensor_2()
