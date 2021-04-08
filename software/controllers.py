@@ -114,7 +114,7 @@ class Microcontroller(object):
 		self.tx_buffer_length = MCU_CMD_LENGTH
 		self.rx_buffer_length = MCU_MSG_LENGTH
 
-		controller_ports = [ p.device for p in serial.tools.list_ports.comports() if 'Teensyduino' == p.manufacturer]
+		controller_ports = [ p.device for p in serial.tools.list_ports.comports() if '8219530' == p.serial_number]
 		if not controller_ports:
 			raise IOError("No Controller Found")
 		self.serial = serial.Serial(controller_ports[0],2000000)
