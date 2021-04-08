@@ -501,6 +501,8 @@ void loop() {
       buffer_tx[0] = byte(current_command_uid >> 8);
       buffer_tx[1] = byte(current_command_uid % 256);
       buffer_tx[2] = current_command;
+      // before implementing the internal programs, set command_execution_status always to completed
+      command_execution_status = COMPLETED_WITHOUT_ERRORS;
       buffer_tx[3] = command_execution_status;
       buffer_tx[4] = internal_program;
       buffer_tx[5] = 0; // to do
