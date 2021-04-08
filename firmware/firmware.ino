@@ -12,6 +12,11 @@ static const int pin_LED_1 = 22;
 
 static const int pin_sensor_select = 15;
 
+static const int pin_valve_A1 = 0;
+static const int pin_valve_A2 = 1;
+static const int pin_valve_B1 = 2;
+static const int pin_valve_B2 = 3;
+
 static const int pin_valve_C1 = 4;
 static const int pin_valve_C2 = 5;
 static const int pin_valve_C3 = 6;
@@ -61,12 +66,25 @@ char uart_titan_rx_buffer[32];
 // 33996
 uint16_t NXP33996_state = 0x0000;
 
+// pressure sensor HSCMRNN030PD2A3(x) HSCMRND030PD3A3(yes)
+const uint16_t _output_min = 1638; // 10% of 2^14
+const uint16_t _output_max = 14745; // 90% of 2^14
+const float _p_min = -30; // psi
+const float _p_max = 30; // psi
+
+// bubble sensor 
+static const int pin_OCB350_0_calibrate = 29;
+static const int pin_OCB350_0_B = 30;  // bubble sensor 1 - aspiration bubble sensor
+static const int pin_OCB350_1_calibrate = 31;
+static const int pin_OCB350_1_B = 32;
+
 void setup()
 {
   // USB serial
   Serial.begin(2000000);
   delayMicroseconds(5000);
-  Serial.println("Connected"); // not showing up
+  if (DEBUG_WITH_SERIAL)
+    Serial.println("Connected"); // not showing up
 
   pinMode(pin_manual_control_enable, INPUT_PULLUP);
   pinMode(pin_pressure_vacuum, INPUT);
@@ -75,6 +93,11 @@ void setup()
   pinMode(pin_LED_1, OUTPUT);
 
   pinMode(pin_sensor_select, OUTPUT);
+
+  pinMode(pin_valve_A1, OUTPUT);
+  pinMode(pin_valve_A2, OUTPUT);
+  pinMode(pin_valve_B1, OUTPUT);
+  pinMode(pin_valve_B2, OUTPUT);
 
   pinMode(pin_valve_C1, OUTPUT);
   pinMode(pin_valve_C2, OUTPUT);
@@ -85,6 +108,10 @@ void setup()
   pinMode(pin_valve_C7, OUTPUT);
 
   analogWriteResolution(10);
+
+  // bubble sensor
+  pinMode(pin_OCB350_0_B, INPUT);
+  pinMode(pin_OCB350_1_B, INPUT);
 
   // interval timer for checking manual input
   Timer_check_manual_input.begin(set_check_manual_input_flag, check_manual_input_interval_us);
@@ -102,25 +129,27 @@ void setup()
   Wire1.begin();
 
   select_sensor_2();
+  // Soft reset the sensor
   do {
-    // Soft reset the sensor
     Wire1.beginTransmission(0x00);
     Wire1.write(0x06);
     ret = Wire1.endTransmission();
     if (ret != 0) {
-      Serial.println("Error while sending soft reset command, retrying...");
+      if(DEBUG_WITH_SERIAL)
+        Serial.println("Error while sending soft reset command, retrying...");
       delay(500); // wait long enough for chip reset to complete
     }
   } while (ret != 0);
 
+  // To perform a measurement, first send 0x3608 to switch to continuous
   do {
-    // To perform a measurement, first send 0x3608 to switch to continuous
     Wire1.beginTransmission(SLF3x_ADDRESS);
     Wire1.write(0x36);
     Wire1.write(0x08);
     ret = Wire1.endTransmission();
     if (ret != 0) {
-      Serial.println("Error starting measurement ...");
+      if(DEBUG_WITH_SERIAL)
+        Serial.println("Error starting measurement ...");
       delay(500); // wait long enough for chip reset to complete
     }
   } while (ret != 0);
@@ -137,19 +166,18 @@ void setup()
   SPI.setBitOrder(MSBFIRST);
   digitalWrite(pin_33996_nRST,HIGH);
 
-  /*
-  for(int k = 0;k<10;k++)
+  // test 33996
+  for(int k = 0;k<3;k++)
   {
     for(int i=0;i<16;i++)
     {
       NXP33996_turn_on(i);
       NXP33996_update();
-      delay(200);
+      delay(50);
       NXP33996_turn_off(i);
       NXP33996_update();
     }
   }
-  */
 
   // test selector valve control
   /*
@@ -162,15 +190,18 @@ void setup()
     Serial.println(uart_titan_rx_buffer);
     }
   */
-  for(int i = 1;i<=3;i++)
-    {
-    Serial.println("----------------------------");
+  for(int i = 1;i<=5;i++)
+  {
+    // can remove
+    if(DEBUG_WITH_SERIAL)
+      Serial.println("----------------------------");
     set_selector_valve_position_blocking(i);
     check_selector_valve_position();
     uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
-    Serial.println(uart_titan_rx_buffer);
-    }
-
+    // can remove
+    if(DEBUG_WITH_SERIAL)
+      Serial.println(uart_titan_rx_buffer);
+  }
 }
 
 void loop() {
@@ -227,6 +258,9 @@ void loop() {
     }
     flag_check_manual_inputs = false;
 
+    /***********************************************************************
+     ******************** reading sensors - to be moved ********************
+     ***********************************************************************/
     /*
       // sensor measurement
       Wire1.requestFrom(SLF3x_ADDRESS, 3);
@@ -236,14 +270,15 @@ void loop() {
       scaled_flow_value = ((float) signed_flow_value) / SCALE_FACTOR_FLOW;
       Serial.println(scaled_flow_value);
     */
-
+    // flow sensor
+    select_sensor_2();
     Wire1.requestFrom(SLF3x_ADDRESS, 9);
     if (Wire1.available() < 9)
     {
-      Serial.println("I2C read error");
+      if(DEBUG_WITH_SERIAL)
+        Serial.println("I2C read error");
       return;
     }
-
     uint16_t sensor_flow_value  = Wire1.read() << 8; // read the MSB from the sensor
     sensor_flow_value |= Wire1.read();      // read the LSB from the sensor
     byte sensor_flow_crc    = Wire1.read();
@@ -253,17 +288,67 @@ void loop() {
     uint16_t aux_value          = Wire1.read() << 8; // read the MSB from the sensor
     aux_value         |= Wire1.read();      // read the LSB from the sensor
     byte aux_crc            = Wire1.read();
-
     int signed_temp_value = (int16_t) sensor_temp_value;
     float scaled_temp_value = ((float) signed_temp_value) / SCALE_FACTOR_TEMP;
     int signed_flow_value = (int16_t) sensor_flow_value;
     float scaled_flow_value = ((float) signed_flow_value) / SCALE_FACTOR_FLOW;
 
-    Serial.print(scaled_temp_value);
-    Serial.print('\t');
-    Serial.println(scaled_flow_value);
+    // pressure sensor 2
+    select_sensor_2();
+    Wire1.requestFrom(0x38,2);
+    if(Wire1.available() < 2)
+    {
+      if (DEBUG_WITH_SERIAL)
+        Serial.println("pressure sensor 2 I2C read error");
+      // clear buffer
+      while(Wire1.available())
+        Wire1.read();
+      return;
+    }
+    uint8_t byte1 = Wire1.read();
+    uint8_t byte2 = Wire1.read();
+    uint8_t byte3 = Wire1.read();
+    uint8_t byte4 = Wire1.read();
+    byte _status = byte1 >> 6;
+    uint16_t _bridge_data = (byte1 << 8 | byte2) & 0x3FFF;
+    float pressure_2 = float(constrain(_bridge_data, _output_min, _output_max) - _output_min) * (_p_max - _p_min) / (_output_max - _output_min) + _p_min;
+    // uint16_t _temperature_raw = (byte3 << 3 | byte4 >> 5);
+    // float temperature_2 = (float(_temperature_raw)/2047.0)*200 - 50;
 
-    // Serial.println("test");
+    // pressure sensor 1
+    select_sensor_1();
+    Wire1.requestFrom(0x38,2);
+    if(Wire1.available() < 2)
+    {
+      if (DEBUG_WITH_SERIAL)
+        Serial.println("pressure sensor 1 I2C read error");
+      // clear buffer
+      while(Wire1.available())
+        Wire1.read();
+      return;
+    }
+    byte1 = Wire1.read();
+    byte2 = Wire1.read();
+    _status = byte1 >> 6;
+    _bridge_data = (byte1 << 8 | byte2) & 0x3FFF;
+    float pressure_1 = float(constrain(_bridge_data, _output_min, _output_max) - _output_min) * (_p_max - _p_min) / (_output_max - _output_min) + _p_min;
+
+    if(DEBUG_WITH_SERIAL)
+    {
+      // Serial.print(scaled_temp_value);
+      // Serial.print('\t');
+      Serial.print(scaled_flow_value);
+      Serial.print("\t pressure (psi): ");
+      Serial.print(pressure_2);
+      Serial.print("\t vacuum (psi): ");
+      Serial.print(pressure_1);
+      Serial.print("\t upstream bubble sensor: ");
+      // Serial.print("pin_OCB350_0_B: ");
+      Serial.print(digitalRead(pin_OCB350_1_B));
+      Serial.print("\t downstream bubble sensor: ");
+      // Serial.print("pin_OCB350_1_B: ");
+      Serial.println(digitalRead(pin_OCB350_0_B));
+    }
   }
 }
 
@@ -279,21 +364,20 @@ void set_check_manual_input_flag()
 void set_mode_to_vacuum()
 {
   // set solenoid valve states
-  digitalWrite(pin_valve_C6,HIGH);
-  digitalWrite(pin_valve_C7,HIGH);
-
+  digitalWrite(pin_valve_A1,HIGH);
+  digitalWrite(pin_valve_A2,HIGH);
   // for testing only, to be removed
   set_selector_valve_position_blocking(2);
-  digitalWrite(pin_valve_C1,LOW);
 }
 
 void set_mode_to_pressure()
 {
   // set solenoid valve states
-  digitalWrite(pin_valve_C6,LOW);
-  digitalWrite(pin_valve_C7,LOW);
+  digitalWrite(pin_valve_B1,LOW); // to prevent any flow until explictly opening the valve after the selector valve output
+  digitalWrite(pin_valve_A1,LOW);
+  digitalWrite(pin_valve_A2,LOW);
 
-  digitalWrite(pin_valve_C1,HIGH);
+  // for testing only, to be removed
   set_selector_valve_position_blocking(1);
 }
 
