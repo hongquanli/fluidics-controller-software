@@ -114,15 +114,11 @@ class Microcontroller(object):
 		self.tx_buffer_length = MCU_CMD_LENGTH
 		self.rx_buffer_length = MCU_MSG_LENGTH
 
-		controller_ports = [
-				p.device
-				for p in serial.tools.list_ports.comports()
-				#if 'USB-Serial Controller D' in p.description] # for Mac
-				if 'Prolific' in p.description] # for windows
+		controller_ports = [ p.device for p in serial.tools.list_ports.comports() if 'Teensyduino' == p.manufacturer]
 		if not controller_ports:
 			raise IOError("No Controller Found")
 		self.serial = serial.Serial(controller_ports[0],2000000)
-		utils.print_message('Fluid Controller Connected')
+		utils.print_message('Teensy connected')
 		# clear counter - @@@ to add
 
 	def __del__(self):
@@ -314,10 +310,10 @@ class FluidController(QObject):
 
 	# for displaying the MCU states
 	signal_MCU_CMD_UID = Signal(int)
-	signal_pump_power = Signal(float)
+	signal_pump_power = Signal(str)
 	signal_selector_valve_position = Signal(int)
-	signal_pressure = Signal(float)
-	signal_vacuum = Signal(float)
+	signal_pressure = Signal(str)
+	signal_vacuum = Signal(str)
 
 	def __init__(self,microcontroller):
 		QObject.__init__(self)
@@ -507,17 +503,17 @@ class FluidController(QObject):
 		MCU_interal_program = msg[4]
 
 		measurement_selector_valve_position = msg[9]
-		measurement_pump_power = float((int(msg[10]) << 11) + msg[8])/65535
-		_pressure_raw = constrain((int(msg[12])<<8) + msg[13],MCU_CONSTANTS._output_min,MCU_CONSTANTS._output_max)
-		_vacuum_raw = constrain((int(msg[14])<<8) + msg[15],MCU_CONSTANTS._output_min,MCU_CONSTANTS._output_max)
+		measurement_pump_power = float((int(msg[10])<<8)+msg[11])/65535
+		_vacuum_raw  = constrain((int(msg[12])<<8) + msg[13],MCU_CONSTANTS._output_min,MCU_CONSTANTS._output_max)
+		_pressure_raw = constrain((int(msg[14])<<8) + msg[15],MCU_CONSTANTS._output_min,MCU_CONSTANTS._output_max)
 		measurement_pressure = (_pressure_raw - MCU_CONSTANTS._output_min) * (MCU_CONSTANTS._p_max - MCU_CONSTANTS._p_min) / (MCU_CONSTANTS._output_max - MCU_CONSTANTS._output_min) + MCU_CONSTANTS._p_min
 		measurement_vacuum = (_vacuum_raw - MCU_CONSTANTS._output_min) * (MCU_CONSTANTS._p_max - MCU_CONSTANTS._p_min) / (MCU_CONSTANTS._output_max - MCU_CONSTANTS._output_min) + MCU_CONSTANTS._p_min
 
 		self.signal_MCU_CMD_UID.emit(MCU_received_command_UID)
-		self.signal_pump_power.emit(measurement_pump_power)
+		self.signal_pump_power.emit('{:.2f}'.format(measurement_pump_power))
 		self.signal_selector_valve_position.emit(measurement_selector_valve_position)
-		self.signal_pressure.emit(measurement_pressure)
-		self.signal_vacuum.emit(measurement_vacuum)
+		self.signal_pressure.emit('{:.2f}'.format(measurement_pressure))
+		self.signal_vacuum.emit('{:.2f}'.format(measurement_vacuum))
 
 		# step 1: check if MCU is "up to date" with the computer in terms of command
 		if (MCU_received_command_UID != self.computer_to_MCU_command_counter) or (MCU_received_command != self.computer_to_MCU_command):
@@ -558,7 +554,8 @@ class FluidController(QObject):
 			'''
 			# command execution in progress
 			if PRINT_DEBUG_INFO:
-				print('[ cmd being executed on the MCU ]')
+				#print('[ cmd being executed on the MCU ]')
+				pass
 			return 
 		if MCU_command_execution_status == CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS:
 			# command execucation has completed, can move to the next command

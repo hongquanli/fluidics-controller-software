@@ -7,13 +7,13 @@ FLOW_TIME_MAX = 60
 SEQUENCE_ATTRIBUTES_KEYS = ['Sequence','Fluidic Port','Flow Time (s)','Incubation Time (min)','Repeat','Include']
 SEQUENCE_NAME = ['Strip','Wash (Post-Strip)','Ligate','Stain with DAPI','Wash (Post-Ligation)','Add Imaging Buffer','Remove Medium']
 
-# TIMER_CHECK_MCU_STATE_INTERVAL_MS = 10
-TIMER_CHECK_MCU_STATE_INTERVAL_MS = 500 # for simulation
+TIMER_CHECK_MCU_STATE_INTERVAL_MS = 10 # make it half of send_update_interval_us in the firmware
+# TIMER_CHECK_MCU_STATE_INTERVAL_MS = 500 # for simulation
 TIMER_CHECK_SEQUENCE_EXECUTION_STATE_INTERVAL_MS = 50
 
 # MCU
 MCU_CMD_LENGTH = 15
-MCU_MSG_LENGTH = 20
+MCU_MSG_LENGTH = 25
 
 # MCU - COMPUTER
 T_DIFF_COMPUTER_MCU_MISMATCH_FAULT_THRESHOLD_SECONDS = 3
@@ -88,10 +88,10 @@ byte 6  	: state of valve C1-C7, manual input bit
 byte 7-8	: state of valve D1-D16
 byte 9		: state of selector valve
 byte 10-11	: pump power
-byte 12-13	: pressure sensor 1 reading
-byte 13-15	: pressure sensor 2 reading
-byte 16-17	: flow sensor 1 reading
-byte 18-19	: flow sensor 2 reading
+byte 12-13	: pressure sensor 1 reading (vacuum)
+byte 14-15	: pressure sensor 2 reading (pressure)
+byte 16-17	: flow sensor 1 reading (downstream)
+byte 18-19	: flow sensor 2 reading (upstream)
 byte 20-24	: reserved
 
 #########################################################

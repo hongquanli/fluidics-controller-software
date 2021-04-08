@@ -375,7 +375,7 @@ class MicrocontrollerStateDisplayWidget(QFrame):
 
     def add_components(self):
         self.label_MCU_CMD_UID = QLabel()
-        self.entry_CMD = QLabel()
+        self.label_CMD = QLabel()
         self.label_CMD_status = QLabel()
         self.label_MCU_internal_program = QLabel()
         self.label_pump_power = QLabel()
@@ -385,8 +385,15 @@ class MicrocontrollerStateDisplayWidget(QFrame):
         self.label_bubble_sensor_upstream = QLabel()
         self.label_bubble_sensor_downstream = QLabel()
 
+        self.label_MCU_CMD_UID.setFixedWidth(50)
+        self.label_CMD.setFixedWidth(30)
+        self.label_pump_power.setFixedWidth(50)
+        self.label_selector_valve_position.setFixedWidth(30)
+        self.label_pressure.setFixedWidth(50)
+        self.label_vacuum.setFixedWidth(50)
+
         self.label_MCU_CMD_UID.setFrameStyle(QFrame.Panel | QFrame.Sunken)        
-        self.entry_CMD.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+        self.label_CMD.setFrameStyle(QFrame.Panel | QFrame.Sunken)
         self.label_CMD_status.setFrameStyle(QFrame.Panel | QFrame.Sunken)        
         self.label_MCU_internal_program.setFrameStyle(QFrame.Panel | QFrame.Sunken)        
         self.label_pump_power.setFrameStyle(QFrame.Panel | QFrame.Sunken)
@@ -402,28 +409,47 @@ class MicrocontrollerStateDisplayWidget(QFrame):
         # hbox3 = QHBoxLayout()
         hbox4 = QHBoxLayout()
 
-        hbox1.addWidget(QLabel('CMD UID'))
+        tmp = QLabel('CMD UID')
+        tmp.setFixedWidth(80)
+        hbox1.addWidget(tmp)
         hbox1.addWidget(self.label_MCU_CMD_UID)
-        hbox1.addWidget(QLabel('CMD'))
-        hbox1.addWidget(self.entry_CMD)
+
+        tmp = QLabel('CMD')
+        tmp.setFixedWidth(100)
+        hbox1.addWidget(tmp)
+        hbox1.addWidget(self.label_CMD)
+
         hbox1.addWidget(QLabel('CMD Status'))
         hbox1.addWidget(self.label_CMD_status)
         hbox1.addWidget(QLabel('MCU Internal Program'))
         hbox1.addWidget(self.label_MCU_internal_program)
+        hbox1.addStretch()
 
-        hbox2.addWidget(QLabel('Pump Power'))
+        tmp = QLabel('Pump Power')
+        tmp.setFixedWidth(80)
+        hbox2.addWidget(tmp)
         hbox2.addWidget(self.label_pump_power)
-        hbox2.addWidget(QLabel('Rotary Valve Pos'))
-        hbox2.addWidget(self.label_selector_valve_position)
 
-        hbox4.addWidget(QLabel('Pressure (psi)'))
-        hbox4.addWidget(self.label_pressure)
-        hbox4.addWidget(QLabel('Vacuum (psi)'))
-        hbox4.addWidget(self.label_vacuum)
-        hbox4.addWidget(QLabel('Bubble Sensor (in)'))
-        hbox4.addWidget(self.label_bubble_sensor_upstream) # 0 - liquid present
-        hbox4.addWidget(QLabel('Bubble Sensor (out)'))
-        hbox4.addWidget(self.label_bubble_sensor_downstream) # 0 - liquid present
+        tmp = QLabel('Rotary Valve Pos')
+        tmp.setFixedWidth(100)
+        hbox2.addWidget(tmp)
+        hbox2.addWidget(self.label_selector_valve_position)
+        #hbox2.addStretch()
+
+        tmp = QLabel('Pressure (psi)')
+        tmp.setFixedWidth(80)
+        hbox2.addWidget(tmp)
+        hbox2.addWidget(self.label_pressure)
+
+        tmp = QLabel('Vacuum (psi)')
+        tmp.setFixedWidth(80)
+        hbox2.addWidget(tmp)
+        hbox2.addWidget(self.label_vacuum)
+        hbox2.addWidget(QLabel('Bubble Sensor (in)'))
+        hbox2.addWidget(self.label_bubble_sensor_upstream) # 0 - liquid present
+        hbox2.addWidget(QLabel('Bubble Sensor (out)'))
+        hbox2.addWidget(self.label_bubble_sensor_downstream) # 0 - liquid present
+        hbox2.addStretch()
 
         vbox = QVBoxLayout()
         vbox.addLayout(hbox1)

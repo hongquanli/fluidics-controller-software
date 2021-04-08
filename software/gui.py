@@ -22,8 +22,8 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		# self.triggerController = controllers.TriggerController_simulation()
 		#elf.fluidController = controllers.FluidController()
 
-		# self.teensy41 = controllers.Microcontroller()
-		self.teensy41 = controllers.Microcontroller_Simulation()
+		self.teensy41 = controllers.Microcontroller()
+		# self.teensy41 = controllers.Microcontroller_Simulation()
 		self.fluidController = controllers.FluidController(self.teensy41)
 		self.logger = controllers.Logger()
 
@@ -120,10 +120,10 @@ class STARmapAutomationControllerGUI(QMainWindow):
 
 		# connections for displaying the MCU state
 		self.fluidController.signal_MCU_CMD_UID.connect(self.microcontrollerStateDisplayWidget.label_MCU_CMD_UID.setNum)
-		self.fluidController.signal_pump_power.connect(self.microcontrollerStateDisplayWidget.label_pump_power.setNum)
+		self.fluidController.signal_pump_power.connect(self.microcontrollerStateDisplayWidget.label_pump_power.setText)
 		self.fluidController.signal_selector_valve_position.connect(self.microcontrollerStateDisplayWidget.label_selector_valve_position.setNum)
-		self.fluidController.signal_pressure.connect(self.microcontrollerStateDisplayWidget.label_pressure.setNum)
-		self.fluidController.signal_vacuum.connect(self.microcontrollerStateDisplayWidget.label_vacuum.setNum)
+		self.fluidController.signal_pressure.connect(self.microcontrollerStateDisplayWidget.label_pressure.setText)
+		self.fluidController.signal_vacuum.connect(self.microcontrollerStateDisplayWidget.label_vacuum.setText)
 
 		
 		# transfer the layout to the central widget
