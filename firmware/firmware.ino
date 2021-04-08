@@ -498,8 +498,8 @@ void loop() {
       buffer_tx[7] = byte(NXP33996_state >> 8);
       buffer_tx[8] = byte(NXP33996_state % 256);
       buffer_tx[9] = byte(selector_valve_position_setValue);
-      buffer_tx[10] = byte(int(disc_pump_power*65535) >> 8);
-      buffer_tx[11] = byte(int(disc_pump_power*65535) % 256);
+      buffer_tx[10] = byte(int(disc_pump_power/1000*65535) >> 8);
+      buffer_tx[11] = byte(int(disc_pump_power/1000*65535) % 256);
       buffer_tx[12] = byte(pressure_1_raw >> 8); // vacuum
       buffer_tx[13] = byte(pressure_1_raw % 256 ); // vacuum
       buffer_tx[14] = byte(pressure_2_raw >> 8); // pressure
