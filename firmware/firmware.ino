@@ -205,6 +205,8 @@ void setup()
   // I2C sensors
   Wire1.begin();
 
+  // flow sensor - disable for now
+  /*
   select_sensor_2();
   // Soft reset the sensor
   do {
@@ -232,6 +234,7 @@ void setup()
   } while (ret != 0);
 
   delay(100); // 60 ms needed for reliable measurements to begin
+  */
 
   // 33996 and SPI
   pinMode(pin_33996_CS_0,OUTPUT);
@@ -244,7 +247,7 @@ void setup()
   digitalWrite(pin_33996_nRST,HIGH);
 
   // test 33996
-  for(int k = 0;k<3;k++)
+  for(int k = 0;k<5;k++)
   {
     for(int i=0;i<16;i++)
     {
@@ -267,7 +270,7 @@ void setup()
     Serial.println(uart_titan_rx_buffer);
     }
   */
-  for(int i = 1;i<=5;i++)
+  for(int i = 1;i<=12;i++)
   {
     // can remove
     if(DEBUG_WITH_SERIAL)
@@ -284,6 +287,9 @@ void setup()
   Timer_check_manual_input.begin(set_check_manual_input_flag, check_manual_input_interval_us);
   Timer_read_sensors_input.begin(set_read_sensors_flag, read_sensors_interval_us);
   Timer_send_update_input.begin(set_send_update_flag, send_update_interval_us);
+
+  // NXP33996_turn_on(0);
+  // NXP33996_update();
 
 }
 
@@ -374,7 +380,9 @@ void loop() {
       scaled_flow_value = ((float) signed_flow_value) / SCALE_FACTOR_FLOW;
       Serial.println(scaled_flow_value);
     */
-    // flow sensor
+    
+    // flow sensor - disable for now
+    /*
     select_sensor_2();
     Wire1.requestFrom(SLF3x_ADDRESS, 9);
     if (Wire1.available() < 9)
@@ -397,7 +405,8 @@ void loop() {
     float scaled_temp_value = ((float) signed_temp_value) / SCALE_FACTOR_TEMP;
     int signed_flow_value = (int16_t) sensor_flow_value;
     float scaled_flow_value = ((float) signed_flow_value) / SCALE_FACTOR_FLOW;
-
+    */
+    
     // pressure sensor 2
     select_sensor_2();
     Wire1.requestFrom(0x38,2);
@@ -420,6 +429,7 @@ void loop() {
     pressure_2 = float(constrain(_bridge_data, _output_min, _output_max) - _output_min) * (_p_max - _p_min) / (_output_max - _output_min) + _p_min;
     // uint16_t _temperature_raw = (byte3 << 3 | byte4 >> 5);
     // float temperature_2 = (float(_temperature_raw)/2047.0)*200 - 50;
+    
 
     // pressure sensor 1
     select_sensor_1();
