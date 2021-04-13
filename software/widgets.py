@@ -523,29 +523,39 @@ class ManualControlWidget(QWidget):
 
     def add_components(self):
 
-        self.entry_selector_valve_position = QSpinBox()
-        self.entry_selector_valve_position.setMinimum(1)
-        self.entry_selector_valve_position.setMaximum(24)
-        self.entry_selector_valve_position.setFixedWidth(40)
+        # self.entry_selector_valve_position = QSpinBox()
+        # self.entry_selector_valve_position.setMinimum(1)
+        # self.entry_selector_valve_position.setMaximum(24)
+        # self.entry_selector_valve_position.setFixedWidth(40)
 
-        self.entry_10mm_solenoid_valve_selection = QSpinBox()
-        self.entry_10mm_solenoid_valve_selection.setMinimum(0)
-        self.entry_10mm_solenoid_valve_selection.setMaximum(16)
-        self.entry_10mm_solenoid_valve_selection.setFixedWidth(40)
+        self.dropdown_selector_valve_position = QComboBox()
+        for i in range(24):
+            self.dropdown_selector_valve_position.addItem(str(i+1))
+        self.dropdown_selector_valve_position.setFixedWidth(70)
+
+        # self.entry_10mm_solenoid_valve_selection = QSpinBox()
+        # self.entry_10mm_solenoid_valve_selection.setMinimum(0)
+        # self.entry_10mm_solenoid_valve_selection.setMaximum(16)
+        # self.entry_10mm_solenoid_valve_selection.setFixedWidth(40)
+
+        self.dropdown_10mm_solenoid_valve_selection = QComboBox()
+        for i in range(17):
+            self.dropdown_10mm_solenoid_valve_selection.addItem(str(i))
+        self.dropdown_10mm_solenoid_valve_selection.setFixedWidth(70)
 
         hbox1 = QHBoxLayout()
         tmp = QLabel('Set Selector Valve Position To')
         tmp.setFixedWidth(190)
         hbox1.addWidget(tmp)
-        hbox1.addWidget(self.entry_selector_valve_position)
+        hbox1.addWidget(self.dropdown_selector_valve_position)
         hbox1.addStretch()
 
         hbox2 = QHBoxLayout()
         tmp = QLabel('Turn On 10mm Solenoid Valve #')
         tmp.setFixedWidth(190)
         hbox2.addWidget(tmp)
-        hbox2.addWidget(self.entry_10mm_solenoid_valve_selection)
-        hbox2.addWidget(QLabel('(enter 1-16 to turn on one of the valves, enter 0 to turn off all the valves)'))
+        hbox2.addWidget(self.dropdown_10mm_solenoid_valve_selection)
+        hbox2.addWidget(QLabel('(select 1-16 to turn on one of the valves, enter 0 to turn off all the valves)'))
         hbox2.addStretch()
 
         framedHbox1 = frameWidget(hbox1)
@@ -557,6 +567,15 @@ class ManualControlWidget(QWidget):
         vbox.addStretch()
 
         self.setLayout(vbox)
+
+        self.dropdown_selector_valve_position.currentTextChanged.connect(self.update_selector_valve)
+
+    def update_selector_valve(self,pos_str):
+        self.fluidController.add_sequence('Set Selector Valve Position',int(pos_str))
+        self.fluidController.start_sequence_execution()
+
+    def update_10mm_solenoid_valves(self):
+        pass
 
 
 class ChillerWidget(QFrame):

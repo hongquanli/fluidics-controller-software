@@ -197,7 +197,7 @@ class Microcontroller_Simulation(object):
 ################# Sequence Defination #################
 #######################################################
 class Sequence():
-	def __init__(self,sequence_name,fluidic_port,flow_time_s,incubation_time_min,pressure_setting=None,round_=1):
+	def __init__(self,sequence_name,fluidic_port=None,flow_time_s=None,incubation_time_min=None,pressure_setting=None,round_=1):
 		self.sequence_name = sequence_name
 		self.fluidic_port = fluidic_port
 		self.flow_time_s = flow_time_s
@@ -208,6 +208,8 @@ class Sequence():
 		self.sequence_started = False  # can be removed
 		self.sequence_finished = False # can be removed
 		self.queue_subsequences = queue.Queue()
+
+		self.is_single_round_sequence = False
 
 		# populate the queue of subsequences, depending on the tyepes of the sequence
 		# case 1: strip, wash (post-strip), ligate, wash (post-ligate), stain with DAPI
@@ -220,6 +222,7 @@ class Sequence():
 			mcu_command = Microcontroller_Command(CMD_SET.REMOVE_MEDIUM)
 			mcu_command.set_description(CMD_SET_DESCRIPTION.REMOVE_MEDIUM)
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			self.is_single_round_sequence = True
 
 		# case 2, add imaging buffer
 		if sequence_name == 'Add Imaging Buffer':
@@ -230,13 +233,14 @@ class Sequence():
 				payload3 = pump_power*65535 # *** make this adjustable in the GUI ***
 				payload4 = flow_time_s*1000
 				# *** to do: add timeout limit ***
-				mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,fluidic_port,payload3,payload4)
-				mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
-				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,fluidic_port,payload3,payload4)
+			mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			self.is_single_round_sequence = True
 
 		# case 1, add medium, incubate for specified amount of time, remove medium
 		# use incubation_time_min to detect this kind of command
-		if incubation_time_min > 0:
+		if incubation_time_min is not None and incubation_time_min > 0:
 			# subsequence 1: add medium
 			control_type = MCU_CMD_PARAMETERS.CONSTANT_POWER # *** start with constant power ***
 			if control_type == MCU_CMD_PARAMETERS.CONSTANT_POWER:
@@ -244,17 +248,31 @@ class Sequence():
 				payload3 = pump_power*65535 # *** make this adjustable in the GUI ***
 				payload4 = flow_time_s*1000
 				# *** to do: add timeout limit ***
-				mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,fluidic_port,payload3,payload4)
-				mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
-				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,fluidic_port,payload3,payload4)
+			mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 
 			# subsequence 2: incubate
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.COMPUTER_STOPWATCH,microcontroller_command=None,stopwatch_time_remaining_seconds=incubation_time_min*60))
 
 			# subsequence 3: remove medium
-			mcu_command = Microcontroller_Command(CMD_SET.REMOVE_MEDIUM)
+			timeout_limit_s = 60 # *** to change *** 
+			mcu_command = Microcontroller_Command(CMD_SET.REMOVE_MEDIUM,payload1=0,payload2=0,payload3=timeout_limit_s)
 			mcu_command.set_description(CMD_SET_DESCRIPTION.REMOVE_MEDIUM)
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+
+			self.is_single_round_sequence = False
+
+		# manual control sequences
+		# case 10
+		if sequence_name == 'Set Selector Valve Position':
+			mcu_command = Microcontroller_Command(CMD_SET.SET_SELECTOR_VALVE,fluidic_port)
+			mcu_command.set_description('Set Selector Valve Position to ' + str(fluidic_port))
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			self.is_single_round_sequence = True
+
+		if sequence_name == 'Set 10 mm Valve State':
+			pass
 
 class Subsequence():
 	def __init__(self,subsequence_type=None,microcontroller_command=None,stopwatch_time_remaining_seconds=None):
@@ -377,14 +395,20 @@ class FluidController(QObject):
 				# start a new queued sequence if no abort sequence requested
 				if self.abort_sequences_requested == False:
 					self.current_sequence = self.queue_sequence.get()
-					self.log_message.emit(utils.timestamp() + 'Execute ' + self.current_sequence.sequence_name + ', round ' + str(self.current_sequence.round+1))
+					if self.current_sequence.is_single_round_sequence == False:
+						self.log_message.emit(utils.timestamp() + 'Execute ' + self.current_sequence.sequence_name + ', round ' + str(self.current_sequence.round))
+					else:
+						self.log_message.emit(utils.timestamp() + 'Execute ' + self.current_sequence.sequence_name)
 					QApplication.processEvents()
 					self.sequence_started = True # can be removed
 				# abort sequence is requested
 				else:
 					while self.queue_sequence.empty() == False:
 						self.current_sequence = self.queue_sequence.get()
-						self.log_message.emit(utils.timestamp() + '! ' + self.current_sequence.sequence_name + ', round ' + str(self.current_sequence.round+1) + ' aborted')
+						if self.current_sequence.is_single_round_sequence == False:
+							self.log_message.emit(utils.timestamp() + '! ' + self.current_sequence.sequence_name + ', round ' + str(self.current_sequence.round) + ' aborted')
+						else:
+							self.log_message.emit(utils.timestamp() + '! ' + self.current_sequence.sequence_name + ' aborted')
 						QApplication.processEvents()
 						self.current_sequence.sequence_started = False
 						# void the sequence
@@ -580,7 +604,7 @@ class FluidController(QObject):
 			self.microcontroller.send_command(cmd_with_uid)
 		'''
 
-	def add_sequence(self,sequence_name,fluidic_port,flow_time_s,incubation_time_min,pressure_setting=None,round_=1):
+	def add_sequence(self,sequence_name,fluidic_port=None,flow_time_s=None,incubation_time_min=None,pressure_setting=None,round_=1):
 		print('adding sequence to the queue ' + sequence_name + ' - flow time: ' + str(flow_time_s) + ' s, incubation time: ' + str(incubation_time_min) + ' s [negative number means no removal]')
 		sequence_to_add = Sequence(sequence_name,fluidic_port,flow_time_s,incubation_time_min,pressure_setting,round_)
 		self.queue_sequence.put(sequence_to_add)
