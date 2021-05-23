@@ -272,7 +272,13 @@ class Sequence():
 			self.is_single_round_sequence = True
 
 		if sequence_name == 'Set 10 mm Valve State':
-			pass
+			mcu_command = Microcontroller_Command(CMD_SET.SET_10MM_SOLENOID_VALVE,fluidic_port)
+			if fluidic_port == 0:
+				mcu_command.set_description('Turn Off All 10 mm Valves')
+			else:
+				mcu_command.set_description('Turn On 10 mm valve ' + str(fluidic_port))
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			self.is_single_round_sequence = True
 
 class Subsequence():
 	def __init__(self,subsequence_type=None,microcontroller_command=None,stopwatch_time_remaining_seconds=None):

@@ -569,14 +569,15 @@ class ManualControlWidget(QWidget):
         self.setLayout(vbox)
 
         self.dropdown_selector_valve_position.currentTextChanged.connect(self.update_selector_valve)
+        self.dropdown_10mm_solenoid_valve_selection.currentTextChanged.connect(self.update_10mm_solenoid_valves)
 
     def update_selector_valve(self,pos_str):
         self.fluidController.add_sequence('Set Selector Valve Position',int(pos_str))
         self.fluidController.start_sequence_execution()
 
-    def update_10mm_solenoid_valves(self):
-        pass
-
+    def update_10mm_solenoid_valves(self,pos_str):
+        self.fluidController.add_sequence('Set 10 mm Valve State',int(pos_str))
+        self.fluidController.start_sequence_execution()
 
 class ChillerWidget(QFrame):
 
