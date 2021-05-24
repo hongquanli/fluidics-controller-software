@@ -4,6 +4,7 @@
 //#define DEBUG_WITH_SERIAL true
 #define DEBUG_WITH_SERIAL false
 #define SELECTOR_VALVE_PRESENT false
+#define FLOW_SENSOR_2_PRESENT false
 
 static const int pin_manual_control_enable = 24;
 static const int pin_pressure_vacuum = 25;
@@ -161,6 +162,17 @@ uint8_t internal_program = 0;
 uint8_t selector_valve_position_setValue = 0;
 bool manual_control_disabled_by_software = false;
 
+// MCU internal program
+static const int INTERNAL_PROGRAM_IDLE = 0;
+static const int INTERNAL_PROGRAM_REMOVE_MEDIUM = 1;
+static const int INTERNAL_PROGRAM_ADD_MEDIUM = 2;
+elapsedMillis elapsed_millis_since_remove_medium_started = 0;
+unsigned long set_vacuum_duration_ms = 0;
+
+// default settings
+static const int DISC_PUMP_POWER_VACUUM = 960;
+static const int VACUUM_DECAY_TIME_MS = 3000;
+
 /*************************************************************
  ************************** SETUP() **************************
  *************************************************************/
@@ -212,36 +224,37 @@ void setup()
   // I2C sensors
   Wire1.begin();
 
-  // flow sensor - disable for now
-  /*
-  select_sensor_2();
-  // Soft reset the sensor
-  do {
-    Wire1.beginTransmission(0x00);
-    Wire1.write(0x06);
-    ret = Wire1.endTransmission();
-    if (ret != 0) {
-      if(DEBUG_WITH_SERIAL)
-        Serial.println("Error while sending soft reset command, retrying...");
-      delay(500); // wait long enough for chip reset to complete
-    }
-  } while (ret != 0);
-
-  // To perform a measurement, first send 0x3608 to switch to continuous
-  do {
-    Wire1.beginTransmission(SLF3x_ADDRESS);
-    Wire1.write(0x36);
-    Wire1.write(0x08);
-    ret = Wire1.endTransmission();
-    if (ret != 0) {
-      if(DEBUG_WITH_SERIAL)
-        Serial.println("Error starting measurement ...");
-      delay(500); // wait long enough for chip reset to complete
-    }
-  } while (ret != 0);
-
-  delay(100); // 60 ms needed for reliable measurements to begin
-  */
+  // flow sensor
+  if(FLOW_SENSOR_2_PRESENT)
+  {
+    select_sensor_2();
+    // Soft reset the sensor
+    do {
+      Wire1.beginTransmission(0x00);
+      Wire1.write(0x06);
+      ret = Wire1.endTransmission();
+      if (ret != 0) {
+        if(DEBUG_WITH_SERIAL)
+          Serial.println("Error while sending soft reset command, retrying...");
+        delay(500); // wait long enough for chip reset to complete
+      }
+    } while (ret != 0);
+  
+    // To perform a measurement, first send 0x3608 to switch to continuous
+    do {
+      Wire1.beginTransmission(SLF3x_ADDRESS);
+      Wire1.write(0x36);
+      Wire1.write(0x08);
+      ret = Wire1.endTransmission();
+      if (ret != 0) {
+        if(DEBUG_WITH_SERIAL)
+          Serial.println("Error starting measurement ...");
+        delay(500); // wait long enough for chip reset to complete
+      }
+    } while (ret != 0);
+  
+    delay(100); // 60 ms needed for reliable measurements to begin
+  }
 
   // 33996 and SPI
   pinMode(pin_33996_CS_0,OUTPUT);
@@ -320,16 +333,31 @@ void loop() {
           current_command_uid = 0;
           command_execution_status = COMPLETED_WITHOUT_ERRORS;
           break;
+        // diable/enable manual control
         case DISABLE_MANUAL_CONTROL:
           if(payload1==1)
             manual_control_disabled_by_software = true;
           if(payload1==0)
             manual_control_disabled_by_software = false;
+          command_execution_status = COMPLETED_WITHOUT_ERRORS;
           break;
+          
+        // remove medium
         case REMOVE_MEDIUM:
+          set_vacuum_duration_ms = payload4;
+          command_execution_status = IN_PROGRESS;
+          internal_program = INTERNAL_PROGRAM_REMOVE_MEDIUM;
+          set_mode_to_vacuum();
+          disc_pump_power = DISC_PUMP_POWER_VACUUM;
+          set_disc_pump_power(disc_pump_power);
+          elapsed_millis_since_remove_medium_started = 0;
           break;
+          
+        // add medium
         case ADD_MEDIUM:
           break;
+
+        // set selector valve
         case SET_SELECTOR_VALVE:
           if(SELECTOR_VALVE_PRESENT)
           {
@@ -339,8 +367,11 @@ void loop() {
             uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
             // to add: convert the string to numeric value and compare it with selector_valve_position_setValue
             // to add: error handling
+            command_execution_status = COMPLETED_WITHOUT_ERRORS;
           }
           break;
+          
+        // set 10 mm valve state
         case SET_10MM_SOLENOID_VALVE:
           if(payload1==0)
           {
@@ -352,10 +383,17 @@ void loop() {
             NXP33996_turn_on(payload2);
             NXP33996_update();
           }
+          command_execution_status = COMPLETED_WITHOUT_ERRORS;
           break;
+          
+        // set valve group B state
         case SET_SOLENOID_VALVE_B:
+          command_execution_status = COMPLETED_WITHOUT_ERRORS;
           break;
+          
+        // set valve group C state
         case SET_SOLENOID_VALVE_C:
+          command_execution_status = COMPLETED_WITHOUT_ERRORS;
           break;
       }
     }
@@ -434,31 +472,32 @@ void loop() {
     */
     
     // flow sensor - disable for now
-    /*
-    select_sensor_2();
-    Wire1.requestFrom(SLF3x_ADDRESS, 9);
-    if (Wire1.available() < 9)
+    if(FLOW_SENSOR_2_PRESENT)
     {
-      if(DEBUG_WITH_SERIAL)
-        Serial.println("I2C read error");
-      return;
+      select_sensor_2();
+      Wire1.requestFrom(SLF3x_ADDRESS, 9);
+      if (Wire1.available() < 9)
+      {
+        if(DEBUG_WITH_SERIAL)
+          Serial.println("I2C read error");
+        return;
+      }
+      uint16_t sensor_flow_value  = Wire1.read() << 8; // read the MSB from the sensor
+      sensor_flow_value |= Wire1.read();      // read the LSB from the sensor
+      flow_2_raw = sensor_flow_value;
+      byte sensor_flow_crc    = Wire1.read();
+      uint16_t sensor_temp_value  = Wire1.read() << 8; // read the MSB from the sensor
+      sensor_temp_value |= Wire1.read();      // read the LSB from the sensor
+      byte sensor_temp_crc    = Wire1.read();
+      uint16_t aux_value          = Wire1.read() << 8; // read the MSB from the sensor
+      aux_value         |= Wire1.read();      // read the LSB from the sensor
+      byte aux_crc            = Wire1.read();
+      int signed_temp_value = (int16_t) sensor_temp_value;
+      float scaled_temp_value = ((float) signed_temp_value) / SCALE_FACTOR_TEMP;
+      int signed_flow_value = (int16_t) sensor_flow_value;
+      float scaled_flow_value = ((float) signed_flow_value) / SCALE_FACTOR_FLOW;
     }
-    uint16_t sensor_flow_value  = Wire1.read() << 8; // read the MSB from the sensor
-    sensor_flow_value |= Wire1.read();      // read the LSB from the sensor
-    flow_2_raw = sensor_flow_value;
-    byte sensor_flow_crc    = Wire1.read();
-    uint16_t sensor_temp_value  = Wire1.read() << 8; // read the MSB from the sensor
-    sensor_temp_value |= Wire1.read();      // read the LSB from the sensor
-    byte sensor_temp_crc    = Wire1.read();
-    uint16_t aux_value          = Wire1.read() << 8; // read the MSB from the sensor
-    aux_value         |= Wire1.read();      // read the LSB from the sensor
-    byte aux_crc            = Wire1.read();
-    int signed_temp_value = (int16_t) sensor_temp_value;
-    float scaled_temp_value = ((float) signed_temp_value) / SCALE_FACTOR_TEMP;
-    int signed_flow_value = (int16_t) sensor_flow_value;
-    float scaled_flow_value = ((float) signed_flow_value) / SCALE_FACTOR_FLOW;
-    */
-    
+        
     // pressure sensor 2
     select_sensor_2();
     Wire1.requestFrom(0x38,2);
@@ -481,7 +520,6 @@ void loop() {
     pressure_2 = float(constrain(_bridge_data, _output_min, _output_max) - _output_min) * (_p_max - _p_min) / (_output_max - _output_min) + _p_min;
     // uint16_t _temperature_raw = (byte3 << 3 | byte4 >> 5);
     // float temperature_2 = (float(_temperature_raw)/2047.0)*200 - 50;
-    
 
     // pressure sensor 1
     select_sensor_1();
@@ -502,6 +540,37 @@ void loop() {
     pressure_1_raw = _bridge_data;
     pressure_1 = float(constrain(_bridge_data, _output_min, _output_max) - _output_min) * (_p_max - _p_min) / (_output_max - _output_min) + _p_min;
   }
+
+  /*********************************************************
+   ******************* state transition ********************
+   *********************************************************/
+   switch(internal_program)
+   {
+    // idle
+    case INTERNAL_PROGRAM_IDLE:
+      break;
+      
+    // remove medium
+    case INTERNAL_PROGRAM_REMOVE_MEDIUM:
+      // to add - bubble sensor integration
+      // to add - wait for the vacuum to drop to zero
+      if(elapsed_millis_since_remove_medium_started>set_vacuum_duration_ms)
+      {
+        disc_pump_power = 0;
+        set_disc_pump_power(disc_pump_power);
+        set_mode_to_pressure();
+      }
+      if(elapsed_millis_since_remove_medium_started>VACUUM_DECAY_TIME_MS+VACUUM_DECAY_TIME_MS)
+      {
+        internal_program = INTERNAL_PROGRAM_IDLE;
+        command_execution_status = COMPLETED_WITHOUT_ERRORS;
+      }
+      break;
+
+    // add medium
+    case INTERNAL_PROGRAM_ADD_MEDIUM:
+      break;
+   }
 
   /*********************************************************
    ********************** send update **********************
