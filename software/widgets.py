@@ -387,6 +387,8 @@ class MicrocontrollerStateDisplayWidget(QFrame):
 
         self.label_MCU_CMD_UID.setFixedWidth(50)
         self.label_CMD.setFixedWidth(30)
+        self.label_CMD_status.setFixedWidth(50)
+        self.label_MCU_internal_program.setFixedWidth(130)
         self.label_pump_power.setFixedWidth(50)
         self.label_selector_valve_position.setFixedWidth(30)
         self.label_pressure.setFixedWidth(50)
@@ -419,8 +421,11 @@ class MicrocontrollerStateDisplayWidget(QFrame):
         hbox1.addWidget(tmp)
         hbox1.addWidget(self.label_CMD)
 
-        hbox1.addWidget(QLabel('CMD Status'))
+        tmp = QLabel('CMD Status')
+        tmp.setFixedWidth(80)
+        hbox1.addWidget(tmp)
         hbox1.addWidget(self.label_CMD_status)
+
         hbox1.addWidget(QLabel('MCU Internal Program'))
         hbox1.addWidget(self.label_MCU_internal_program)
         hbox1.addStretch()

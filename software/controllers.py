@@ -335,6 +335,8 @@ class FluidController(QObject):
 	# for displaying the MCU states
 	signal_MCU_CMD_UID = Signal(int)
 	signal_MCU_CMD = Signal(int)     # @@@ to-do: map the command to the command description
+	signal_MCU_CMD_status = Signal(str)
+	signal_MCU_internal_program = Signal(str)
 	signal_pump_power = Signal(str)
 	signal_selector_valve_position = Signal(int)
 	signal_pressure = Signal(str)
@@ -400,7 +402,9 @@ class FluidController(QObject):
 			if self.queue_sequence.empty() == False:
 				# start a new queued sequence if no abort sequence requested
 				if self.abort_sequences_requested == False:
+					# pull the next sequence from the queue
 					self.current_sequence = self.queue_sequence.get()
+					# logging (display round number for multiround sequences)
 					if self.current_sequence.is_single_round_sequence == False:
 						self.log_message.emit(utils.timestamp() + 'Execute ' + self.current_sequence.sequence_name + ', round ' + str(self.current_sequence.round))
 					else:
@@ -438,7 +442,7 @@ class FluidController(QObject):
 
 		# work on the subsequences of the current sequence
 		# [the below code is directly derived from the above]
-		# if the queue is not empty, load the next sequence to execute
+		# if the queue is not empty, load the next subsequence to execute
 		if self.current_subsequence == None:
 			if self.current_sequence.queue_subsequences.empty() == False:
 				if self.abort_sequences_requested == False:
@@ -457,7 +461,7 @@ class FluidController(QObject):
 						self.microcontroller.send_command(cmd_with_uid)
 						self.log_message.emit(utils.timestamp() + '[ microcontroller: ' + self.current_subsequence.microcontroller_command.get_description() +  ' ]')
 						QApplication.processEvents()
-					if self.current_subsequence.type == SUBSEQUENCE_TYPE.COMPUTER_STOPWATCH:
+					elif self.current_subsequence.type == SUBSEQUENCE_TYPE.COMPUTER_STOPWATCH:
 						self.current_stopwatch = QTimer()
 						self.current_stopwatch.setInterval(self.current_subsequence.stopwatch_time_remaining_seconds*1000)
 						self.current_stopwatch.setInterval(self.current_subsequence.stopwatch_time_remaining_seconds*1000/60) # for simulation, speed up by 60x
@@ -542,6 +546,9 @@ class FluidController(QObject):
 
 		self.signal_MCU_CMD_UID.emit(MCU_received_command_UID)
 		self.signal_MCU_CMD.emit(MCU_received_command) # @@@ to-do: map the command to the command description
+		self.signal_MCU_CMD_status.emit(str(MCU_command_execution_status)) # @@@ to-do: map the numerical value to text description
+		self.signal_MCU_internal_program.emit(str(MCU_interal_program)) # @@@ to-do: map the numerical value to text description
+
 		self.signal_pump_power.emit('{:.2f}'.format(measurement_pump_power))
 		self.signal_selector_valve_position.emit(measurement_selector_valve_position)
 		self.signal_pressure.emit('{:.2f}'.format(measurement_pressure))

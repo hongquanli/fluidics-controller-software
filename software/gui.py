@@ -14,7 +14,7 @@ import widgets
 
 class STARmapAutomationControllerGUI(QMainWindow):
 
-	def __init__(self, *args, **kwargs):
+	def __init__(self, is_simulation=False, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 
 		# load objects
@@ -22,8 +22,10 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		# self.triggerController = controllers.TriggerController_simulation()
 		#elf.fluidController = controllers.FluidController()
 
-		# self.teensy41 = controllers.Microcontroller()
-		self.teensy41 = controllers.Microcontroller_Simulation()
+		if(is_simulation):
+			self.teensy41 = controllers.Microcontroller_Simulation()
+		else:
+			self.teensy41 = controllers.Microcontroller()
 		self.fluidController = controllers.FluidController(self.teensy41)
 		self.logger = controllers.Logger()
 
@@ -122,6 +124,10 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		# connections for displaying the MCU state
 		self.fluidController.signal_MCU_CMD_UID.connect(self.microcontrollerStateDisplayWidget.label_MCU_CMD_UID.setNum)
 		self.fluidController.signal_MCU_CMD.connect(self.microcontrollerStateDisplayWidget.label_CMD.setNum)
+		self.fluidController.signal_MCU_CMD_status.connect(self.microcontrollerStateDisplayWidget.label_CMD_status.setText)
+		self.fluidController.signal_MCU_internal_program.connect(self.microcontrollerStateDisplayWidget.label_MCU_internal_program.setText)
+
+
 		self.fluidController.signal_pump_power.connect(self.microcontrollerStateDisplayWidget.label_pump_power.setText)
 		self.fluidController.signal_selector_valve_position.connect(self.microcontrollerStateDisplayWidget.label_selector_valve_position.setNum)
 		self.fluidController.signal_pressure.connect(self.microcontrollerStateDisplayWidget.label_pressure.setText)
