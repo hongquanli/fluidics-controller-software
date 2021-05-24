@@ -382,6 +382,8 @@ class MicrocontrollerStateDisplayWidget(QFrame):
         self.label_CMD = QLabel()
         self.label_CMD_status = QLabel()
         self.label_MCU_internal_program = QLabel()
+        self.label_MCU_CMD_time_elapsed = QLabel()
+
         self.label_pump_power = QLabel()
         self.label_selector_valve_position = QLabel()
         self.label_pressure = QLabel()
@@ -401,9 +403,9 @@ class MicrocontrollerStateDisplayWidget(QFrame):
         self.label_MCU_CMD_UID.setFrameStyle(QFrame.Panel | QFrame.Sunken)        
         self.label_CMD.setFrameStyle(QFrame.Panel | QFrame.Sunken)
         self.label_CMD_status.setFrameStyle(QFrame.Panel | QFrame.Sunken)        
-        self.label_MCU_internal_program.setFrameStyle(QFrame.Panel | QFrame.Sunken)        
+        self.label_MCU_internal_program.setFrameStyle(QFrame.Panel | QFrame.Sunken) 
+        self.label_MCU_CMD_time_elapsed.setFrameStyle(QFrame.Panel | QFrame.Sunken) 
         self.label_pump_power.setFrameStyle(QFrame.Panel | QFrame.Sunken)
-
         self.label_selector_valve_position.setFrameStyle(QFrame.Panel | QFrame.Sunken)        
         self.label_pressure.setFrameStyle(QFrame.Panel | QFrame.Sunken)
         self.label_vacuum.setFrameStyle(QFrame.Panel | QFrame.Sunken)        
@@ -430,8 +432,14 @@ class MicrocontrollerStateDisplayWidget(QFrame):
         hbox1.addWidget(tmp)
         hbox1.addWidget(self.label_CMD_status)
 
-        hbox1.addWidget(QLabel('MCU Internal Program'))
+        tmp = QLabel('MCU Internal Program')
+        hbox1.addWidget(tmp)
         hbox1.addWidget(self.label_MCU_internal_program)
+
+        tmp = QLabel('Time Elapsed (s)')
+        tmp.setFixedWidth(100)
+        hbox1.addWidget(tmp)
+        hbox1.addWidget(self.label_MCU_CMD_time_elapsed)
         hbox1.addStretch()
 
         tmp = QLabel('Pump Power')

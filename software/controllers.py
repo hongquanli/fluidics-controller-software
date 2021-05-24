@@ -336,6 +336,8 @@ class FluidController(QObject):
 	signal_MCU_CMD = Signal(int)     # @@@ to-do: map the command to the command description
 	signal_MCU_CMD_status = Signal(str)
 	signal_MCU_internal_program = Signal(str)
+	signal_MCU_CMD_time_elapsed = Signal(int)
+
 	signal_pump_power = Signal(str)
 	signal_selector_valve_position = Signal(int)
 	signal_pressure = Signal(str)
@@ -542,11 +544,13 @@ class FluidController(QObject):
 		_pressure_raw = constrain((int(msg[14])<<8) + msg[15],MCU_CONSTANTS._output_min,MCU_CONSTANTS._output_max)
 		measurement_pressure = (_pressure_raw - MCU_CONSTANTS._output_min) * (MCU_CONSTANTS._p_max - MCU_CONSTANTS._p_min) / (MCU_CONSTANTS._output_max - MCU_CONSTANTS._output_min) + MCU_CONSTANTS._p_min
 		measurement_vacuum = (_vacuum_raw - MCU_CONSTANTS._output_min) * (MCU_CONSTANTS._p_max - MCU_CONSTANTS._p_min) / (MCU_CONSTANTS._output_max - MCU_CONSTANTS._output_min) + MCU_CONSTANTS._p_min
+		MCU_CMD_time_elapsed = msg[20]
 
 		self.signal_MCU_CMD_UID.emit(MCU_received_command_UID)
 		self.signal_MCU_CMD.emit(MCU_received_command) # @@@ to-do: map the command to the command description
 		self.signal_MCU_CMD_status.emit(str(MCU_command_execution_status)) # @@@ to-do: map the numerical value to text description
 		self.signal_MCU_internal_program.emit(str(MCU_interal_program)) # @@@ to-do: map the numerical value to text description
+		self.signal_MCU_CMD_time_elapsed.emit(MCU_CMD_time_elapsed)
 
 		self.signal_pump_power.emit('{:.2f}'.format(measurement_pump_power))
 		self.signal_selector_valve_position.emit(measurement_selector_valve_position)

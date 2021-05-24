@@ -128,7 +128,7 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		self.fluidController.signal_MCU_CMD.connect(self.microcontrollerStateDisplayWidget.label_CMD.setNum)
 		self.fluidController.signal_MCU_CMD_status.connect(self.microcontrollerStateDisplayWidget.label_CMD_status.setText)
 		self.fluidController.signal_MCU_internal_program.connect(self.microcontrollerStateDisplayWidget.label_MCU_internal_program.setText)
-
+		self.fluidController.signal_MCU_CMD_time_elapsed.connect(self.microcontrollerStateDisplayWidget.label_MCU_CMD_time_elapsed.setNum)
 
 		self.fluidController.signal_pump_power.connect(self.microcontrollerStateDisplayWidget.label_pump_power.setText)
 		self.fluidController.signal_selector_valve_position.connect(self.microcontrollerStateDisplayWidget.label_selector_valve_position.setNum)
