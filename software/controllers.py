@@ -219,7 +219,7 @@ class Sequence():
 		# case 3, remove medium
 		if sequence_name == 'Remove Medium':
 			# subsequence 1
-			mcu_command = Microcontroller_Command(CMD_SET.REMOVE_MEDIUM)
+			mcu_command = Microcontroller_Command(CMD_SET.REMOVE_MEDIUM,payload3=DEFAULT_VALUES.aspiration_pump_power,payload4=DEFAULT_VALUES.vacuum_aspiration_time_s*1000)
 			mcu_command.set_description(CMD_SET_DESCRIPTION.REMOVE_MEDIUM)
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			self.is_single_round_sequence = True
@@ -256,8 +256,7 @@ class Sequence():
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.COMPUTER_STOPWATCH,microcontroller_command=None,stopwatch_time_remaining_seconds=incubation_time_min*60))
 
 			# subsequence 3: remove medium
-			timeout_limit_s = 60 # *** to change *** 
-			mcu_command = Microcontroller_Command(CMD_SET.REMOVE_MEDIUM,payload1=0,payload2=0,payload3=timeout_limit_s)
+			mcu_command = Microcontroller_Command(CMD_SET.REMOVE_MEDIUM,payload3=DEFAULT_VALUES.aspiration_pump_power,payload4=DEFAULT_VALUES.vacuum_aspiration_time_s*1000)
 			mcu_command.set_description(CMD_SET_DESCRIPTION.REMOVE_MEDIUM)
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 

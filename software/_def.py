@@ -73,6 +73,11 @@ class MCU_CONSTANTS:
 	_p_min = -30; # psi
 	_p_max = 30; # psi
 
+class DEFAULT_VALUES:
+	aspiration_pump_power = int(0.2*65535)
+	vacuum_aspiration_time_s = 10
+	aspiration_timeout_limit_s = 60 # to replace vacuum_aspiration_time_s once bubble sensor is in place
+
 # status of internal program execution on the MCU
 
 '''
