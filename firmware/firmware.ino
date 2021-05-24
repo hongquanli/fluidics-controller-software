@@ -3,6 +3,7 @@
 
 //#define DEBUG_WITH_SERIAL true
 #define DEBUG_WITH_SERIAL false
+#define SELECTOR_VALVE_PRESENT false
 
 static const int pin_manual_control_enable = 24;
 static const int pin_pressure_vacuum = 25;
@@ -41,7 +42,7 @@ volatile bool flag_check_manual_inputs = false;
 volatile bool flag_read_sensors = false;
 volatile bool flag_send_update = false;
 
-bool flag_manual_control_enabled = false;
+bool flag_manual_control_enabled = false; // based on hardware switch
 int mode_pressure_vacuum = 0; // 0: pressure, 1: vacuum
 int analog_in = 0;
 float disc_pump_power = 0;
@@ -131,6 +132,11 @@ volatile int buffer_rx_ptr;
 static const int CLEAR = 0;
 static const int REMOVE_MEDIUM = 1;
 static const int ADD_MEDIUM = 2;
+static const int SET_SELECTOR_VALVE = 10;
+static const int SET_10MM_SOLENOID_VALVE = 11;
+static const int SET_SOLENOID_VALVE_B = 12;
+static const int SET_SOLENOID_VALVE_C = 13;
+static const int DISABLE_MANUAL_CONTROL = 20;
 
 // command parameters
 // search for class MCU_CMD_PARAMETERS in _def.py
@@ -153,6 +159,7 @@ uint8_t current_command = 0;
 uint8_t command_execution_status = IN_PROGRESS;
 uint8_t internal_program = 0;
 uint8_t selector_valve_position_setValue = 0;
+bool manual_control_disabled_by_software = false;
 
 /*************************************************************
  ************************** SETUP() **************************
@@ -260,30 +267,24 @@ void setup()
   }  
 
   // test selector valve control
-  /*
-    for(int i = 1;i<=24;i++)
-    {
-    Serial.println("----------------------------");
-    set_selector_valve_position_blocking(i);
-    check_selector_valve_position();
-    uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
-    Serial.println(uart_titan_rx_buffer);
-    }
-  */
-  for(int i = 1;i<=12;i++)
+  if(SELECTOR_VALVE_PRESENT)
   {
-    // can remove
-    if(DEBUG_WITH_SERIAL)
-      Serial.println("----------------------------");
-    selector_valve_position_setValue = i;
-    set_selector_valve_position_blocking(selector_valve_position_setValue);
-    check_selector_valve_position();
-    uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
-    // can remove
-    if(DEBUG_WITH_SERIAL)
-      Serial.println(uart_titan_rx_buffer);
+    for(int i = 1;i<=12;i++)
+    {
+      // can remove
+      if(DEBUG_WITH_SERIAL)
+        Serial.println("----------------------------");
+      selector_valve_position_setValue = i;
+      set_selector_valve_position_blocking(selector_valve_position_setValue);
+      check_selector_valve_position();
+      uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
+      // can remove
+      if(DEBUG_WITH_SERIAL)
+        Serial.println(uart_titan_rx_buffer);
+    }
   }
-
+  
+  // set up timers
   Timer_check_manual_input.begin(set_check_manual_input_flag, check_manual_input_interval_us);
   Timer_read_sensors_input.begin(set_read_sensors_flag, read_sensors_interval_us);
   Timer_send_update_input.begin(set_send_update_flag, send_update_interval_us);
@@ -307,6 +308,56 @@ void loop() {
       buffer_rx_ptr = 0;
       current_command_uid = uint16_t(buffer_rx[0])*256 + uint16_t(buffer_rx[1]);
       current_command = buffer_rx[2];
+      uint8_t payload1 = buffer_rx[3];
+      uint8_t payload2 = buffer_rx[4];
+      uint16_t payload3 = (uint16_t(buffer_rx[5])<<8) + uint16_t(buffer_rx[6]);
+      uint32_t payload4 = (uint32_t(buffer_rx[7])<<24) + (uint32_t(buffer_rx[8])<<16) + (uint32_t(buffer_rx[9])<<8) + (uint32_t(buffer_rx[10]));
+
+      // set the controller into appropreaite states based on the command received
+      switch(current_command)
+      {
+        case CLEAR:
+          current_command_uid = 0;
+          command_execution_status = COMPLETED_WITHOUT_ERRORS;
+          break;
+        case DISABLE_MANUAL_CONTROL:
+          if(payload1==1)
+            manual_control_disabled_by_software = true;
+          if(payload1==0)
+            manual_control_disabled_by_software = false;
+          break;
+        case REMOVE_MEDIUM:
+          break;
+        case ADD_MEDIUM:
+          break;
+        case SET_SELECTOR_VALVE:
+          if(SELECTOR_VALVE_PRESENT)
+          {
+            selector_valve_position_setValue = payload2;
+            set_selector_valve_position_blocking(selector_valve_position_setValue);
+            check_selector_valve_position();
+            uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
+            // to add: convert the string to numeric value and compare it with selector_valve_position_setValue
+            // to add: error handling
+          }
+          break;
+        case SET_10MM_SOLENOID_VALVE:
+          if(payload1==0)
+          {
+            NXP33996_clear_all();
+            NXP33996_update();
+          }
+          else
+          {
+            NXP33996_turn_on(payload2);
+            NXP33996_update();
+          }
+          break;
+        case SET_SOLENOID_VALVE_B:
+          break;
+        case SET_SOLENOID_VALVE_C:
+          break;
+      }
     }
   }
 
@@ -348,6 +399,7 @@ void loop() {
       }
       else
       {
+        // to be replaced with software control
         disc_pump_power = 0;
         disc_pump_enabled = false;
         set_disc_pump_enabled(disc_pump_enabled);
@@ -526,9 +578,14 @@ void loop() {
   }
 }
 
+/************************************************
+************* flag setting functions ************
+************************************************/
+
 void set_check_manual_input_flag()
 {
-  flag_check_manual_inputs = true;
+  if(manual_control_disabled_by_software==false)
+    flag_check_manual_inputs = true;
 }
 
 void set_read_sensors_flag()
