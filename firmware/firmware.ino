@@ -3,7 +3,7 @@
 
 //#define DEBUG_WITH_SERIAL true
 #define DEBUG_WITH_SERIAL false
-#define SELECTOR_VALVE_PRESENT false
+#define SELECTOR_VALVE_PRESENT true
 #define FLOW_SENSOR_2_PRESENT false
 
 static const int pin_manual_control_enable = 24;
@@ -267,7 +267,7 @@ void setup()
   digitalWrite(pin_33996_nRST,HIGH);
 
   // test 33996
-  for(int k = 0;k<5;k++)
+  for(int k = 0;k<1;k++)
   {
     for(int i=0;i<16;i++)
     {
@@ -280,6 +280,7 @@ void setup()
   }  
 
   // test selector valve control
+  /*
   if(SELECTOR_VALVE_PRESENT)
   {
     for(int i = 1;i<=12;i++)
@@ -296,6 +297,7 @@ void setup()
         Serial.println(uart_titan_rx_buffer);
     }
   }
+  */
   
   // set up timers
   Timer_check_manual_input.begin(set_check_manual_input_flag, check_manual_input_interval_us);
@@ -373,13 +375,14 @@ void loop() {
           
         // set 10 mm valve state
         case SET_10MM_SOLENOID_VALVE:
-          if(payload1==0)
+          if(payload2==0)
           {
             NXP33996_clear_all();
             NXP33996_update();
           }
           else
           {
+            NXP33996_clear_all();
             NXP33996_turn_on(payload2);
             NXP33996_update();
           }
