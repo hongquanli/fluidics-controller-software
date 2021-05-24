@@ -3,7 +3,7 @@
 
 //#define DEBUG_WITH_SERIAL true
 #define DEBUG_WITH_SERIAL false
-#define SELECTOR_VALVE_PRESENT true
+#define SELECTOR_VALVE_PRESENT false
 #define FLOW_SENSOR_2_PRESENT false
 
 static const int pin_manual_control_enable = 24;
@@ -167,6 +167,7 @@ static const int INTERNAL_PROGRAM_IDLE = 0;
 static const int INTERNAL_PROGRAM_REMOVE_MEDIUM = 1;
 static const int INTERNAL_PROGRAM_ADD_MEDIUM = 2;
 elapsedMillis elapsed_millis_since_remove_medium_started = 0;
+byte time_elapsed_s = 0;
 unsigned long set_vacuum_duration_ms = 0;
 
 // default settings
@@ -558,6 +559,7 @@ void loop() {
       
     // remove medium
     case INTERNAL_PROGRAM_REMOVE_MEDIUM:
+      time_elapsed_s = elapsed_millis_since_remove_medium_started/1000;
       // to add - bubble sensor integration
       if(elapsed_millis_since_remove_medium_started>set_vacuum_duration_ms)
       {
@@ -571,6 +573,7 @@ void loop() {
       {
         internal_program = INTERNAL_PROGRAM_IDLE;
         command_execution_status = COMPLETED_WITHOUT_ERRORS;
+        time_elapsed_s = 0;
       }
       break;
 
@@ -629,8 +632,6 @@ void loop() {
       buffer_tx[0] = byte(current_command_uid >> 8);
       buffer_tx[1] = byte(current_command_uid % 256);
       buffer_tx[2] = current_command;
-      // before implementing the internal programs, set command_execution_status always to completed
-      command_execution_status = COMPLETED_WITHOUT_ERRORS;
       buffer_tx[3] = command_execution_status;
       buffer_tx[4] = internal_program;
       buffer_tx[5] = 0; // to do
@@ -648,6 +649,7 @@ void loop() {
       buffer_tx[17] = byte(flow_1_raw % 256 ); // vacuum
       buffer_tx[18] = byte(flow_2_raw >> 8); // pressure
       buffer_tx[19] = byte(flow_2_raw % 256 ); // vacuum
+      buffer_tx[20] = byte(time_elapsed_s);
       SerialUSB.write(buffer_tx,FROM_MCU_MSG_LENGTH);  
     }
     flag_send_update = false;
