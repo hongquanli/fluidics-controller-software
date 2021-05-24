@@ -109,12 +109,12 @@ fluid control
 '''
 
 class Microcontroller(object):
-	def __init__(self):
+	def __init__(self,serial_number):
 		self.serial = None
 		self.tx_buffer_length = MCU_CMD_LENGTH
 		self.rx_buffer_length = MCU_MSG_LENGTH
 
-		controller_ports = [ p.device for p in serial.tools.list_ports.comports() if '8219530' == p.serial_number]
+		controller_ports = [ p.device for p in serial.tools.list_ports.comports() if serial_number == p.serial_number]
 		if not controller_ports:
 			raise IOError("No Controller Found")
 		self.serial = serial.Serial(controller_ports[0],2000000)
@@ -592,7 +592,8 @@ class FluidController(QObject):
 			'''
 			# command execution in progress
 			if PRINT_DEBUG_INFO:
-				print('[ cmd being executed on the MCU ]')
+				# print('[ cmd being executed on the MCU ]')
+				pass
 			return 
 		if MCU_command_execution_status == CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS:
 			# command execucation has completed, can move to the next command

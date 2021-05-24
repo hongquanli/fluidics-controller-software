@@ -25,7 +25,9 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		if(is_simulation):
 			self.teensy41 = controllers.Microcontroller_Simulation()
 		else:
-			self.teensy41 = controllers.Microcontroller()
+			# serial_number = '8219530'
+			serial_number = '9178980'
+			self.teensy41 = controllers.Microcontroller(serial_number)
 		self.fluidController = controllers.FluidController(self.teensy41)
 		self.logger = controllers.Logger()
 
