@@ -396,7 +396,7 @@ class FluidController(QObject):
 	# <<< core portion of the program>>>
 	def _update_sequence_execution_state(self):
 		# previous sequence finished execution, now try to load the next sequence
-		if self.current_sequence == None:
+		if self.current_sequence == None and self.current_subsequence == None:
 			# if the queue is not empty, load the next sequence to execute
 			if self.queue_sequence.empty() == False:
 				# start a new queued sequence if no abort sequence requested
@@ -592,8 +592,7 @@ class FluidController(QObject):
 			'''
 			# command execution in progress
 			if PRINT_DEBUG_INFO:
-				#print('[ cmd being executed on the MCU ]')
-				pass
+				print('[ cmd being executed on the MCU ]')
 			return 
 		if MCU_command_execution_status == CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS:
 			# command execucation has completed, can move to the next command
