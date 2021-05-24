@@ -407,7 +407,7 @@ class FluidController(QObject):
 					self.current_sequence = self.queue_sequence.get()
 					# logging (display round number for multiround sequences)
 					if self.current_sequence.is_single_round_sequence == False:
-						self.log_message.emit(utils.timestamp() + 'Execute ' + self.current_sequence.sequence_name + ', round ' + str(self.current_sequence.round))
+						self.log_message.emit(utils.timestamp() + 'Execute ' + self.current_sequence.sequence_name + ', round ' + str(self.current_sequence.round+1))
 					else:
 						self.log_message.emit(utils.timestamp() + 'Execute ' + self.current_sequence.sequence_name)
 					QApplication.processEvents()
@@ -417,7 +417,7 @@ class FluidController(QObject):
 					while self.queue_sequence.empty() == False:
 						self.current_sequence = self.queue_sequence.get()
 						if self.current_sequence.is_single_round_sequence == False:
-							self.log_message.emit(utils.timestamp() + '! ' + self.current_sequence.sequence_name + ', round ' + str(self.current_sequence.round) + ' aborted')
+							self.log_message.emit(utils.timestamp() + '! ' + self.current_sequence.sequence_name + ', round ' + str(self.current_sequence.round+1) + ' aborted')
 						else:
 							self.log_message.emit(utils.timestamp() + '! ' + self.current_sequence.sequence_name + ' aborted')
 						QApplication.processEvents()
