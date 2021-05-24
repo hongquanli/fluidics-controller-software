@@ -78,6 +78,13 @@ class DEFAULT_VALUES:
 	vacuum_aspiration_time_s = 10
 	aspiration_timeout_limit_s = 60 # to replace vacuum_aspiration_time_s once bubble sensor is in place
 
+
+#########################################################
+###############   MCU Internal Programs   ###############
+#########################################################
+
+MCU_INTERNAL_PROGRAMS = ['','Remove Medium','Ramp Up Pressure','Pump Fluid','Empty Fluidic Line']
+
 # status of internal program execution on the MCU
 
 '''

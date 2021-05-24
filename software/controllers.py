@@ -549,7 +549,8 @@ class FluidController(QObject):
 		self.signal_MCU_CMD_UID.emit(MCU_received_command_UID)
 		self.signal_MCU_CMD.emit(MCU_received_command) # @@@ to-do: map the command to the command description
 		self.signal_MCU_CMD_status.emit(str(MCU_command_execution_status)) # @@@ to-do: map the numerical value to text description
-		self.signal_MCU_internal_program.emit(str(MCU_interal_program)) # @@@ to-do: map the numerical value to text description
+		# self.signal_MCU_internal_program.emit(str(MCU_interal_program)) # @@@ to-do: map the numerical value to text description
+		self.signal_MCU_internal_program.emit(MCU_INTERNAL_PROGRAMS[MCU_interal_program])
 		self.signal_MCU_CMD_time_elapsed.emit(MCU_CMD_time_elapsed)
 
 		self.signal_pump_power.emit('{:.2f}'.format(measurement_pump_power))
