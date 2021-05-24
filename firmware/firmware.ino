@@ -170,7 +170,7 @@ elapsedMillis elapsed_millis_since_remove_medium_started = 0;
 unsigned long set_vacuum_duration_ms = 0;
 
 // default settings
-static const int DISC_PUMP_POWER_VACUUM = 960;
+//static const int DISC_PUMP_POWER_VACUUM = 960;
 static const int VACUUM_DECAY_TIME_MS = 3000;
 
 /*************************************************************
@@ -347,10 +347,13 @@ void loop() {
         // remove medium
         case REMOVE_MEDIUM:
           set_vacuum_duration_ms = payload4;
+          disc_pump_power = int((float(payload3)/65535)*1000);
+          // disc_pump_power = DISC_PUMP_POWER_VACUUM;
           command_execution_status = IN_PROGRESS;
           internal_program = INTERNAL_PROGRAM_REMOVE_MEDIUM;
           set_mode_to_vacuum();
-          disc_pump_power = DISC_PUMP_POWER_VACUUM;
+          disc_pump_enabled = true;
+          set_disc_pump_enabled(disc_pump_enabled);
           set_disc_pump_power(disc_pump_power);
           elapsed_millis_since_remove_medium_started = 0;
           break;
@@ -556,14 +559,15 @@ void loop() {
     // remove medium
     case INTERNAL_PROGRAM_REMOVE_MEDIUM:
       // to add - bubble sensor integration
-      // to add - wait for the vacuum to drop to zero
       if(elapsed_millis_since_remove_medium_started>set_vacuum_duration_ms)
       {
         disc_pump_power = 0;
         set_disc_pump_power(disc_pump_power);
+        disc_pump_enabled = false;
+        set_disc_pump_enabled(disc_pump_enabled);
         set_mode_to_pressure();
       }
-      if(elapsed_millis_since_remove_medium_started>VACUUM_DECAY_TIME_MS+VACUUM_DECAY_TIME_MS)
+      if(elapsed_millis_since_remove_medium_started>set_vacuum_duration_ms+VACUUM_DECAY_TIME_MS)
       {
         internal_program = INTERNAL_PROGRAM_IDLE;
         command_execution_status = COMPLETED_WITHOUT_ERRORS;
@@ -681,9 +685,10 @@ void set_mode_to_vacuum()
   // set solenoid valve states
   digitalWrite(pin_valve_A1,HIGH);
   digitalWrite(pin_valve_A2,HIGH);
-  // for testing only, to be removed
-  selector_valve_position_setValue = 2;
-  set_selector_valve_position_blocking(selector_valve_position_setValue);
+  
+  //  // for testing only, to be removed
+  //  selector_valve_position_setValue = 2;
+  //  set_selector_valve_position_blocking(selector_valve_position_setValue);
 }
 
 void set_mode_to_pressure()
@@ -693,9 +698,9 @@ void set_mode_to_pressure()
   digitalWrite(pin_valve_A1,LOW);
   digitalWrite(pin_valve_A2,LOW);
 
-  // for testing only, to be removed
-  selector_valve_position_setValue = 1;
-  set_selector_valve_position_blocking(selector_valve_position_setValue);
+  //  // for testing only, to be removed
+  //  selector_valve_position_setValue = 1;
+  //  set_selector_valve_position_blocking(selector_valve_position_setValue);
 }
 
 /************************************************
