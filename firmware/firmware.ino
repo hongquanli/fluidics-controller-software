@@ -42,6 +42,7 @@ IntervalTimer Timer_send_update_input;
 volatile bool flag_check_manual_inputs = false;
 volatile bool flag_read_sensors = false;
 volatile bool flag_send_update = false;
+bool flag_enter_control_loop = true;
 
 bool flag_manual_control_enabled = false; // based on hardware switch
 int mode_pressure_vacuum = 0; // 0: pressure, 1: vacuum
@@ -165,14 +166,37 @@ bool manual_control_disabled_by_software = false;
 // MCU internal program
 static const int INTERNAL_PROGRAM_IDLE = 0;
 static const int INTERNAL_PROGRAM_REMOVE_MEDIUM = 1;
-static const int INTERNAL_PROGRAM_ADD_MEDIUM = 2;
+static const int INTERNAL_PROGRAM_RAMP_UP_PRESSURE = 2;   // 2 -> 3 always
+static const int INTERNAL_PROGRAM_PUMP_FLUID = 3;         // 3 -> 4 always 
+static const int INTERNAL_PROGRAM_EMPTY_FLUIDIC_LINE = 4;
 elapsedMillis elapsed_millis_since_remove_medium_started = 0;
+elapsedMillis elapsed_millis_since_the_start_of_the_internal_program = 0; // for internal program 2-4
 byte time_elapsed_s = 0;
 unsigned long set_vacuum_duration_ms = 0;
 
+bool pressure_control_loop_enabled = false;
+int control_type = CONSTANT_POWER;
+int fluidic_port = 0;
+float control_setpoint = 0;
+unsigned long set_flow_time_ms = 0;
+
+// pressure control loop
+float pressure_set_point = 0;
+float pressure_loop_p_coefficient = 0;
+float pressure_loop_i_coefficient = 0;
+float pressure_loop_integral_error = 0;
+float pressure_loop_error = 0;
+static const float PRESSURE_FULL_SCALE_PSI = 5;
+
 // default settings
 //static const int DISC_PUMP_POWER_VACUUM = 960;
-static const int VACUUM_DECAY_TIME_MS = 3000;
+static const int VACUUM_DECAY_TIME_S = 1;
+static const int PRESSURE_RAMP_UP_TIME_S = 3;
+static const int DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 5;
+static const float PUMP_POWER_FOR_EMPTYING_THE_FLUIDIC_LINE = 0.8;
+
+// fludic port setting
+static const int PORT_AIR = 16;
 
 /*************************************************************
  ************************** SETUP() **************************
@@ -361,6 +385,48 @@ void loop() {
           
         // add medium
         case ADD_MEDIUM:
+          command_execution_status = IN_PROGRESS;
+          control_type = payload1;
+          fluidic_port = payload2;
+          control_setpoint = float(payload3)/65535;
+          set_flow_time_ms = payload4;
+          
+          // enter the INTERNAL_PROGRAM_RAMP_UP_PRESSURE internal program
+          internal_program = INTERNAL_PROGRAM_RAMP_UP_PRESSURE;
+          // (0) close the valve between the selector valve and the chamber
+          digitalWrite(pin_valve_B1,LOW);
+          // (1) switch the fluidic port
+          selector_valve_position_setValue = fluidic_port;
+          set_selector_valve_position_blocking(selector_valve_position_setValue);
+          check_selector_valve_position();
+          uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
+            // to add: convert the string to numeric value and compare it with selector_valve_position_setValue
+            // to add: error handling
+          // (2) turn on the 10 mm valve
+          NXP33996_clear_all();
+          NXP33996_turn_on(fluidic_port-1);
+          NXP33996_update();
+          // (3) start the control loop
+          if(control_type==CONSTANT_PRESSURE)
+          {
+            pressure_set_point = control_setpoint*PRESSURE_FULL_SCALE_PSI;
+            pressure_control_loop_enabled = true;
+            pressure_loop_integral_error = 0;
+            disc_pump_power = 0;
+            set_disc_pump_power(disc_pump_power);
+            disc_pump_enabled = true;
+            set_disc_pump_enabled(disc_pump_enabled);
+          }
+          else if(control_type==CONSTANT_POWER)
+          {
+            set_mode_to_pressure();
+            disc_pump_power = int(control_setpoint*1000);
+            set_disc_pump_power(disc_pump_power);
+            disc_pump_enabled = true;
+            set_disc_pump_enabled(disc_pump_enabled);
+          }
+          // (4) start the timer
+          elapsed_millis_since_the_start_of_the_internal_program = 0;          
           break;
 
         // set selector valve
@@ -387,7 +453,7 @@ void loop() {
           else
           {
             NXP33996_clear_all();
-            NXP33996_turn_on(payload2);
+            NXP33996_turn_on(payload2-1);
             NXP33996_update();
           }
           command_execution_status = COMPLETED_WITHOUT_ERRORS;
@@ -467,7 +533,7 @@ void loop() {
    **************************************************************/
   if (flag_read_sensors)
   {
-    flag_read_sensors = false;    
+    flag_read_sensors = false;
     /*
       // sensor measurement
       Wire1.requestFrom(SLF3x_ADDRESS, 3);
@@ -546,7 +612,29 @@ void loop() {
     _bridge_data = (byte1 << 8 | byte2) & 0x3FFF;
     pressure_1_raw = _bridge_data;
     pressure_1 = float(constrain(_bridge_data, _output_min, _output_max) - _output_min) * (_p_max - _p_min) / (_output_max - _output_min) + _p_min;
+
+    flag_enter_control_loop = true;
   }
+
+  /*********************************************************
+   ***************** pressure control loop *****************
+   *********************************************************/
+  /*
+  if(flag_enter_control_loop)
+  {
+    if(control_type==CONSTANT_PRESSURE && pressure_control_loop_enabled)
+    {
+      pressure_loop_error = pressure_set_point - pressure_2;
+      pressure_loop_integral_error = pressure_loop_integral_error + pressure_loop_error;
+      pressure_loop_integral_error = min(1/pressure_loop_i_coefficient,pressure_loop_integral_error);
+      pressure_loop_integral_error = max(0,pressure_loop_integral_error);
+      disc_pump_power = int((pressure_loop_integral_error*pressure_loop_i_coefficient+pressure_loop_error*pressure_loop_p_coefficient)*1000);
+      disc_pump_power = min(1000,disc_pump_power);
+      disc_pump_power = max(0,disc_pump_power);
+      set_disc_pump_power(disc_pump_power);
+    }
+  }
+  */
 
   /*********************************************************
    ******************* state transition ********************
@@ -569,7 +657,7 @@ void loop() {
         set_disc_pump_enabled(disc_pump_enabled);
         set_mode_to_pressure();
       }
-      if(elapsed_millis_since_remove_medium_started>set_vacuum_duration_ms+VACUUM_DECAY_TIME_MS)
+      if(elapsed_millis_since_remove_medium_started>set_vacuum_duration_ms+1000*VACUUM_DECAY_TIME_S)
       {
         internal_program = INTERNAL_PROGRAM_IDLE;
         command_execution_status = COMPLETED_WITHOUT_ERRORS;
@@ -577,8 +665,62 @@ void loop() {
       }
       break;
 
-    // add medium
-    case INTERNAL_PROGRAM_ADD_MEDIUM:
+    // ramp up pump power
+    case INTERNAL_PROGRAM_RAMP_UP_PRESSURE:
+      time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000;
+      if(elapsed_millis_since_the_start_of_the_internal_program>=PRESSURE_RAMP_UP_TIME_S*1000)
+      {
+        // enter the next phase
+        // (1) open the valve between the selector valve and the chamber
+        digitalWrite(pin_valve_B1,HIGH);
+        // (2) get to the next phase
+        internal_program = INTERNAL_PROGRAM_PUMP_FLUID;
+        // (3) reset the timer
+        elapsed_millis_since_the_start_of_the_internal_program = 0;
+      }
+      // to add - condition for switching to the next phase when pressure reaches the setpoint
+      break;
+    case INTERNAL_PROGRAM_PUMP_FLUID:
+      time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000;
+      if(elapsed_millis_since_the_start_of_the_internal_program>=set_flow_time_ms)
+      {
+        // (1) close the valve between the selector valve and the chamber
+        digitalWrite(pin_valve_B1,LOW);
+        // (2) stop the pump
+        if(control_type==CONSTANT_PRESSURE)
+        {
+          pressure_set_point = 0;
+          pressure_control_loop_enabled = false;
+          pressure_loop_integral_error = 0;
+        }
+        disc_pump_power = 0;
+        set_disc_pump_power(disc_pump_power);
+        disc_pump_enabled = false;
+        set_disc_pump_enabled(disc_pump_enabled);        
+        // (3) release the pressure
+        NXP33996_clear_all();
+        NXP33996_update();
+        // (4) switch to the air path
+        NXP33996_turn_on(PORT_AIR-1);
+        NXP33996_update();
+        // (5) start the pump
+        disc_pump_power = PUMP_POWER_FOR_EMPTYING_THE_FLUIDIC_LINE*1000;
+        set_disc_pump_power(disc_pump_power);
+        disc_pump_enabled = false;
+        set_disc_pump_enabled(disc_pump_enabled);       
+        // (6) reset the timer and go to the next phase
+        internal_program = INTERNAL_PROGRAM_EMPTY_FLUIDIC_LINE;
+        elapsed_millis_since_the_start_of_the_internal_program = 0;
+      }
+      break;
+    case INTERNAL_PROGRAM_EMPTY_FLUIDIC_LINE:
+      time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000;
+      if(elapsed_millis_since_the_start_of_the_internal_program>=1000*DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S)
+      {
+        internal_program = INTERNAL_PROGRAM_IDLE;
+        command_execution_status = COMPLETED_WITHOUT_ERRORS;
+        time_elapsed_s = 0;
+      }
       break;
    }
 
