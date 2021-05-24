@@ -266,13 +266,13 @@ class Sequence():
 		# manual control sequences
 		# case 10
 		if sequence_name == 'Set Selector Valve Position':
-			mcu_command = Microcontroller_Command(CMD_SET.SET_SELECTOR_VALVE,fluidic_port)
+			mcu_command = Microcontroller_Command(CMD_SET.SET_SELECTOR_VALVE,payload2=fluidic_port)
 			mcu_command.set_description('Set Selector Valve Position to ' + str(fluidic_port))
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			self.is_single_round_sequence = True
 
 		if sequence_name == 'Set 10 mm Valve State':
-			mcu_command = Microcontroller_Command(CMD_SET.SET_10MM_SOLENOID_VALVE,fluidic_port)
+			mcu_command = Microcontroller_Command(CMD_SET.SET_10MM_SOLENOID_VALVE,payload2=fluidic_port)
 			if fluidic_port == 0:
 				mcu_command.set_description('Turn Off All 10 mm Valves')
 			else:

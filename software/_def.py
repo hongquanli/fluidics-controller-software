@@ -43,15 +43,16 @@ class CMD_SET:
 	SET_10MM_SOLENOID_VALVE = 11
 	SET_SOLENOID_VALVE_B = 12
 	SET_SOLENOID_VALVE_C = 13
+	DISABLE_MANUAL_CONTROL = 20
 
 class CMD_SET_DESCRIPTION:
 	CLEAR = 'Clear'
 	REMOVE_MEDIUM = 'Remove Medium'
 	ADD_MEDIUM = 'Add Medium'
-	SET_SELECTOR_VALVE = ''
-	SET_10MM_SOLENOID_VALVE = ''
-	SET_SOLENOID_VALVE_B = ''
-	SET_SOLENOID_VALVE_C = ''
+	SET_SELECTOR_VALVE = '' # the description is manually added (with parameters)
+	SET_10MM_SOLENOID_VALVE = '' # the description is manually added (with parameters)
+	SET_SOLENOID_VALVE_B = '' # the description is manually added (with parameters)
+	SET_SOLENOID_VALVE_C = '' # the description is manually added (with parameters)
 
 class MCU_CMD_PARAMETERS:
 	CONSTANT_POWER = 0
