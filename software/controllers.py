@@ -260,7 +260,7 @@ class Sequence():
 			mcu_command.set_description(CMD_SET_DESCRIPTION.REMOVE_MEDIUM)
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 
-			self.is_single_round_sequence = False
+			self.is_single_round_sequence = False # for message display only, no other essence
 
 		# manual control sequences
 		# case 10
