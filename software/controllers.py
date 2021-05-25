@@ -417,6 +417,8 @@ class FluidController(QObject):
 	signal_selector_valve_position = Signal(int)
 	signal_pressure = Signal(str)
 	signal_vacuum = Signal(str)
+	signal_bubble_sensor_1 = Signal(bool)
+	signal_bubble_sensor_2 = Signal(bool)
 
 	signal_uncheck_manual_control_enabled = Signal()
 
@@ -614,6 +616,8 @@ class FluidController(QObject):
 		MCU_received_command = msg[2]
 		MCU_command_execution_status = msg[3]
 		MCU_interal_program = msg[4]
+		MCU_valve_A_B_and_bubble_sensors = msg[5]
+		MCU_CMD_time_elapsed = msg[20]
 
 		measurement_selector_valve_position = msg[9]
 		measurement_pump_power = float((int(msg[10])<<8)+msg[11])/65535
@@ -621,7 +625,9 @@ class FluidController(QObject):
 		_pressure_raw = constrain((int(msg[14])<<8) + msg[15],MCU_CONSTANTS._output_min,MCU_CONSTANTS._output_max)
 		measurement_pressure = (_pressure_raw - MCU_CONSTANTS._output_min) * (MCU_CONSTANTS._p_max - MCU_CONSTANTS._p_min) / (MCU_CONSTANTS._output_max - MCU_CONSTANTS._output_min) + MCU_CONSTANTS._p_min
 		measurement_vacuum = (_vacuum_raw - MCU_CONSTANTS._output_min) * (MCU_CONSTANTS._p_max - MCU_CONSTANTS._p_min) / (MCU_CONSTANTS._output_max - MCU_CONSTANTS._output_min) + MCU_CONSTANTS._p_min
-		MCU_CMD_time_elapsed = msg[20]
+		
+		bubble_sensor_1_state = MCU_valve_A_B_and_bubble_sensors & 0b00001000
+		bubble_sensor_2_state = MCU_valve_A_B_and_bubble_sensors & 0b00000100
 
 		self.signal_MCU_CMD_UID.emit(MCU_received_command_UID)
 		self.signal_MCU_CMD.emit(MCU_received_command) # @@@ to-do: map the command to the command description
@@ -634,6 +640,9 @@ class FluidController(QObject):
 		self.signal_selector_valve_position.emit(measurement_selector_valve_position)
 		self.signal_pressure.emit('{:.2f}'.format(measurement_pressure))
 		self.signal_vacuum.emit('{:.2f}'.format(measurement_vacuum))
+
+		self.signal_bubble_sensor_1.emit(bubble_sensor_1_state>0)
+		self.signal_bubble_sensor_2.emit(bubble_sensor_2_state>0)
 
 		# step 1: check if MCU is "up to date" with the computer in terms of command
 		if (MCU_received_command_UID != self.computer_to_MCU_command_counter) or (MCU_received_command != self.computer_to_MCU_command):

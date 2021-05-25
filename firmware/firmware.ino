@@ -93,6 +93,8 @@ static const int pin_OCB350_0_calibrate = 29;
 static const int pin_OCB350_0_B = 30;  // bubble sensor 1 - aspiration bubble sensor
 static const int pin_OCB350_1_calibrate = 31;
 static const int pin_OCB350_1_B = 32;
+volatile bool liquid_present_1 = false;
+volatile bool liquid_present_2 = false;
 
 // communication with the python software
 /*
@@ -188,8 +190,8 @@ unsigned long set_flow_time_ms = 0;
 
 // pressure control loop
 float pressure_set_point = 0;
-float pressure_loop_p_coefficient = 0;
-float pressure_loop_i_coefficient = 0;
+float pressure_loop_p_coefficient = 1;
+float pressure_loop_i_coefficient = 1;
 float pressure_loop_integral_error = 0;
 float pressure_loop_error = 0;
 static const float PRESSURE_FULL_SCALE_PSI = 5;
@@ -681,6 +683,10 @@ void loop() {
     pressure_1_raw = _bridge_data;
     pressure_1 = float(constrain(_bridge_data, _output_min, _output_max) - _output_min) * (_p_max - _p_min) / (_output_max - _output_min) + _p_min;
 
+    // bubble sensor
+    liquid_present_1 = 1 - digitalRead(pin_OCB350_0_B);
+    liquid_present_2 = 1 - digitalRead(pin_OCB350_1_B);
+
     flag_control_loop_update = true;
   }
 
@@ -863,7 +869,9 @@ void loop() {
       buffer_tx[2] = current_command;
       buffer_tx[3] = command_execution_status;
       buffer_tx[4] = internal_program;
-      buffer_tx[5] = 0; // to do
+      buffer_tx[5] = 0; // to finish
+      buffer_tx[5] = buffer_tx[5] | (liquid_present_1 << 3);
+      buffer_tx[5] = buffer_tx[5] | (liquid_present_2 << 2);
       buffer_tx[6] = 0; // to do
       buffer_tx[7] = byte(NXP33996_state >> 8);
       buffer_tx[8] = byte(NXP33996_state % 256);

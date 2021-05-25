@@ -134,6 +134,8 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		self.fluidController.signal_selector_valve_position.connect(self.microcontrollerStateDisplayWidget.label_selector_valve_position.setNum)
 		self.fluidController.signal_pressure.connect(self.microcontrollerStateDisplayWidget.label_pressure.setText)
 		self.fluidController.signal_vacuum.connect(self.microcontrollerStateDisplayWidget.label_vacuum.setText)
+		self.fluidController.signal_bubble_sensor_1.connect(self.microcontrollerStateDisplayWidget.label_bubble_sensor_downstream.setNum)
+		self.fluidController.signal_bubble_sensor_2.connect(self.microcontrollerStateDisplayWidget.label_bubble_sensor_upstream.setNum)
 
 		# connection for the manual control
 		self.fluidController.signal_uncheck_manual_control_enabled.connect(self.manualControlWidget.uncheck_enable_manual_control_button)
