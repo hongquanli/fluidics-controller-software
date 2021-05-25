@@ -923,7 +923,7 @@ void set_mode_to_vacuum()
 void set_mode_to_pressure()
 {
   // set solenoid valve states
-  digitalWrite(pin_valve_B1,LOW); // to prevent any flow until explictly opening the valve after the selector valve output
+  // digitalWrite(pin_valve_B1,LOW); // to prevent any flow until explictly opening the valve after the selector valve output
   digitalWrite(pin_valve_A1,LOW);
   digitalWrite(pin_valve_A2,LOW);
 
