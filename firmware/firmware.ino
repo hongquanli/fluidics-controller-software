@@ -139,12 +139,12 @@ static const int SET_10MM_SOLENOID_VALVE = 11;
 static const int SET_SOLENOID_VALVE_B = 12;
 static const int SET_SOLENOID_VALVE_C = 13;
 static const int DISABLE_MANUAL_CONTROL = 20;
-static const int ENABLE_PRESSURE_CONTROL_LOOP = 30
-static const int SET_PRESSURE_CONTROL_SETPOINT_PSI = 31
-static const int SET_PRESSURE_CONTROL_LOOP_P_COEFFICIENT = 32
-static const int SET_PRESSURE_CONTROL_LOOP_I_COEFFICIENT = 33
-//static const int SET_ASPIRATION_PUMP_POWER = 40
-//static const int SET_ASPIRATION_TIME_MS = 41
+static const int ENABLE_PRESSURE_CONTROL_LOOP = 30;
+static const int SET_PRESSURE_CONTROL_SETPOINT_PSI = 31;
+static const int SET_PRESSURE_CONTROL_LOOP_P_COEFFICIENT = 32;
+static const int SET_PRESSURE_CONTROL_LOOP_I_COEFFICIENT = 33;
+//static const int SET_ASPIRATION_PUMP_POWER = 40;
+//static const int SET_ASPIRATION_TIME_MS = 41;
 
 // command parameters
 // search for class MCU_CMD_PARAMETERS in _def.py
@@ -197,9 +197,10 @@ static const float PRESSURE_FULL_SCALE_PSI = 5;
 // default settings
 //static const int DISC_PUMP_POWER_VACUUM = 960;
 static const int VACUUM_DECAY_TIME_S = 1;
-static const int PRESSURE_RAMP_UP_TIME_S = 3;
+static const int PRESSURE_RAMP_UP_TIME_S = 5;
 static const int DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 5;
 static const float PUMP_POWER_FOR_EMPTYING_THE_FLUIDIC_LINE = 0.8;
+static const float PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE = 100;
 
 // fludic port setting
 static const int PORT_AIR = 10;
@@ -519,7 +520,7 @@ void loop() {
         case SET_PRESSURE_CONTROL_LOOP_P_COEFFICIENT:
           pressure_loop_p_coefficient = (float(payload4)/4294967296)*PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE;
           command_execution_status = COMPLETED_WITHOUT_ERRORS;
-          break
+          break;
 
         // pressure i coefficient
         case SET_PRESSURE_CONTROL_LOOP_I_COEFFICIENT:
