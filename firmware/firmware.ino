@@ -42,7 +42,7 @@ IntervalTimer Timer_send_update_input;
 volatile bool flag_check_manual_inputs = false;
 volatile bool flag_read_sensors = false;
 volatile bool flag_send_update = false;
-bool flag_enter_control_loop = true;
+bool flag_control_loop_update = true;
 
 bool flag_manual_control_enabled = false; // based on hardware switch
 int mode_pressure_vacuum = 0; // 0: pressure, 1: vacuum
@@ -508,8 +508,11 @@ void loop() {
         case ENABLE_PRESSURE_CONTROL_LOOP:
           if(payload1==1)
           {
+            manual_control_disabled_by_software = true;
             pressure_control_loop_enabled = true;
             pressure_loop_integral_error = 0;
+            disc_pump_enabled = true;
+            set_disc_pump_enabled(disc_pump_enabled);
           }
           if(payload1==0)
             pressure_control_loop_enabled = false;
@@ -678,16 +681,15 @@ void loop() {
     pressure_1_raw = _bridge_data;
     pressure_1 = float(constrain(_bridge_data, _output_min, _output_max) - _output_min) * (_p_max - _p_min) / (_output_max - _output_min) + _p_min;
 
-    flag_enter_control_loop = true;
+    flag_control_loop_update = true;
   }
 
   /*********************************************************
    ***************** pressure control loop *****************
    *********************************************************/
-  /*
-  if(flag_enter_control_loop)
+  if(flag_control_loop_update)
   {
-    if(control_type==CONSTANT_PRESSURE && pressure_control_loop_enabled)
+    if(pressure_control_loop_enabled)
     {
       pressure_loop_error = pressure_set_point - pressure_2;
       pressure_loop_integral_error = pressure_loop_integral_error + pressure_loop_error;
@@ -698,8 +700,8 @@ void loop() {
       disc_pump_power = max(0,disc_pump_power);
       set_disc_pump_power(disc_pump_power);
     }
+    flag_control_loop_update = false;
   }
-  */
 
   /*********************************************************
    ******************* state transition ********************
@@ -733,7 +735,7 @@ void loop() {
     // ramp up pump power
     case INTERNAL_PROGRAM_RAMP_UP_PRESSURE:
       time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000;
-      if(elapsed_millis_since_the_start_of_the_internal_program>=PRESSURE_RAMP_UP_TIME_S*1000)
+      if(elapsed_millis_since_the_start_of_the_internal_program>=PRESSURE_RAMP_UP_TIME_S*1000 || (control_type == CONSTANT_PRESSURE && pressure_2 >= pressure_set_point)
       {
         // enter the next phase
         // (1) open the valve between the selector valve and the chamber

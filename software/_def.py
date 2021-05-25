@@ -86,10 +86,12 @@ class DEFAULT_VALUES:
 	aspiration_pump_power = 0.25
 	vacuum_aspiration_time_s = 5
 	aspiration_timeout_limit_s = 60 # to replace vacuum_aspiration_time_s once bubble sensor is in place
-	control_type_for_adding_medium = MCU_CMD_PARAMETERS.CONSTANT_POWER
-	pump_power_for_adding_medium = 0.8
+	# control_type_for_adding_medium = MCU_CMD_PARAMETERS.CONSTANT_POWER
+	control_type_for_adding_medium = MCU_CMD_PARAMETERS.CONSTANT_PRESSURE
+	pump_power_for_adding_medium_constant_power_mode = 0.8
 	pressure_loop_p_gain = 0
 	pressure_loop_i_gain = 0
+	pressure_setpoint_for_pumping_fluid_constant_pressure_mode = 3.6
 
 
 #########################################################

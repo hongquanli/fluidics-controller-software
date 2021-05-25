@@ -232,10 +232,12 @@ class Sequence():
 			# subsequence 1
 			control_type = DEFAULT_VALUES.control_type_for_adding_medium
 			if control_type == MCU_CMD_PARAMETERS.CONSTANT_POWER:
-				pump_power = DEFAULT_VALUES.pump_power_for_adding_medium # *** make this adjustable in the GUI ***
+				pump_power = DEFAULT_VALUES.pump_power_for_adding_medium_constant_power_mode # *** make this adjustable in the GUI ***
 				payload3 = pump_power*65535 # *** make this adjustable in the GUI ***
-				payload4 = flow_time_s*1000
 				# *** to do: add timeout limit ***
+			if control_type == MCU_CMD_PARAMETERS.CONSTANT_PRESSURE:
+				payload3 = ((DEFAULT_VALUES.pressure_setpoint_for_pumping_fluid_constant_pressure_mode)/PRESSURE_FULL_SCALE_PSI)*65535
+			payload4 = flow_time_s*1000
 			mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,fluidic_port,payload3,payload4)
 			mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
@@ -244,14 +246,16 @@ class Sequence():
 
 		# case 1, add medium, incubate for specified amount of time, remove medium
 		# use incubation_time_min to detect this kind of command
-		if incubation_time_min is not None and incubation_time_min >= 0:
+		if incubation_time_min is not None and incubation_time_min >= 0 and fluidic_port > 0:
 			# subsequence 1: add medium
 			control_type = DEFAULT_VALUES.control_type_for_adding_medium
 			if control_type == MCU_CMD_PARAMETERS.CONSTANT_POWER:
-				pump_power = DEFAULT_VALUES.pump_power_for_adding_medium # *** make this adjustable in the GUI ***
-				payload3 = pump_power*65535
-				payload4 = flow_time_s*1000
+				pump_power = DEFAULT_VALUES.pump_power_for_adding_medium_constant_power_mode # *** make this adjustable in the GUI ***
+				payload3 = pump_power*65535 # *** make this adjustable in the GUI ***
 				# *** to do: add timeout limit ***
+			if control_type == MCU_CMD_PARAMETERS.CONSTANT_PRESSURE:
+				payload3 = ((DEFAULT_VALUES.pressure_setpoint_for_pumping_fluid_constant_pressure_mode)/PRESSURE_FULL_SCALE_PSI)*65535
+			payload4 = flow_time_s*1000
 			mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,fluidic_port,payload3,payload4)
 			mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
@@ -260,7 +264,7 @@ class Sequence():
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.COMPUTER_STOPWATCH,microcontroller_command=None,stopwatch_time_remaining_seconds=incubation_time_min*60))
 
 			# subsequence 3: remove medium
-			mcu_command = Microcontroller_Command(CMD_SET.REMOVE_MEDIUM,payload3=DEFAULT_VALUES.aspiration_pump_power,payload4=DEFAULT_VALUES.vacuum_aspiration_time_s*1000)
+			mcu_command = Microcontroller_Command(CMD_SET.REMOVE_MEDIUM,payload3=int(65535*DEFAULT_VALUES.aspiration_pump_power),payload4=DEFAULT_VALUES.vacuum_aspiration_time_s*1000)
 			mcu_command.set_description(CMD_SET_DESCRIPTION.REMOVE_MEDIUM)
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 
@@ -380,6 +384,7 @@ class Microcontroller_Command():
 		self.description = description
 
 	def _format_command(self):
+		print('self.payload4 = ' + str(self.payload4))
 		cmd_packet = bytearray(MCU_CMD_LENGTH)
 		cmd_packet[0] = 0 # reserved byte for UID
 		cmd_packet[1] = 0 # reserved byte for UID

@@ -564,7 +564,7 @@ class ManualControlWidget(QWidget):
 
         self.btn_enable_manual_control = QPushButton('Enable Manual Control')
         self.btn_enable_manual_control.setCheckable(True)
-        self.btn_enable_manual_control.setChecked(False)
+        self.btn_enable_manual_control.setChecked(True)
         self.btn_enable_manual_control.setDefault(False)
 
         self.dropdown_selector_valve_position = QComboBox()
