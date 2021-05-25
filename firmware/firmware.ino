@@ -139,6 +139,12 @@ static const int SET_10MM_SOLENOID_VALVE = 11;
 static const int SET_SOLENOID_VALVE_B = 12;
 static const int SET_SOLENOID_VALVE_C = 13;
 static const int DISABLE_MANUAL_CONTROL = 20;
+static const int ENABLE_PRESSURE_CONTROL_LOOP = 30
+static const int SET_PRESSURE_CONTROL_SETPOINT_PSI = 31
+static const int SET_PRESSURE_CONTROL_LOOP_P_COEFFICIENT = 32
+static const int SET_PRESSURE_CONTROL_LOOP_I_COEFFICIENT = 33
+//static const int SET_ASPIRATION_PUMP_POWER = 40
+//static const int SET_ASPIRATION_TIME_MS = 41
 
 // command parameters
 // search for class MCU_CMD_PARAMETERS in _def.py
@@ -366,13 +372,18 @@ void loop() {
           if(payload1==1)
             manual_control_disabled_by_software = true;
           if(payload1==0)
+          {
             manual_control_disabled_by_software = false;
+            pressure_control_loop_enabled = false; // may be changed in the future (e.g. use the knob to set pressure instead of power, right now pressure is set from the GUI)
+          }
           command_execution_status = COMPLETED_WITHOUT_ERRORS;
           break;
           
         // remove medium
         case REMOVE_MEDIUM:
           manual_control_disabled_by_software = true;
+          pressure_control_loop_enabled = false;
+          digitalWrite(pin_valve_B1,LOW);
           set_vacuum_duration_ms = payload4;
           disc_pump_power = int((float(payload3)/65535)*1000);
           // disc_pump_power = DISC_PUMP_POWER_VACUUM;
@@ -464,11 +475,61 @@ void loop() {
           
         // set valve group B state
         case SET_SOLENOID_VALVE_B:
+          if(payload1==0)
+          {
+            digitalWrite(pin_valve_B1,LOW);
+            digitalWrite(pin_valve_B2,LOW);
+          }
+          if(payload1==1)
+          {
+            digitalWrite(pin_valve_B1,HIGH);
+            digitalWrite(pin_valve_B2,LOW);
+          }
+          if(payload1==2)
+          {
+            digitalWrite(pin_valve_B1,LOW);
+            digitalWrite(pin_valve_B2,HIGH);
+          }
+          if(payload1==3)
+          {
+            digitalWrite(pin_valve_B1,HIGH);
+            digitalWrite(pin_valve_B2,HIGH);
+          }
           command_execution_status = COMPLETED_WITHOUT_ERRORS;
           break;
           
         // set valve group C state
         case SET_SOLENOID_VALVE_C:
+          command_execution_status = COMPLETED_WITHOUT_ERRORS;
+          break;
+
+        // pressure control loop
+        case ENABLE_PRESSURE_CONTROL_LOOP:
+          if(payload1==1)
+          {
+            pressure_control_loop_enabled = true;
+            pressure_loop_integral_error = 0;
+          }
+          if(payload1==0)
+            pressure_control_loop_enabled = false;
+          command_execution_status = COMPLETED_WITHOUT_ERRORS;
+          break;
+
+        // pressure p coefficient
+        case SET_PRESSURE_CONTROL_LOOP_P_COEFFICIENT:
+          pressure_loop_p_coefficient = (float(payload4)/4294967296)*PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE;
+          command_execution_status = COMPLETED_WITHOUT_ERRORS;
+          break
+
+        // pressure i coefficient
+        case SET_PRESSURE_CONTROL_LOOP_I_COEFFICIENT:
+          pressure_loop_i_coefficient = (float(payload4)/4294967296)*PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE;
+          command_execution_status = COMPLETED_WITHOUT_ERRORS;
+          break;
+          
+        // pressure set point
+        case SET_PRESSURE_CONTROL_SETPOINT_PSI:
+          pressure_set_point = (float(payload3)/65536)*PRESSURE_FULL_SCALE_PSI;
           command_execution_status = COMPLETED_WITHOUT_ERRORS;
           break;
       }
