@@ -735,7 +735,7 @@ void loop() {
     // ramp up pump power
     case INTERNAL_PROGRAM_RAMP_UP_PRESSURE:
       time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000;
-      if(elapsed_millis_since_the_start_of_the_internal_program>=PRESSURE_RAMP_UP_TIME_S*1000 || (control_type == CONSTANT_PRESSURE && pressure_2 >= pressure_set_point)
+      if(elapsed_millis_since_the_start_of_the_internal_program>=PRESSURE_RAMP_UP_TIME_S*1000 || (control_type == CONSTANT_PRESSURE && pressure_2 >= pressure_set_point))
       {
         // enter the next phase
         // (1) open the valve between the selector valve and the chamber
