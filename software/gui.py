@@ -138,6 +138,9 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		# connection for the manual control
 		self.fluidController.signal_uncheck_manual_control_enabled.connect(self.manualControlWidget.uncheck_enable_manual_control_button)
 
+		# # connection for aspiration time
+		# self.manualControlWidget.signal_aspiration_time_s.connect(... # to finish
+
 		# transfer the layout to the central widget
 		self.centralWidget = QWidget()
 		self.centralWidget.setLayout(layout)

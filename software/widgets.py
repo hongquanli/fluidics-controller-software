@@ -548,6 +548,8 @@ class SettingsWidget(QWidget):
 class ManualControlWidget(QWidget):
 
     log_message = Signal(str)
+    signal_aspiration_time_s = Signal(float)
+    signal_aspiration_power = Signal(float)
 
     def __init__(self, fluidController, main=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -626,13 +628,13 @@ class ManualControlWidget(QWidget):
         self.entry_aspiration_pump_power.setSingleStep(0.01)
         self.entry_aspiration_pump_power.setValue(DEFAULT_VALUES.aspiration_pump_power)
 
-        self.entry_i_gain = QDoubleSpinBox()
-        self.entry_i_gain.setKeyboardTracking(False)
-        self.entry_i_gain.setMinimum(0)
-        self.entry_i_gain.setMaximum(PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE)
-        self.entry_i_gain.setDecimals(5)
-        self.entry_i_gain.setSingleStep(0.01)
-        self.entry_i_gain.setValue(DEFAULT_VALUES.pressure_loop_p_gain)
+        self.entry_aspiration_time_s = QDoubleSpinBox()
+        self.entry_aspiration_time_s.setKeyboardTracking(False)
+        self.entry_aspiration_time_s.setMinimum(0)
+        self.entry_aspiration_time_s.setMaximum(PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE)
+        self.entry_aspiration_time_s.setDecimals(5)
+        self.entry_aspiration_time_s.setSingleStep(0.01)
+        self.entry_aspiration_time_s.setValue(DEFAULT_VALUES.vacuum_aspiration_time_s)
 
         hbox0 = QHBoxLayout()
         tmp = QLabel('Enable Control Through the Physical Knob and Switch')
@@ -668,7 +670,7 @@ class ManualControlWidget(QWidget):
         hbox3.addStretch()
 
         hbox4 = QHBoxLayout()
-        tmp = QLabel('pressure loop   p gain')
+        tmp = QLabel('Pressure loop   p gain')
         tmp.setFixedWidth(130)
         hbox4.addWidget(tmp)
         hbox4.addWidget(self.entry_p_gain)
@@ -678,12 +680,23 @@ class ManualControlWidget(QWidget):
         hbox4.addWidget(self.entry_i_gain)
 
         hbox5 = QHBoxLayout()
-        tmp = QLabel('pressure set point (psi)')
+        tmp = QLabel('Pressure set point (psi)')
         tmp.setFixedWidth(140)
         hbox5.addWidget(tmp)
         self.entry_pressure_setpoint_psi.setFixedWidth(60)
         hbox5.addWidget(self.entry_pressure_setpoint_psi)
         hbox5.addWidget(self.btn_enable_pressure_loop)
+
+        hbox6 = QHBoxLayout()
+        tmp = QLabel('Aspiration settings   Pump Power (0-1)')
+        tmp.setFixedWidth(200)
+        hbox6.addWidget(tmp)
+        hbox6.addWidget(self.entry_aspiration_pump_power)
+        tmp = QLabel('Duration (seconds)')
+        tmp.setFixedWidth(120)
+        hbox6.addWidget(tmp)
+        hbox6.addWidget(self.entry_aspiration_time_s)
+        hbox6.addStretch()
 
         framedHbox0 = frameWidget(hbox0)
         framedHbox1 = frameWidget(hbox1)
@@ -694,6 +707,7 @@ class ManualControlWidget(QWidget):
         hlayout = QHBoxLayout()
         hlayout.addWidget(framedHbox4)
         hlayout.addWidget(framedHbox5)
+        framedHbox6 = frameWidget(hbox6)
         
         vbox = QVBoxLayout()
         vbox.addWidget(framedHbox0)
@@ -703,6 +717,7 @@ class ManualControlWidget(QWidget):
         # vbox.addWidget(framedHbox4)
         # vbox.addWidget(framedHbox5)
         vbox.addLayout(hlayout)
+        # vbox.addWidget(framedHbox6)
         vbox.addStretch()
 
         self.setLayout(vbox)
@@ -765,6 +780,12 @@ class ManualControlWidget(QWidget):
         self.btn_enable_manual_control.setChecked(False)
         self.btn_connect_selector_valve_to_chamber.setChecked(False)
         self.btn_enable_pressure_loop.setChecked(False)
+
+    def set_aspiration_time(self,value):
+        self.signal_aspiration_time_s.emit(value)
+
+    def set_aspiration_power(self,value):
+        self.signal_aspiration_power.emit(value)
 
 class ChillerWidget(QFrame):
 
