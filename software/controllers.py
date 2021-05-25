@@ -384,7 +384,6 @@ class Microcontroller_Command():
 		self.description = description
 
 	def _format_command(self):
-		print('self.payload4 = ' + str(self.payload4))
 		cmd_packet = bytearray(MCU_CMD_LENGTH)
 		cmd_packet[0] = 0 # reserved byte for UID
 		cmd_packet[1] = 0 # reserved byte for UID
