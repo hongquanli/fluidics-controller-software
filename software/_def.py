@@ -53,6 +53,7 @@ class CMD_SET_DESCRIPTION:
 	SET_10MM_SOLENOID_VALVE = '' # the description is manually added (with parameters)
 	SET_SOLENOID_VALVE_B = '' # the description is manually added (with parameters)
 	SET_SOLENOID_VALVE_C = '' # the description is manually added (with parameters)
+	ENABLE_MANUAL_CONTROL = ''
 
 class MCU_CMD_PARAMETERS:
 	CONSTANT_POWER = 0
@@ -75,7 +76,7 @@ class MCU_CONSTANTS:
 
 class DEFAULT_VALUES:
 	aspiration_pump_power = int(0.2*65535)
-	vacuum_aspiration_time_s = 10
+	vacuum_aspiration_time_s = 5
 	aspiration_timeout_limit_s = 60 # to replace vacuum_aspiration_time_s once bubble sensor is in place
 
 

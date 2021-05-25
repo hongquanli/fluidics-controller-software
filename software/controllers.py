@@ -211,6 +211,8 @@ class Sequence():
 
 		self.is_single_round_sequence = False
 
+		self.disable_manual_control = False
+
 		# populate the queue of subsequences, depending on the tyepes of the sequence
 		# case 1: strip, wash (post-strip), ligate, wash (post-ligate), stain with DAPI
 		# case 2: add imaging buffer
@@ -223,6 +225,7 @@ class Sequence():
 			mcu_command.set_description(CMD_SET_DESCRIPTION.REMOVE_MEDIUM)
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			self.is_single_round_sequence = True
+			self.disable_manual_control = True
 
 		# case 2, add imaging buffer
 		if sequence_name == 'Add Imaging Buffer':
@@ -237,10 +240,11 @@ class Sequence():
 			mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			self.is_single_round_sequence = True
+			self.disable_manual_control = True
 
 		# case 1, add medium, incubate for specified amount of time, remove medium
 		# use incubation_time_min to detect this kind of command
-		if incubation_time_min is not None and incubation_time_min > 0:
+		if incubation_time_min is not None and incubation_time_min >= 0:
 			# subsequence 1: add medium
 			control_type = MCU_CMD_PARAMETERS.CONSTANT_POWER # *** start with constant power ***
 			if control_type == MCU_CMD_PARAMETERS.CONSTANT_POWER:
@@ -261,6 +265,7 @@ class Sequence():
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 
 			self.is_single_round_sequence = False # for message display only, no other essence
+			self.disable_manual_control = True
 
 		# manual control sequences
 		# case 10
@@ -276,6 +281,18 @@ class Sequence():
 				mcu_command.set_description('Turn Off All 10 mm Valves')
 			else:
 				mcu_command.set_description('Turn On 10 mm valve ' + str(fluidic_port))
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			self.is_single_round_sequence = True
+
+		if sequence_name == 'Enable Manual Control':
+			mcu_command = Microcontroller_Command(CMD_SET.DISABLE_MANUAL_CONTROL,payload1=0)
+			mcu_command.set_description('Enable Manual Control (the hardware enable button still needs to be set)')
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			self.is_single_round_sequence = True
+
+		if sequence_name == 'Disable Manual Control':
+			mcu_command = Microcontroller_Command(CMD_SET.DISABLE_MANUAL_CONTROL,payload1=1)
+			mcu_command.set_description('Disable Manual Control')
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			self.is_single_round_sequence = True
 
@@ -342,6 +359,8 @@ class FluidController(QObject):
 	signal_selector_valve_position = Signal(int)
 	signal_pressure = Signal(str)
 	signal_vacuum = Signal(str)
+
+	signal_uncheck_manual_control_enabled = Signal()
 
 	def __init__(self,microcontroller):
 		QObject.__init__(self)
@@ -625,6 +644,8 @@ class FluidController(QObject):
 		print('adding sequence to the queue ' + sequence_name + ' - flow time: ' + str(flow_time_s) + ' s, incubation time: ' + str(incubation_time_min) + ' s [negative number means no removal]')
 		sequence_to_add = Sequence(sequence_name,fluidic_port,flow_time_s,incubation_time_min,pressure_setting,round_)
 		self.queue_sequence.put(sequence_to_add)
+		if sequence_to_add.disable_manual_control == True:
+			self.signal_uncheck_manual_control_enabled.emit()
 			
 	def request_abort_sequences(self):
 		self.abort_sequences_requested = True

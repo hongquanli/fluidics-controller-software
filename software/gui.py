@@ -25,8 +25,8 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		if(is_simulation):
 			self.teensy41 = controllers.Microcontroller_Simulation()
 		else:
-			# serial_number = '8219530'
-			serial_number = '9178980'
+			serial_number = '8219530'
+			# serial_number = '9178980'
 			self.teensy41 = controllers.Microcontroller(serial_number)
 		self.fluidController = controllers.FluidController(self.teensy41)
 		self.logger = controllers.Logger()
@@ -135,7 +135,9 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		self.fluidController.signal_pressure.connect(self.microcontrollerStateDisplayWidget.label_pressure.setText)
 		self.fluidController.signal_vacuum.connect(self.microcontrollerStateDisplayWidget.label_vacuum.setText)
 
-		
+		# connection for the manual control
+		self.fluidController.signal_uncheck_manual_control_enabled.connect(self.manualControlWidget.uncheck_enable_manual_control_button)
+
 		# transfer the layout to the central widget
 		self.centralWidget = QWidget()
 		self.centralWidget.setLayout(layout)

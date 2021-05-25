@@ -545,6 +545,11 @@ class ManualControlWidget(QWidget):
         # self.entry_selector_valve_position.setMaximum(24)
         # self.entry_selector_valve_position.setFixedWidth(40)
 
+        self.btn_enable_manual_control = QPushButton('Enable Manual Control')
+        self.btn_enable_manual_control.setCheckable(True)
+        self.btn_enable_manual_control.setChecked(False)
+        self.btn_enable_manual_control.setDefault(False)
+
         self.dropdown_selector_valve_position = QComboBox()
         for i in range(24):
             self.dropdown_selector_valve_position.addItem(str(i+1))
@@ -559,6 +564,17 @@ class ManualControlWidget(QWidget):
         for i in range(17):
             self.dropdown_10mm_solenoid_valve_selection.addItem(str(i))
         self.dropdown_10mm_solenoid_valve_selection.setFixedWidth(70)
+
+        hbox0 = QHBoxLayout()
+        tmp = QLabel('Enable Manual Control (the hardware button also needs to be set)')
+        hbox0.addWidget(tmp)
+        hbox0.addWidget(self.btn_enable_manual_control)
+        hbox0.addStretch()
+
+        # tmp.setFixedWidth(190)
+        # hbox0.addWidget(tmp)
+        # hbox0.addWidget(self.dropdown_selector_valve_position)
+        # hbox0.addStretch()
 
         hbox1 = QHBoxLayout()
         tmp = QLabel('Set Selector Valve Position To')
@@ -575,10 +591,12 @@ class ManualControlWidget(QWidget):
         hbox2.addWidget(QLabel('(select 1-16 to turn on one of the valves, enter 0 to turn off all the valves)'))
         hbox2.addStretch()
 
+        framedHbox0 = frameWidget(hbox0)
         framedHbox1 = frameWidget(hbox1)
         framedHbox2 = frameWidget(hbox2)
 
         vbox = QVBoxLayout()
+        vbox.addWidget(framedHbox0)
         vbox.addWidget(framedHbox1)
         vbox.addWidget(framedHbox2)
         vbox.addStretch()
@@ -587,6 +605,7 @@ class ManualControlWidget(QWidget):
 
         self.dropdown_selector_valve_position.currentTextChanged.connect(self.update_selector_valve)
         self.dropdown_10mm_solenoid_valve_selection.currentTextChanged.connect(self.update_10mm_solenoid_valves)
+        self.btn_enable_manual_control.clicked.connect(self.enable_manual_control)
 
     def update_selector_valve(self,pos_str):
         self.fluidController.add_sequence('Set Selector Valve Position',int(pos_str))
@@ -595,6 +614,17 @@ class ManualControlWidget(QWidget):
     def update_10mm_solenoid_valves(self,pos_str):
         self.fluidController.add_sequence('Set 10 mm Valve State',int(pos_str))
         self.fluidController.start_sequence_execution()
+
+    def enable_manual_control(self,pressed):
+        if pressed :
+            self.fluidController.add_sequence('Enable Manual Control')
+            self.fluidController.start_sequence_execution()
+        else:
+            self.fluidController.add_sequence('Disable Manual Control')
+            self.fluidController.start_sequence_execution()
+
+    def uncheck_enable_manual_control_button(self):
+        self.btn_enable_manual_control.setChecked(False)
 
 class ChillerWidget(QFrame):
 
