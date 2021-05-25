@@ -527,6 +527,23 @@ class ManualFlushWidget(QFrame):
         QApplication.processEvents()
         self.fluidController.bleach(bypass,volume_ul,flowrate_ul_per_s)
 
+'''
+class SettingsWidget(QWidget):
+
+    log_message = Signal(str)
+
+    def __init__(self, fluidController, main=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fluidController = fluidController
+        self.add_components()
+
+    def add_components(self):
+
+        pass
+
+        # setKeyboardTracking(False)
+'''
+
 
 class ManualControlWidget(QWidget):
 
@@ -565,8 +582,60 @@ class ManualControlWidget(QWidget):
             self.dropdown_10mm_solenoid_valve_selection.addItem(str(i))
         self.dropdown_10mm_solenoid_valve_selection.setFixedWidth(70)
 
+        self.btn_connect_selector_valve_to_chamber = QPushButton('Connect Selector Valve to Chamber')
+        self.btn_connect_selector_valve_to_chamber.setCheckable(True)
+        self.btn_connect_selector_valve_to_chamber.setChecked(False)
+        self.btn_connect_selector_valve_to_chamber.setDefault(False)
+
+        # pressure loop settings
+        self.entry_p_gain = QDoubleSpinBox()
+        self.entry_p_gain.setKeyboardTracking(False)
+        self.entry_p_gain.setMinimum(0)
+        self.entry_p_gain.setMaximum(PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE)
+        self.entry_p_gain.setDecimals(5)
+        self.entry_p_gain.setSingleStep(0.01)
+        self.entry_p_gain.setValue(DEFAULT_VALUES.pressure_loop_p_gain)
+
+        self.entry_i_gain = QDoubleSpinBox()
+        self.entry_i_gain.setKeyboardTracking(False)
+        self.entry_i_gain.setMinimum(0)
+        self.entry_i_gain.setMaximum(PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE)
+        self.entry_i_gain.setDecimals(5)
+        self.entry_i_gain.setSingleStep(0.01)
+        self.entry_i_gain.setValue(DEFAULT_VALUES.pressure_loop_p_gain)
+
+        self.entry_pressure_setpoint_psi = QDoubleSpinBox()
+        self.entry_pressure_setpoint_psi.setKeyboardTracking(False)
+        self.entry_pressure_setpoint_psi.setMinimum(0)
+        self.entry_pressure_setpoint_psi.setMaximum(5)
+        self.entry_pressure_setpoint_psi.setDecimals(2)
+        self.entry_pressure_setpoint_psi.setSingleStep(0.01)
+        self.entry_pressure_setpoint_psi.setValue(0)
+
+        self.btn_enable_pressure_loop = QPushButton('Enable Pressure Loop')
+        self.btn_enable_pressure_loop.setCheckable(True)
+        self.btn_enable_pressure_loop.setChecked(False)
+        self.btn_enable_pressure_loop.setDefault(False)
+
+        # vaccum settings
+        self.entry_aspiration_pump_power = QDoubleSpinBox()
+        self.entry_aspiration_pump_power.setKeyboardTracking(False)
+        self.entry_aspiration_pump_power.setMinimum(0)
+        self.entry_aspiration_pump_power.setMaximum(1)
+        self.entry_aspiration_pump_power.setDecimals(3)
+        self.entry_aspiration_pump_power.setSingleStep(0.01)
+        self.entry_aspiration_pump_power.setValue(DEFAULT_VALUES.aspiration_pump_power)
+
+        self.entry_i_gain = QDoubleSpinBox()
+        self.entry_i_gain.setKeyboardTracking(False)
+        self.entry_i_gain.setMinimum(0)
+        self.entry_i_gain.setMaximum(PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE)
+        self.entry_i_gain.setDecimals(5)
+        self.entry_i_gain.setSingleStep(0.01)
+        self.entry_i_gain.setValue(DEFAULT_VALUES.pressure_loop_p_gain)
+
         hbox0 = QHBoxLayout()
-        tmp = QLabel('Enable Manual Control (the hardware button also needs to be set)')
+        tmp = QLabel('Enable Control Through the Physical Knob and Switch')
         hbox0.addWidget(tmp)
         hbox0.addWidget(self.btn_enable_manual_control)
         hbox0.addStretch()
@@ -591,14 +660,49 @@ class ManualControlWidget(QWidget):
         hbox2.addWidget(QLabel('(select 1-16 to turn on one of the valves, enter 0 to turn off all the valves)'))
         hbox2.addStretch()
 
+        hbox3 = QHBoxLayout()
+        tmp = QLabel('Isolation Valve Control')
+        # tmp.setFixedWidth(190)
+        hbox3.addWidget(tmp)
+        hbox3.addWidget(self.btn_connect_selector_valve_to_chamber)
+        hbox3.addStretch()
+
+        hbox4 = QHBoxLayout()
+        tmp = QLabel('pressure loop   p gain')
+        tmp.setFixedWidth(130)
+        hbox4.addWidget(tmp)
+        hbox4.addWidget(self.entry_p_gain)
+        tmp = QLabel('i gain')
+        tmp.setFixedWidth(40)
+        hbox4.addWidget(tmp)
+        hbox4.addWidget(self.entry_i_gain)
+
+        hbox5 = QHBoxLayout()
+        tmp = QLabel('pressure set point (psi)')
+        tmp.setFixedWidth(140)
+        hbox5.addWidget(tmp)
+        self.entry_pressure_setpoint_psi.setFixedWidth(60)
+        hbox5.addWidget(self.entry_pressure_setpoint_psi)
+        hbox5.addWidget(self.btn_enable_pressure_loop)
+
         framedHbox0 = frameWidget(hbox0)
         framedHbox1 = frameWidget(hbox1)
         framedHbox2 = frameWidget(hbox2)
-
+        framedHbox3 = frameWidget(hbox3)
+        framedHbox4 = frameWidget(hbox4)
+        framedHbox5 = frameWidget(hbox5)
+        hlayout = QHBoxLayout()
+        hlayout.addWidget(framedHbox4)
+        hlayout.addWidget(framedHbox5)
+        
         vbox = QVBoxLayout()
         vbox.addWidget(framedHbox0)
         vbox.addWidget(framedHbox1)
         vbox.addWidget(framedHbox2)
+        vbox.addWidget(framedHbox3)
+        # vbox.addWidget(framedHbox4)
+        # vbox.addWidget(framedHbox5)
+        vbox.addLayout(hlayout)
         vbox.addStretch()
 
         self.setLayout(vbox)
@@ -606,6 +710,12 @@ class ManualControlWidget(QWidget):
         self.dropdown_selector_valve_position.currentTextChanged.connect(self.update_selector_valve)
         self.dropdown_10mm_solenoid_valve_selection.currentTextChanged.connect(self.update_10mm_solenoid_valves)
         self.btn_enable_manual_control.clicked.connect(self.enable_manual_control)
+        self.btn_connect_selector_valve_to_chamber.clicked.connect(self.update_isolation_valve)
+
+        self.entry_pressure_setpoint_psi.valueChanged.connect(self.set_pressure_control_setpoint)
+        self.entry_p_gain.valueChanged.connect(self.set_pressure_loop_p_coefficient)
+        self.entry_i_gain.valueChanged.connect(self.set_pressure_loop_i_coefficient)
+        self.btn_enable_pressure_loop.clicked.connect(self.enable_pressure_loop)
 
     def update_selector_valve(self,pos_str):
         self.fluidController.add_sequence('Set Selector Valve Position',int(pos_str))
@@ -615,6 +725,14 @@ class ManualControlWidget(QWidget):
         self.fluidController.add_sequence('Set 10 mm Valve State',int(pos_str))
         self.fluidController.start_sequence_execution()
 
+    def update_isolation_valve(self,pressed):
+        if pressed:
+            self.fluidController.add_sequence('Connect Selector Valve and Chamber')
+            self.fluidController.start_sequence_execution()
+        else:
+            self.fluidController.add_sequence('Disconnect Selector Valve and Chamber')
+            self.fluidController.start_sequence_execution()
+
     def enable_manual_control(self,pressed):
         if pressed :
             self.fluidController.add_sequence('Enable Manual Control')
@@ -623,8 +741,30 @@ class ManualControlWidget(QWidget):
             self.fluidController.add_sequence('Disable Manual Control')
             self.fluidController.start_sequence_execution()
 
+    def enable_pressure_loop(self,pressed):
+        if pressed :
+            self.fluidController.add_sequence('Enable Pressure Control Loop')
+            self.fluidController.start_sequence_execution()
+        else:
+            self.fluidController.add_sequence('Disable Pressure Control Loop')
+            self.fluidController.start_sequence_execution()
+
+    def set_pressure_control_setpoint(self,value):
+        self.fluidController.add_sequence('Set Pressure Control Setpoint (psi)',pressure_setting=value)
+        self.fluidController.start_sequence_execution()
+
+    def set_pressure_loop_p_coefficient(self,value):
+        self.fluidController.add_sequence('Set Pressure Loop P Coefficient',pressure_setting=value)
+        self.fluidController.start_sequence_execution()
+
+    def set_pressure_loop_i_coefficient(self,value):
+        self.fluidController.add_sequence('Set Pressure Loop I Coefficient',pressure_setting=value)
+        self.fluidController.start_sequence_execution()
+
     def uncheck_enable_manual_control_button(self):
         self.btn_enable_manual_control.setChecked(False)
+        self.btn_connect_selector_valve_to_chamber.setChecked(False)
+        self.btn_enable_pressure_loop.setChecked(False)
 
 class ChillerWidget(QFrame):
 

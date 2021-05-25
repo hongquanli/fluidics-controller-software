@@ -1,8 +1,10 @@
 Ports_Name = ['1','2','3','4','Air (5)','DAPI (6)','Nissl (7)','Wash Buffer (8)','Imaging Buffer (9)','Strip Buffer (10)']
 Ports_Number = 	[1,2,3,4,5,6,7,8,9,10]
 
-INCUBATION_TIME_MAX_MIN = 3600*3/60
-FLOW_TIME_MAX = 60
+INCUBATION_TIME_MAX_MIN = 60*12
+FLOW_TIME_MAX = 60 # in seconds
+PRESSURE_FULL_SCALE_PSI = 5
+PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE = 100
 
 SEQUENCE_ATTRIBUTES_KEYS = ['Sequence','Fluidic Port','Flow Time (s)','Incubation Time (min)','Repeat','Include']
 SEQUENCE_NAME = ['Strip','Wash (Post-Strip)','Ligate','Stain with DAPI','Wash (Post-Ligation)','Add Imaging Buffer','Remove Medium']
@@ -44,6 +46,12 @@ class CMD_SET:
 	SET_SOLENOID_VALVE_B = 12
 	SET_SOLENOID_VALVE_C = 13
 	DISABLE_MANUAL_CONTROL = 20
+	ENABLE_PRESSURE_CONTROL_LOOP = 30
+	SET_PRESSURE_CONTROL_SETPOINT_PSI = 31
+	SET_PRESSURE_CONTROL_LOOP_P_COEFFICIENT = 32
+	SET_PRESSURE_CONTROL_LOOP_I_COEFFICIENT = 33
+	# SET_ASPIRATION_PUMP_POWER = 40
+	# SET_ASPIRATION_TIME_MS = 41
 
 class CMD_SET_DESCRIPTION:
 	CLEAR = 'Clear'
@@ -75,9 +83,13 @@ class MCU_CONSTANTS:
 	_p_max = 30; # psi
 
 class DEFAULT_VALUES:
-	aspiration_pump_power = int(0.2*65535)
+	aspiration_pump_power = 0.25
 	vacuum_aspiration_time_s = 5
 	aspiration_timeout_limit_s = 60 # to replace vacuum_aspiration_time_s once bubble sensor is in place
+	control_type_for_adding_medium = MCU_CMD_PARAMETERS.CONSTANT_POWER
+	pump_power_for_adding_medium = 0.8
+	pressure_loop_p_gain = 0
+	pressure_loop_i_gain = 0
 
 
 #########################################################

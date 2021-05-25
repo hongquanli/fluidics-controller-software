@@ -221,7 +221,7 @@ class Sequence():
 		# case 3, remove medium
 		if sequence_name == 'Remove Medium':
 			# subsequence 1
-			mcu_command = Microcontroller_Command(CMD_SET.REMOVE_MEDIUM,payload3=DEFAULT_VALUES.aspiration_pump_power,payload4=DEFAULT_VALUES.vacuum_aspiration_time_s*1000)
+			mcu_command = Microcontroller_Command(CMD_SET.REMOVE_MEDIUM,payload3=int(65535*DEFAULT_VALUES.aspiration_pump_power),payload4=DEFAULT_VALUES.vacuum_aspiration_time_s*1000)
 			mcu_command.set_description(CMD_SET_DESCRIPTION.REMOVE_MEDIUM)
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			self.is_single_round_sequence = True
@@ -230,9 +230,9 @@ class Sequence():
 		# case 2, add imaging buffer
 		if sequence_name == 'Add Imaging Buffer':
 			# subsequence 1
-			control_type = MCU_CMD_PARAMETERS.CONSTANT_POWER # *** start with constant power ***
+			control_type = DEFAULT_VALUES.control_type_for_adding_medium
 			if control_type == MCU_CMD_PARAMETERS.CONSTANT_POWER:
-				pump_power = 0.8 # *** make this adjustable in the GUI ***
+				pump_power = DEFAULT_VALUES.pump_power_for_adding_medium # *** make this adjustable in the GUI ***
 				payload3 = pump_power*65535 # *** make this adjustable in the GUI ***
 				payload4 = flow_time_s*1000
 				# *** to do: add timeout limit ***
@@ -246,10 +246,10 @@ class Sequence():
 		# use incubation_time_min to detect this kind of command
 		if incubation_time_min is not None and incubation_time_min >= 0:
 			# subsequence 1: add medium
-			control_type = MCU_CMD_PARAMETERS.CONSTANT_POWER # *** start with constant power ***
+			control_type = DEFAULT_VALUES.control_type_for_adding_medium
 			if control_type == MCU_CMD_PARAMETERS.CONSTANT_POWER:
-				pump_power = 0.8 # *** make this adjustable in the GUI ***
-				payload3 = pump_power*65535 # *** make this adjustable in the GUI ***
+				pump_power = DEFAULT_VALUES.pump_power_for_adding_medium # *** make this adjustable in the GUI ***
+				payload3 = pump_power*65535
 				payload4 = flow_time_s*1000
 				# *** to do: add timeout limit ***
 			mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,fluidic_port,payload3,payload4)
@@ -295,6 +295,60 @@ class Sequence():
 			mcu_command.set_description('Disable Manual Control')
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			self.is_single_round_sequence = True
+
+		if sequence_name == 'Connect Selector Valve and Chamber':
+			mcu_command = Microcontroller_Command(CMD_SET.SET_SOLENOID_VALVE_B,payload1=1)
+			mcu_command.set_description('Connect Selector Valve and Chamber')
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			self.is_single_round_sequence = True
+
+		if sequence_name == 'Disconnect Selector Valve and Chamber':
+			mcu_command = Microcontroller_Command(CMD_SET.SET_SOLENOID_VALVE_B,payload1=0)
+			mcu_command.set_description('Disconnect Selector Valve and Chamber')
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			self.is_single_round_sequence = True
+
+		if sequence_name == 'Enable Pressure Control Loop':
+			mcu_command = Microcontroller_Command(CMD_SET.ENABLE_PRESSURE_CONTROL_LOOP,payload1=1)
+			mcu_command.set_description('Enable Pressure Control Loop')
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			self.is_single_round_sequence = True
+
+		if sequence_name == 'Disable Pressure Control Loop':
+			mcu_command = Microcontroller_Command(CMD_SET.ENABLE_PRESSURE_CONTROL_LOOP,payload1=0)
+			mcu_command.set_description('Disable Pressure Control Loop')
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			self.is_single_round_sequence = True
+
+		if sequence_name == 'Set Pressure Control Setpoint (psi)':
+			mcu_command = Microcontroller_Command(CMD_SET.SET_PRESSURE_CONTROL_SETPOINT_PSI,payload3=(pressure_setting/PRESSURE_FULL_SCALE_PSI)*65536)
+			mcu_command.set_description('Set Pressure Control Setpoint to ' + str(pressure_setting) + ' psi')
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			self.is_single_round_sequence = True
+
+		if sequence_name == 'Set Pressure Loop P Coefficient':
+			mcu_command = Microcontroller_Command(CMD_SET.SET_PRESSURE_CONTROL_LOOP_P_COEFFICIENT,payload4=(pressure_setting/PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE)*4294967296)
+			mcu_command.set_description('Set Pressure Loop P Coefficient to ' + str(pressure_setting))
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			self.is_single_round_sequence = True
+
+		if sequence_name == 'Set Pressure Loop I Coefficient':
+			mcu_command = Microcontroller_Command(CMD_SET.SET_PRESSURE_CONTROL_LOOP_I_COEFFICIENT,payload4=(pressure_setting/PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE)*4294967296)
+			mcu_command.set_description('Set Pressure Loop I Coefficient to ' + str(pressure_setting))
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			self.is_single_round_sequence = True
+
+		# if sequence_name == 'Set Aspiration Pump Power':
+		# 	mcu_command = Microcontroller_Command(CMD_SET.SET_ASPIRATION_PUMP_POWER,payload3=pressure_setting*65535) # "reuse pressure_setting" for pump power (0-1)
+		# 	mcu_command.set_description('Set Pressure Loop I Coefficient to ' + str(pressure_setting))
+		# 	self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+		# 	self.is_single_round_sequence = True
+
+		# if sequence_name == 'Set Aspiration Time':
+		# 	mcu_command = Microcontroller_Command(CMD_SET.SET_ASPIRATION_TIME_MS,payload4=flow_time_s*1000)
+		# 	mcu_command.set_description('Set Pressure Loop I Coefficient to ' + str(pressure_setting))
+		# 	self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+		# 	self.is_single_round_sequence = True
 
 class Subsequence():
 	def __init__(self,subsequence_type=None,microcontroller_command=None,stopwatch_time_remaining_seconds=None):
