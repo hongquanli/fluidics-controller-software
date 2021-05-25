@@ -173,13 +173,13 @@ class SequenceWidget(QFrame):
         self.sequences['Remove Medium'].attributes['Flow Time (s)'].setValue(-1)
         # self.sequences['Remove Medium'].attributes['Flow Time (s)'].setMinimum(0)       # *** for now, use fixed aspiration time instead of bubble sensor (waiting for the sensor with the right tubing ID to arrive) ***
         # self.sequences['Remove Medium'].attributes['Flow Time (s)'].setValue(20)        # *** for now, use fixed aspiration time instead of bubble sensor (waiting for the sensor with the right tubing ID to arrive) ***
-        self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setMinimum(-1)
-        self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setValue(-1)
+        # self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setMinimum(-1)
+        # self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setValue(-1)
 
         self.sequences['Add Imaging Buffer'].attributes['Incubation Time (min)'].setEnabled(False)
         self.sequences['Remove Medium'].attributes['Flow Time (s)'].setEnabled(False) 
         # self.sequences['Remove Medium'].attributes['Flow Time (s)'].setEnabled(True)    # *** for now, use fixed aspiration time instead of bubble sensor (waiting for the sensor with the right tubing ID to arrive) ***
-        self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setEnabled(False)
+        # self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setEnabled(False)
         self.sequences['Ligate'].attributes['Repeat'].setEnabled(False)
         self.sequences['Add Imaging Buffer'].attributes['Repeat'].setEnabled(False)
         self.sequences['Remove Medium'].attributes['Repeat'].setEnabled(False)
