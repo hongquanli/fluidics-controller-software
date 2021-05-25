@@ -683,6 +683,8 @@ void loop() {
       }
       // to add - condition for switching to the next phase when pressure reaches the setpoint
       break;
+
+    // pump fluid
     case INTERNAL_PROGRAM_PUMP_FLUID:
       time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000;
       if(elapsed_millis_since_the_start_of_the_internal_program>=set_flow_time_ms)
@@ -716,7 +718,9 @@ void loop() {
         disc_pump_power = PUMP_POWER_FOR_EMPTYING_THE_FLUIDIC_LINE*1000;
         set_disc_pump_power(disc_pump_power);
         disc_pump_enabled = true;
-        set_disc_pump_enabled(disc_pump_enabled);       
+        set_disc_pump_enabled(disc_pump_enabled);  
+        // (5.5) open the valve between the selector valve and the chamber
+        digitalWrite(pin_valve_B1,HIGH);
         // (6) reset the timer and go to the next phase
         internal_program = INTERNAL_PROGRAM_EMPTY_FLUIDIC_LINE;
         elapsed_millis_since_the_start_of_the_internal_program = 0;
@@ -726,12 +730,19 @@ void loop() {
       time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000;
       if(elapsed_millis_since_the_start_of_the_internal_program>=1000*DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S)
       {
+        // stop the disc pump
+        disc_pump_power = 0;
+        set_disc_pump_power(disc_pump_power);
+        disc_pump_enabled = false;
+        set_disc_pump_enabled(disc_pump_enabled); 
         // turn off the solenoid valve
         NXP33996_clear_all();
         NXP33996_update();
         internal_program = INTERNAL_PROGRAM_IDLE;
         command_execution_status = COMPLETED_WITHOUT_ERRORS;
         time_elapsed_s = 0;
+        // close the valve between the selector valve and the chamber
+        digitalWrite(pin_valve_B1,LOW);
       }
       break;
    }
