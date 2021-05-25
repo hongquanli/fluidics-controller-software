@@ -3,7 +3,7 @@
 
 //#define DEBUG_WITH_SERIAL true
 #define DEBUG_WITH_SERIAL false
-#define SELECTOR_VALVE_PRESENT false
+#define SELECTOR_VALVE_PRESENT true
 #define FLOW_SENSOR_2_PRESENT false
 
 static const int pin_manual_control_enable = 24;
@@ -196,7 +196,7 @@ static const int DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 5;
 static const float PUMP_POWER_FOR_EMPTYING_THE_FLUIDIC_LINE = 0.8;
 
 // fludic port setting
-static const int PORT_AIR = 16;
+static const int PORT_AIR = 10;
 
 /*************************************************************
  ************************** SETUP() **************************
@@ -360,6 +360,7 @@ void loop() {
           current_command_uid = 0;
           command_execution_status = COMPLETED_WITHOUT_ERRORS;
           break;
+          
         // diable/enable manual control
         case DISABLE_MANUAL_CONTROL:
           if(payload1==1)
@@ -371,6 +372,7 @@ void loop() {
           
         // remove medium
         case REMOVE_MEDIUM:
+          manual_control_disabled_by_software = true;
           set_vacuum_duration_ms = payload4;
           disc_pump_power = int((float(payload3)/65535)*1000);
           // disc_pump_power = DISC_PUMP_POWER_VACUUM;
@@ -385,6 +387,7 @@ void loop() {
           
         // add medium
         case ADD_MEDIUM:
+          manual_control_disabled_by_software = true;
           command_execution_status = IN_PROGRESS;
           control_type = payload1;
           fluidic_port = payload2;
@@ -701,12 +704,18 @@ void loop() {
         NXP33996_clear_all();
         NXP33996_update();
         // (4) switch to the air path
+        selector_valve_position_setValue = PORT_AIR;
+        set_selector_valve_position_blocking(selector_valve_position_setValue);
+        check_selector_valve_position();
+        uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
+          // to add: convert the string to numeric value and compare it with selector_valve_position_setValue
+          // to add: error handling
         NXP33996_turn_on(PORT_AIR-1);
         NXP33996_update();
         // (5) start the pump
         disc_pump_power = PUMP_POWER_FOR_EMPTYING_THE_FLUIDIC_LINE*1000;
         set_disc_pump_power(disc_pump_power);
-        disc_pump_enabled = false;
+        disc_pump_enabled = true;
         set_disc_pump_enabled(disc_pump_enabled);       
         // (6) reset the timer and go to the next phase
         internal_program = INTERNAL_PROGRAM_EMPTY_FLUIDIC_LINE;
@@ -717,6 +726,9 @@ void loop() {
       time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000;
       if(elapsed_millis_since_the_start_of_the_internal_program>=1000*DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S)
       {
+        // turn off the solenoid valve
+        NXP33996_clear_all();
+        NXP33996_update();
         internal_program = INTERNAL_PROGRAM_IDLE;
         command_execution_status = COMPLETED_WITHOUT_ERRORS;
         time_elapsed_s = 0;
