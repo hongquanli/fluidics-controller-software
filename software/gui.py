@@ -155,9 +155,11 @@ class STARmapAutomationControllerGUI(QMainWindow):
 
 	def disableManualControlWidget(self):
 		self.tabWidget.setTabEnabled(1,False)
+		self.preUseCheckWidget.setEnabled(False)
 
 	def enableManualControlWidget(self):
 		self.tabWidget.setTabEnabled(1,True)
+		self.preUseCheckWidget.setEnabled(True)
 
 	def update_stopwatch_display(self,text):
 		if 'stop watch remaining time' in self.logWidget.item(self.logWidget.count()-1).text():
