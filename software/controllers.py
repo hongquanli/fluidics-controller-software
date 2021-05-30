@@ -56,6 +56,7 @@ class TriggerController(QObject):
 
 	triggerReceived = Signal()
 	log_message = Signal(str)
+	signal_log_highlight_current_item = Signal()
 
 	def __init__(self):
 		QObject.__init__(self)
@@ -69,6 +70,8 @@ class TriggerController(QObject):
 	def send_trigger(self):
 		self.microcontroller.send_trigger()
 		self.log_message.emit(utils.timestamp() + 'Microscope Trigger Sent')
+		self.signal_clear_highlight.emit()
+		self.signal_highlight_current_sequence.emit(self.current_sequence.sequence_name)
 		QApplication.processEvents()
 
 	def scan_trigger_in(self):
@@ -79,12 +82,15 @@ class TriggerController(QObject):
 			self.trigger_received = True
 			self.triggerReceived.emit()
 			self.log_message.emit(utils.timestamp() + 'Trigger Received - Imaging Completed')
+			self.signal_clear_highlight.emit()
+			self.signal_log_highlight_current_item.emit()
 			QApplication.processEvents()
 
 class TriggerController_simulation(QObject):
 
 	triggerReceived = Signal()
 	log_message = Signal(str)
+	signal_log_highlight_current_item = Signal()
 
 	def __init__(self):
 		QObject.__init__(self)
@@ -96,12 +102,16 @@ class TriggerController_simulation(QObject):
 
 	def send_trigger(self):
 		self.log_message.emit(utils.timestamp() + 'Microscope Trigger Sent')
+		self.signal_clear_highlight.emit()
+		self.signal_log_highlight_current_item.emit()
 		QApplication.processEvents()
 
 	def scan_trigger_in(self):
 		self.trigger_received = True
 		self.triggerReceived.emit()
 		self.log_message.emit(utils.timestamp() + 'Trigger Received - Imaging Completed')
+		self.signal_clear_highlight.emit()
+		self.signal_log_highlight_current_item.emit()
 		QApplication.processEvents()
 
 '''
@@ -473,6 +483,8 @@ class FluidController(QObject):
 		self.current_stopwatch.stop() # make sure to stop the stopwatch first
 		self.computer_stopwatch_subsequence_in_progress = False
 		self.log_message.emit(utils.timestamp() + '[ countdown of ' + str(self.current_subsequence.stopwatch_time_remaining_seconds/60) + ' min finished ]')
+		self.signal_clear_highlight.emit()
+		self.signal_log_highlight_current_item.emit()
 		QApplication.processEvents()
 		self.current_stopwatch = None
 		self.current_subsequence = None
@@ -504,21 +516,26 @@ class FluidController(QObject):
 							self.log_message.emit(utils.timestamp() + '! ' + self.current_sequence.sequence_name + ', round ' + str(self.current_sequence.round+1) + ' aborted')
 						else:
 							self.log_message.emit(utils.timestamp() + '! ' + self.current_sequence.sequence_name + ' aborted')
+						self.signal_clear_highlight.emit()
+						self.signal_highlight_current_sequence.emit(self.current_sequence.sequence_name)
 						QApplication.processEvents()
 						self.current_sequence.sequence_started = False
 						# void the sequence
 						self.current_sequence = None 
 					self.signal_clear_highlight.emit()
 					self.log_message.emit(utils.timestamp() + 'Abort completed')
+					self.signal_clear_highlight.emit()
+					self.signal_log_highlight_current_item.emit()
 					QApplication.processEvents()
 					return
-            # if the queue is empty, set the sequences_in_progress flag to False
+			# if the queue is empty, set the sequences_in_progress flag to False
 			else:
 				self.sequences_in_progress = False
 				self.timer_update_sequence_execution_state.stop()
 				self.signal_sequences_execution_stopped.emit()
 				self.log_message.emit(utils.timestamp() + 'Finished executing all the selected sequences')
 				self.signal_clear_highlight.emit()
+				self.signal_log_highlight_current_item.emit()
 				QApplication.processEvents()
 				if PRINT_DEBUG_INFO:
 					print('no more sequences in the queue')
@@ -547,6 +564,8 @@ class FluidController(QObject):
 						cmd_with_uid = self._add_UID_to_mcu_command_packet(cmd_packet,self.computer_to_MCU_command_counter)
 						self.microcontroller.send_command(cmd_with_uid)
 						self.log_message.emit(utils.timestamp() + '[ microcontroller: ' + self.current_subsequence.microcontroller_command.get_description() +  ' ]')
+						self.signal_clear_highlight.emit()
+						self.signal_log_highlight_current_item.emit()
 						QApplication.processEvents()
 					elif self.current_subsequence.type == SUBSEQUENCE_TYPE.COMPUTER_STOPWATCH:
 						self.current_stopwatch = QTimer()
@@ -556,8 +575,11 @@ class FluidController(QObject):
 						self.current_stopwatch.start()
 						self.computer_stopwatch_subsequence_in_progress = True
 						self.log_message.emit(utils.timestamp() + '[ countdown of ' + str(self.current_subsequence.stopwatch_time_remaining_seconds/60) + ' min started ]')
+						self.signal_clear_highlight.emit()
 						self.signal_log_highlight_current_item.emit()
 						self.signal_initialize_stopwatch_display.emit(utils.timestamp() + '[ stop watch remaining time: ' + str(int(self.current_stopwatch.remainingTime()/1000)) + ' seconds ]') # @@@ change format to to x min x s
+						self.signal_clear_highlight.emit()
+						self.signal_log_highlight_current_item.emit()
 						QApplication.processEvents()
 				else:
 					# abort sequence is requested
@@ -579,6 +601,8 @@ class FluidController(QObject):
 		# case for handling abort request during computer stopwatch countdown
 		if self.computer_stopwatch_subsequence_in_progress == True and self.abort_sequences_requested == True:
 			self.log_message.emit(utils.timestamp() + '[ countdown of ' + str(self.current_subsequence.stopwatch_time_remaining_seconds/60) + ' min aborted ]')
+			self.signal_clear_highlight.emit()
+			self.signal_log_highlight_current_item.emit()
 			QApplication.processEvents()
 			self.current_stopwatch.stop()
 			self.current_stopwatch = None

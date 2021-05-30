@@ -1,10 +1,10 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <settings>
-  <sequence Name="Stripping Buffer Wash" Repeat="2" Incubation_Time_in_minute="0.5" Flow_Time_in_second="15.0"/>
-  <sequence Name="Stripping Buffer Rinse" Repeat="1" Incubation_Time_in_minute="0.5" Flow_Time_in_second="15.0"/>
-  <sequence Name="PBST Wash" Repeat="3" Incubation_Time_in_minute="5.0" Flow_Time_in_second="15.0"/>
-  <sequence Name="Wash (Post Ligation, 1)" Repeat="2" Incubation_Time_in_minute="10.0" Flow_Time_in_second="15.0"/>
-  <sequence Name="Wash (Post Ligation, 2)" Repeat="2" Incubation_Time_in_minute="10.0" Flow_Time_in_second="15.0"/>
-  <sequence Name="Stain with DAPI" Repeat="1" Incubation_Time_in_minute="10.0" Flow_Time_in_second="15.0"/>
-  <sequence Name="Ligate" Repeat="1" Incubation_Time_in_minute="240.0" Flow_Time_in_second="15.0"/>
+  <sequence Name="Stripping Buffer Wash" Repeat="2" Incubation_Time_in_minute="0.1" Flow_Time_in_second="15.0"/>
+  <sequence Name="Stripping Buffer Rinse" Repeat="1" Incubation_Time_in_minute="0.1" Flow_Time_in_second="15.0"/>
+  <sequence Name="PBST Wash" Repeat="3" Incubation_Time_in_minute="0.1" Flow_Time_in_second="15.0"/>
+  <sequence Name="Wash (Post Ligation, 1)" Repeat="2" Incubation_Time_in_minute="0.1" Flow_Time_in_second="15.0"/>
+  <sequence Name="Wash (Post Ligation, 2)" Repeat="2" Incubation_Time_in_minute="0.1" Flow_Time_in_second="15.0"/>
+  <sequence Name="Stain with DAPI" Repeat="1" Incubation_Time_in_minute="0.1" Flow_Time_in_second="15.0"/>
+  <sequence Name="Ligate" Repeat="1" Incubation_Time_in_minute="0.1" Flow_Time_in_second="15.0"/>
 </settings>
