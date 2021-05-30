@@ -159,7 +159,7 @@ class SequenceWidget(QFrame):
         self.abort_requested = False
         self.config_filename = 'settings_default.xml'
         self.add_components()
-        self.load_sequence_settings()
+        self.load_sequence_settings(self.config_filename)
         self.setFrameStyle(QFrame.Panel | QFrame.Raised)
 
     def close(self):
@@ -234,10 +234,11 @@ class SequenceWidget(QFrame):
         # settings loading and saveing
         self.lineEdit_setting_file = QLineEdit()
         self.lineEdit_setting_file.setReadOnly(True)
-        self.lineEdit_setting_file.setText('[ Click Browse to Select a Setting File ]')
-        self.btn_select_setting_file = QPushButton('Browse')
-        self.btn_select_setting_file.setDefault(False)
-        self.btn_select_setting_file.setIcon(QIcon('icon/folder.png'))
+        # self.lineEdit_setting_file.setText('[ Click Browse to Select a Setting File ]')
+        self.lineEdit_setting_file.setText(self.config_filename)
+        # self.btn_select_setting_file = QPushButton('Browse')
+        # self.btn_select_setting_file.setDefault(False)
+        # self.btn_select_setting_file.setIcon(QIcon('icon/folder.png'))
 
         # button
         self.button_save = QPushButton('Save Sequence Setttings')
@@ -248,10 +249,10 @@ class SequenceWidget(QFrame):
         vbox = QVBoxLayout()
         vbox.addWidget(self.tableWidget)
         hbox_settings_loading_and_saving = QHBoxLayout()
-        hbox_settings_loading_and_saving.addWidget(self.lineEdit_setting_file)
-        hbox_settings_loading_and_saving.addWidget(self.btn_select_setting_file)
-        hbox_settings_loading_and_saving.addWidget(self.button_load)
         hbox_settings_loading_and_saving.addWidget(self.button_save)
+        # hbox_settings_loading_and_saving.addWidget(self.btn_select_setting_file)
+        hbox_settings_loading_and_saving.addWidget(self.button_load)
+        hbox_settings_loading_and_saving.addWidget(self.lineEdit_setting_file)
         vbox.addLayout(hbox_settings_loading_and_saving)
         grid_btns = QGridLayout()
         # grid_btns.addWidget(self.button_save,0,0)
@@ -266,29 +267,17 @@ class SequenceWidget(QFrame):
         self.button_stop.clicked.connect(self.request_to_abort_sequences)
         # @@@ need to make sure button_stop is still clickable while self.run_sequences() is being executed - done [4/7/2021]
         self.button_stop.setEnabled(False) # the current implementation of run_sequences is blocking, yet abort is possible through a flag in FluidController. Actually the flag can be in the widget. Maybe use in both places, so that for example, wait can be aborted [addressed 4/7/2021]
-        self.button_save.setEnabled(False) # saving settings to be implemented, disable the button for now
-        self.button_load.setEnabled(False) # loading settings to be implemented, disable the button for now
+        # self.button_save.setEnabled(False) # saving settings to be implemented, disable the button for now
         self.fluidController.signal_sequences_execution_stopped.connect(self.enable_widgets_except_for_abort_btn)
 
-    def load_sequence_settings(self):
-        # (temporary) set sequence-specific attributes - to do: load from file
-        '''
-        self.sequences['Stripping Buffer Wash'].attributes['Repeat'].setValue(2)
-        self.sequences['Stripping Buffer Wash'].attributes['Incubation Time (min)'].setValue(600/60)
-        self.sequences['Stripping Buffer Rinse'].attributes['Repeat'].setValue(1)
-        self.sequences['Stripping Buffer Rinse'].attributes['Incubation Time (min)'].setValue(30/60)
-        self.sequences['PBST Wash'].attributes['Repeat'].setValue(3)
-        self.sequences['PBST Wash'].attributes['Incubation Time (min)'].setValue(300/60)
-        self.sequences['Ligate'].attributes['Incubation Time (min)'].setValue(3600*3/60)
-        self.sequences['Wash (Post Ligation, 1)'].attributes['Repeat'].setValue(2)
-        self.sequences['Wash (Post Ligation, 1)'].attributes['Incubation Time (min)'].setValue(600/60)
-        self.sequences['Wash (Post Ligation, 2)'].attributes['Repeat'].setValue(2)
-        self.sequences['Wash (Post Ligation, 2)'].attributes['Incubation Time (min)'].setValue(600/60)
-        self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setValue(300/60)
-        '''
+        self.button_load.clicked.connect(self.load_user_selected_sequence_settings)
+        self.button_save.clicked.connect(self.saveas_sequence_settings)
+
+    def load_sequence_settings(self,filename):
+
         # create the config file if it does not alreay exist
-        if(os.path.isfile(self.config_filename)==False):
-            utils_config.generate_default_configuration(self.config_filename)
+        if(os.path.isfile(filename)==False):
+            utils_config.generate_default_configuration(filename)
 
         # read and parse the config file
         self.config_xml_tree = ET.parse(self.config_filename)
@@ -298,6 +287,22 @@ class SequenceWidget(QFrame):
             self.sequences[name].attributes['Repeat'].setValue(int(sequence.get('Repeat')))
             self.sequences[name].attributes['Incubation Time (min)'].setValue(float(sequence.get('Incubation_Time_in_minute')))
             self.sequences[name].attributes['Flow Time (s)'].setValue(float(sequence.get('Flow_Time_in_second')))
+
+    def load_user_selected_sequence_settings(self):
+        dialog = QFileDialog()
+        filename, _filter = dialog.getOpenFileName(None,'Open File','.','XML files (*.xml)')
+        if filename:
+            self.load_sequence_settings(filename)
+            self.lineEdit_setting_file.setText(filename)
+            self.config_filename = filename
+
+    def saveas_sequence_settings(self):
+        dialog = QFileDialog()
+        filename, _filter = dialog.getSaveFileName(None,'Save File','.','XML files (*.xml)')
+        if filename:
+            self.save_sequence_settings(filename)
+            self.lineEdit_setting_file.setText(filename)
+            self.config_filename = filename
 
     def save_sequence_settings(self,filename):
         # update the xml tree based on the current settings
@@ -310,7 +315,7 @@ class SequenceWidget(QFrame):
                 sequence_to_update.set('Flow_Time_in_second',str(self.sequences[sequence_name].attributes['Flow Time (s)'].value()))
         # save the configurations
         self.config_xml_tree.write(filename, encoding="utf-8", xml_declaration=True, pretty_print=True)
-        print('sequence settings saved')
+        print('sequence settings saved')    
 
     def run_sequences(self):
         msg = QMessageBox()
