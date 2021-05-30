@@ -176,15 +176,9 @@ class SequenceWidget(QFrame):
         self.sequences['Add Imaging Buffer'].attributes['Incubation Time (min)'].setValue(-1)
         self.sequences['Remove Medium'].attributes['Flow Time (s)'].setMinimum(-1) 
         self.sequences['Remove Medium'].attributes['Flow Time (s)'].setValue(-1)
-        # self.sequences['Remove Medium'].attributes['Flow Time (s)'].setMinimum(0)       # *** for now, use fixed aspiration time instead of bubble sensor (waiting for the sensor with the right tubing ID to arrive) ***
-        # self.sequences['Remove Medium'].attributes['Flow Time (s)'].setValue(20)        # *** for now, use fixed aspiration time instead of bubble sensor (waiting for the sensor with the right tubing ID to arrive) ***
-        # self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setMinimum(-1)
-        # self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setValue(-1)
 
         self.sequences['Add Imaging Buffer'].attributes['Incubation Time (min)'].setEnabled(False)
         self.sequences['Remove Medium'].attributes['Flow Time (s)'].setEnabled(False) 
-        # self.sequences['Remove Medium'].attributes['Flow Time (s)'].setEnabled(True)    # *** for now, use fixed aspiration time instead of bubble sensor (waiting for the sensor with the right tubing ID to arrive) ***
-        # self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setEnabled(False)
         self.sequences['Ligate'].attributes['Repeat'].setEnabled(False)
         self.sequences['Add Imaging Buffer'].attributes['Repeat'].setEnabled(False)
         self.sequences['Remove Medium'].attributes['Repeat'].setEnabled(False)
@@ -193,14 +187,6 @@ class SequenceWidget(QFrame):
         self.sequences['Remove Medium'].attributes['Fluidic Port'].setMinimum(0)
         self.sequences['Remove Medium'].attributes['Fluidic Port'].setValue(0)
         self.sequences['Remove Medium'].attributes['Fluidic Port'].setEnabled(False)
-
-        '''
-        # changed to disable instead of no buttons
-        self.sequences['Ligate'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
-        self.sequences['Add Imaging Buffer'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
-        self.sequences['Remove Medium'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
-        self.sequences['Stain with DAPI'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
-        '''
 
         # (temporary) set sequence-specific attributes - to do: load from file
         self.sequences['Stripping Buffer Wash'].attributes['Repeat'].setValue(2)
@@ -216,8 +202,7 @@ class SequenceWidget(QFrame):
         self.sequences['Wash (Post Ligation, 2)'].attributes['Incubation Time (min)'].setValue(600/60)
         self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setValue(300/60)
 
-
-        # (temporary) port mapping - to be done through _def.py
+        # port mapping
         self.sequences['Stripping Buffer Wash'].attributes['Fluidic Port'].setValue(Port['Stripping Buffer'])
         self.sequences['Stripping Buffer Wash'].attributes['Fluidic Port'].setEnabled(False)
         self.sequences['Stripping Buffer Rinse'].attributes['Fluidic Port'].setValue(Port['Stripping Buffer'])
@@ -233,6 +218,14 @@ class SequenceWidget(QFrame):
         self.sequences['Stain with DAPI'].attributes['Fluidic Port'].setValue(Port['DAPI'])
         self.sequences['Stain with DAPI'].attributes['Fluidic Port'].setEnabled(False)
         self.sequences['Ligate'].attributes['Fluidic Port'].setMaximum(11)
+
+        '''
+        # changed to disable instead of no buttons
+        self.sequences['Ligate'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
+        self.sequences['Add Imaging Buffer'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
+        self.sequences['Remove Medium'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
+        self.sequences['Stain with DAPI'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
+        '''
 
         # set table size - reference: https://stackoverflow.com/questions/8766633/how-to-determine-the-correct-size-of-a-qtablewidget
         self.tableWidget.resizeColumnsToContents()
