@@ -401,6 +401,7 @@ class Microcontroller_Command():
 class FluidController(QObject):
 	
 	log_message = Signal(str)
+	signal_log_highlight_current_item = Signal()
 	signal_update_stopwatch_display = Signal(str)
 	signal_initialize_stopwatch_display = Signal(str)
 	signal_sequences_execution_started = Signal()
@@ -555,6 +556,7 @@ class FluidController(QObject):
 						self.current_stopwatch.start()
 						self.computer_stopwatch_subsequence_in_progress = True
 						self.log_message.emit(utils.timestamp() + '[ countdown of ' + str(self.current_subsequence.stopwatch_time_remaining_seconds/60) + ' min started ]')
+						self.signal_log_highlight_current_item.emit()
 						self.signal_initialize_stopwatch_display.emit(utils.timestamp() + '[ stop watch remaining time: ' + str(int(self.current_stopwatch.remainingTime()/1000)) + ' seconds ]') # @@@ change format to to x min x s
 						QApplication.processEvents()
 				else:
@@ -572,6 +574,7 @@ class FluidController(QObject):
 		# case for updating the stopwatch display
 		if self.computer_stopwatch_subsequence_in_progress == True:
 			self.signal_update_stopwatch_display.emit(utils.timestamp() + '[ stop watch remaining time: ' + str(int(self.current_stopwatch.remainingTime()/1000)) + ' seconds ]') # @@@ change format to to x min x s
+			self.signal_log_highlight_current_item.emit()
 
 		# case for handling abort request during computer stopwatch countdown
 		if self.computer_stopwatch_subsequence_in_progress == True and self.abort_sequences_requested == True:

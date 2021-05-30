@@ -116,6 +116,8 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		self.sequenceWidget.log_message.connect(self.logger.log)
 		self.manualFlushWidget.log_message.connect(self.logger.log)
 
+		self.fluidController.signal_log_highlight_current_item.connect(self.highlight_current_log_item)
+
 		self.sequenceWidget.signal_disable_manualControlWidget.connect(self.disableManualControlWidget)
 		self.sequenceWidget.signal_enable_manualControlWidget.connect(self.enableManualControlWidget)
 
@@ -162,6 +164,9 @@ class STARmapAutomationControllerGUI(QMainWindow):
 			# use this if statement to prevent other messages being overwritten
 			self.logWidget.item(self.logWidget.count()-1).setText(text)
 
+	def highlight_current_log_item(self):
+		self.logWidget.setCurrentRow(self.logWidget.count()-1)
+		
 	def closeEvent(self, event):
 		self.sequenceWidget.close()
 		event.accept()
