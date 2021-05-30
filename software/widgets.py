@@ -403,7 +403,8 @@ class SequenceWidget(QFrame):
         QApplication.processEvents()
 
     def select_row_using_sequence_name(self,sequence_name):
-        self.tableWidget.selectRow(self.row_number[sequence_name])
+        if sequence_name in self.row_number.keys():
+            self.tableWidget.selectRow(self.row_number[sequence_name])
 
     def deselect_rows(self):
         self.tableWidget.clearSelection()
@@ -627,12 +628,13 @@ class ManualControlWidget(QWidget):
         # self.entry_selector_valve_position.setMaximum(24)
         # self.entry_selector_valve_position.setFixedWidth(40)
 
-        self.btn_enable_manual_control = QPushButton('Enable Manual Control')
+        self.btn_enable_manual_control = QPushButton('Enable Control Through the Physical Knob and Switches')
         self.btn_enable_manual_control.setCheckable(True)
         self.btn_enable_manual_control.setChecked(True)
         self.btn_enable_manual_control.setDefault(False)
 
         self.dropdown_selector_valve_position = QComboBox()
+        self.dropdown_selector_valve_position.addItem('')
         for i in range(24):
             self.dropdown_selector_valve_position.addItem(str(i+1))
         self.dropdown_selector_valve_position.setFixedWidth(70)
@@ -643,8 +645,9 @@ class ManualControlWidget(QWidget):
         # self.entry_10mm_solenoid_valve_selection.setFixedWidth(40)
 
         self.dropdown_10mm_solenoid_valve_selection = QComboBox()
-        for i in range(17):
-            self.dropdown_10mm_solenoid_valve_selection.addItem(str(i))
+        self.dropdown_10mm_solenoid_valve_selection.addItem('-')
+        for i in range(16):
+            self.dropdown_10mm_solenoid_valve_selection.addItem(str(i+1))
         self.dropdown_10mm_solenoid_valve_selection.setFixedWidth(70)
 
         self.btn_connect_selector_valve_to_chamber = QPushButton('Connect Selector Valve to Chamber')
@@ -700,7 +703,7 @@ class ManualControlWidget(QWidget):
         self.entry_aspiration_time_s.setValue(DEFAULT_VALUES.vacuum_aspiration_time_s)
 
         hbox0 = QHBoxLayout()
-        tmp = QLabel('Enable Control Through the Physical Knob and Switch')
+        tmp = QLabel('Enable Control Through the Physical Knob and Switches')
         hbox0.addWidget(tmp)
         hbox0.addWidget(self.btn_enable_manual_control)
         hbox0.addStretch()
@@ -715,6 +718,7 @@ class ManualControlWidget(QWidget):
         tmp.setFixedWidth(190)
         hbox1.addWidget(tmp)
         hbox1.addWidget(self.dropdown_selector_valve_position)
+        hbox1.addWidget(QLabel('(select a port will also turn on the corresponding 10 mm solenoid valve)'))
         hbox1.addStretch()
 
         hbox2 = QHBoxLayout()
@@ -796,12 +800,19 @@ class ManualControlWidget(QWidget):
         self.btn_enable_pressure_loop.clicked.connect(self.enable_pressure_loop)
 
     def update_selector_valve(self,pos_str):
-        self.fluidController.add_sequence('Set Selector Valve Position',int(pos_str))
-        self.fluidController.start_sequence_execution()
-
+        if pos_str is not '':
+            self.fluidController.add_sequence('Set Selector Valve Position',int(pos_str))
+            self.fluidController.start_sequence_execution()
+            # self.fluidController.add_sequence('Set 10 mm Valve State',int(pos_str))
+            self.dropdown_10mm_solenoid_valve_selection.setCurrentText(pos_str)
+        
     def update_10mm_solenoid_valves(self,pos_str):
-        self.fluidController.add_sequence('Set 10 mm Valve State',int(pos_str))
-        self.fluidController.start_sequence_execution()
+        if pos_str is '-':
+            self.fluidController.add_sequence('Set 10 mm Valve State',int(0))
+            self.fluidController.start_sequence_execution()
+        else:
+            self.fluidController.add_sequence('Set 10 mm Valve State',int(pos_str))
+            self.fluidController.start_sequence_execution()
 
     def update_isolation_valve(self,pressed):
         if pressed:
