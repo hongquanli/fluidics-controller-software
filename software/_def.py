@@ -7,7 +7,7 @@ PRESSURE_FULL_SCALE_PSI = 5
 PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE = 100
 
 SEQUENCE_ATTRIBUTES_KEYS = ['Sequence','Fluidic Port','Flow Time (s)','Incubation Time (min)','Repeat','Include']
-SEQUENCE_NAME = ['Strip','Wash (Post-Strip)','Ligate','Stain with DAPI','Wash (Post-Ligation)','Add Imaging Buffer','Remove Medium']
+SEQUENCE_NAME = ['Remove Medium','Stripping Buffer Wash','Stripping Buffer Rinse','PBST Wash','Ligate','Wash (Post Ligation, 1)','Stain with DAPI','Wash (Post Ligation, 2)','Add Imaging Buffer']
 
 TIMER_CHECK_MCU_STATE_INTERVAL_MS = 10 # make it half of send_update_interval_us in the firmware
 # TIMER_CHECK_MCU_STATE_INTERVAL_MS = 500 # for simulation
@@ -147,7 +147,7 @@ byte 11-14	: reserved (4 byte) (including checksum)
 # sequences
 '''
 1. strip - volume (time) [1.2 ml] - wait time - number of times [2]
-2. wash (post-strip) - volume (time) [1.2 ml] - wait time - number of cycles [3]
+2. PBST wash - volume (time) [1.2 ml] - wait time - number of cycles [3]
 3. sequencing mixture - all available - wait time
 4. wash (post ligation) - volume (time) - wait time - number of cycles [3]
 4. imaging buffer - volume (time) [1.2 ml]

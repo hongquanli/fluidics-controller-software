@@ -129,6 +129,7 @@ class SequenceEntry(QWidget):
         self.attributes['Flow Time (s)'].setMinimum(0) # -1: no flow
         self.attributes['Flow Time (s)'].setMaximum(FLOW_TIME_MAX) 
         self.attributes['Incubation Time (min)'] = QDoubleSpinBox()
+        self.attributes['Incubation Time (min)'].setDecimals(1)
         self.attributes['Incubation Time (min)'].setMinimum(0) # -1: no incubation
         self.attributes['Incubation Time (min)'].setMaximum(INCUBATION_TIME_MAX_MIN)
         self.attributes['Repeat'] = QSpinBox()
@@ -198,21 +199,29 @@ class SequenceWidget(QFrame):
         '''
 
         # (temporary) set sequence-specific attributes - to do: load from file
-        self.sequences['Strip'].attributes['Repeat'].setValue(2)
-        self.sequences['Strip'].attributes['Incubation Time (min)'].setValue(600/60)
-        self.sequences['Wash (Post-Strip)'].attributes['Repeat'].setValue(3)
-        self.sequences['Wash (Post-Strip)'].attributes['Incubation Time (min)'].setValue(300/60)
+        self.sequences['Stripping Buffer Wash'].attributes['Repeat'].setValue(2)
+        self.sequences['Stripping Buffer Wash'].attributes['Incubation Time (min)'].setValue(600/60)
+        self.sequences['Stripping Buffer Rinse'].attributes['Repeat'].setValue(1)
+        self.sequences['Stripping Buffer Rinse'].attributes['Incubation Time (min)'].setValue(30/60)
+        self.sequences['PBST Wash'].attributes['Repeat'].setValue(3)
+        self.sequences['PBST Wash'].attributes['Incubation Time (min)'].setValue(300/60)
         self.sequences['Ligate'].attributes['Incubation Time (min)'].setValue(3600*3/60)
-        self.sequences['Wash (Post-Ligation)'].attributes['Repeat'].setValue(3)
-        self.sequences['Wash (Post-Ligation)'].attributes['Incubation Time (min)'].setValue(600/60)
+        self.sequences['Wash (Post Ligation, 1)'].attributes['Repeat'].setValue(2)
+        self.sequences['Wash (Post Ligation, 1)'].attributes['Incubation Time (min)'].setValue(600/60)
+        self.sequences['Wash (Post Ligation, 2)'].attributes['Repeat'].setValue(2)
+        self.sequences['Wash (Post Ligation, 2)'].attributes['Incubation Time (min)'].setValue(600/60)
+        self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setValue(300/60)
+
 
         # (temporary) port mapping - to be done through _def.py
-        self.sequences['Strip'].attributes['Fluidic Port'].setValue(10)
-        self.sequences['Strip'].attributes['Fluidic Port'].setEnabled(False)
-        self.sequences['Wash (Post-Strip)'].attributes['Fluidic Port'].setValue(8)
-        self.sequences['Wash (Post-Strip)'].attributes['Fluidic Port'].setEnabled(False)
-        self.sequences['Wash (Post-Ligation)'].attributes['Fluidic Port'].setValue(9)
-        self.sequences['Wash (Post-Ligation)'].attributes['Fluidic Port'].setEnabled(False)
+        self.sequences['Stripping Buffer Wash'].attributes['Fluidic Port'].setValue(10)
+        self.sequences['Stripping Buffer Wash'].attributes['Fluidic Port'].setEnabled(False)
+        self.sequences['PBST Wash'].attributes['Fluidic Port'].setValue(8)
+        self.sequences['PBST Wash'].attributes['Fluidic Port'].setEnabled(False)
+        self.sequences['Wash (Post Ligation, 1)'].attributes['Fluidic Port'].setValue(9)
+        self.sequences['Wash (Post Ligation, 2)'].attributes['Fluidic Port'].setEnabled(False)
+        self.sequences['Wash (Post Ligation, 1)'].attributes['Fluidic Port'].setValue(9)
+        self.sequences['Wash (Post Ligation, 2)'].attributes['Fluidic Port'].setEnabled(False)
         self.sequences['Add Imaging Buffer'].attributes['Fluidic Port'].setValue(9)
         self.sequences['Add Imaging Buffer'].attributes['Fluidic Port'].setEnabled(False)
         self.sequences['Stain with DAPI'].attributes['Fluidic Port'].setValue(6)

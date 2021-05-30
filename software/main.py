@@ -16,6 +16,6 @@ import gui as gui
 if __name__ == "__main__":
 
     app = QApplication([])
-    win = gui.STARmapAutomationControllerGUI(is_simulation=False)
+    win = gui.STARmapAutomationControllerGUI(is_simulation=True)
     win.show()
     app.exec_() #sys.exit(app.exec_())
