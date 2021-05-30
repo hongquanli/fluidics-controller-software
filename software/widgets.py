@@ -28,12 +28,16 @@ class PreUseCheckWidget(QFrame):
         
         # create and layout the checkboxes
         hbox_1 = QHBoxLayout()
-        num_ports = len(Ports_Name)
-        self.checkbox = []
-        for i in range(num_ports):
-            self.checkbox.append(QCheckBox(Ports_Name[i]))
-            self.checkbox[i].setChecked(True)
-            hbox_1.addWidget(self.checkbox[i])
+        self.checkbox = {}
+        for port_name in Port.keys():
+            port = Port[port_name]
+            if port_name == str(port):
+                checkbox_text =  port_name
+            else:
+                checkbox_text = port_name + ' (' + str(port) + ')'
+            self.checkbox[port_name] = QCheckBox(checkbox_text)
+            self.checkbox[port_name].setChecked(True)
+            hbox_1.addWidget(self.checkbox[port_name])
 
         # target pressure 
         self.entry_target_pressure = QDoubleSpinBox()
@@ -73,10 +77,10 @@ class PreUseCheckWidget(QFrame):
 
     def run_preuse_check(self,pressed):
         if pressed:
-            for i in range(len(Ports_Name)):
-                if(self.checkbox[i].isChecked()==True):
-                    print('checking port ' + Ports_Name[i] )
-                    self.log_message.emit(utils.timestamp() + 'checking port ' + Ports_Name[i])
+            for port_name in Port.keys():
+                if(self.checkbox[port_name].isChecked()==True):
+                    print('checking port ' + port_name )
+                    self.log_message.emit(utils.timestamp() + 'checking port ' + port_name)
                     QApplication.processEvents()
                 else:
                     pass
@@ -214,19 +218,21 @@ class SequenceWidget(QFrame):
 
 
         # (temporary) port mapping - to be done through _def.py
-        self.sequences['Stripping Buffer Wash'].attributes['Fluidic Port'].setValue(10)
+        self.sequences['Stripping Buffer Wash'].attributes['Fluidic Port'].setValue(Port['Stripping Buffer'])
         self.sequences['Stripping Buffer Wash'].attributes['Fluidic Port'].setEnabled(False)
-        self.sequences['PBST Wash'].attributes['Fluidic Port'].setValue(8)
+        self.sequences['Stripping Buffer Rinse'].attributes['Fluidic Port'].setValue(Port['Stripping Buffer'])
+        self.sequences['Stripping Buffer Rinse'].attributes['Fluidic Port'].setEnabled(False)
+        self.sequences['PBST Wash'].attributes['Fluidic Port'].setValue(Port['PBST'])
         self.sequences['PBST Wash'].attributes['Fluidic Port'].setEnabled(False)
-        self.sequences['Wash (Post Ligation, 1)'].attributes['Fluidic Port'].setValue(9)
+        self.sequences['Wash (Post Ligation, 1)'].attributes['Fluidic Port'].setValue(Port['Imaging Buffer'])
+        self.sequences['Wash (Post Ligation, 1)'].attributes['Fluidic Port'].setEnabled(False)
+        self.sequences['Wash (Post Ligation, 2)'].attributes['Fluidic Port'].setValue(Port['Imaging Buffer'])
         self.sequences['Wash (Post Ligation, 2)'].attributes['Fluidic Port'].setEnabled(False)
-        self.sequences['Wash (Post Ligation, 1)'].attributes['Fluidic Port'].setValue(9)
-        self.sequences['Wash (Post Ligation, 2)'].attributes['Fluidic Port'].setEnabled(False)
-        self.sequences['Add Imaging Buffer'].attributes['Fluidic Port'].setValue(9)
+        self.sequences['Add Imaging Buffer'].attributes['Fluidic Port'].setValue(Port['Imaging Buffer'])
         self.sequences['Add Imaging Buffer'].attributes['Fluidic Port'].setEnabled(False)
-        self.sequences['Stain with DAPI'].attributes['Fluidic Port'].setValue(6)
+        self.sequences['Stain with DAPI'].attributes['Fluidic Port'].setValue(Port['DAPI'])
         self.sequences['Stain with DAPI'].attributes['Fluidic Port'].setEnabled(False)
-        self.sequences['Ligate'].attributes['Fluidic Port'].setMaximum(4)
+        self.sequences['Ligate'].attributes['Fluidic Port'].setMaximum(11)
 
         # set table size - reference: https://stackoverflow.com/questions/8766633/how-to-determine-the-correct-size-of-a-qtablewidget
         self.tableWidget.resizeColumnsToContents()
