@@ -137,6 +137,9 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		self.fluidController.signal_bubble_sensor_1.connect(self.microcontrollerStateDisplayWidget.label_bubble_sensor_downstream.setNum)
 		self.fluidController.signal_bubble_sensor_2.connect(self.microcontrollerStateDisplayWidget.label_bubble_sensor_upstream.setNum)
 
+		# highlight current sequence
+		self.fluidController.signal_highlight_current_sequence.connect(self.sequenceWidget.select_row_using_sequence_name)
+
 		# connection for the manual control
 		self.fluidController.signal_uncheck_manual_control_enabled.connect(self.manualControlWidget.uncheck_enable_manual_control_button)
 

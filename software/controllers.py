@@ -405,6 +405,8 @@ class FluidController(QObject):
 	signal_initialize_stopwatch_display = Signal(str)
 	signal_sequences_execution_started = Signal()
 	signal_sequences_execution_stopped = Signal()
+	signal_highlight_current_sequence = Signal(str)
+	signal_clear_highlight = Signal()
 
 	# for displaying the MCU states
 	signal_MCU_CMD_UID = Signal(int)
@@ -489,6 +491,8 @@ class FluidController(QObject):
 						self.log_message.emit(utils.timestamp() + 'Execute ' + self.current_sequence.sequence_name + ', round ' + str(self.current_sequence.round+1))
 					else:
 						self.log_message.emit(utils.timestamp() + 'Execute ' + self.current_sequence.sequence_name)
+					self.signal_clear_highlight.emit()
+					self.signal_highlight_current_sequence.emit(self.current_sequence.sequence_name)
 					QApplication.processEvents()
 					self.sequence_started = True # can be removed
 				# abort sequence is requested
@@ -503,6 +507,7 @@ class FluidController(QObject):
 						self.current_sequence.sequence_started = False
 						# void the sequence
 						self.current_sequence = None 
+					self.signal_clear_highlight.emit()
 					self.log_message.emit(utils.timestamp() + 'Abort completed')
 					QApplication.processEvents()
 					return
@@ -512,6 +517,7 @@ class FluidController(QObject):
 				self.timer_update_sequence_execution_state.stop()
 				self.signal_sequences_execution_stopped.emit()
 				self.log_message.emit(utils.timestamp() + 'Finished executing all the selected sequences')
+				self.signal_clear_highlight.emit()
 				QApplication.processEvents()
 				if PRINT_DEBUG_INFO:
 					print('no more sequences in the queue')

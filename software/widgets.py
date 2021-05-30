@@ -172,6 +172,7 @@ class SequenceWidget(QFrame):
         
         # create the sequences, set the attributes and add the sequences into the tabel
         self.sequences = {}
+        self.row_number = {}
         for i in range(len(SEQUENCE_NAME)):
             sequence_name = SEQUENCE_NAME[i]
             self.sequences[sequence_name] = SequenceEntry(sequence_name)
@@ -180,6 +181,13 @@ class SequenceWidget(QFrame):
                 attribute_key = SEQUENCE_ATTRIBUTES_KEYS[j]
                 self.tableWidget.setCellWidget(i,j,self.sequences[sequence_name].attributes[attribute_key])
             # self.tableWidget.setCellWidget(i,0,self.sequences[sequence_name].attributes['Label'])
+            self.row_number[sequence_name] = i
+
+        # test
+        # item = self.tableWidget.findItems('Add Imaging Buffer',Qt.MatchContains)
+        # print(item)
+        # item[0].setBackgroundColor(Qt.blue)
+        # self.tableWidget.selectRow(1)
 
         # set sequence-specific attributes
         self.sequences['Add Imaging Buffer'].attributes['Incubation Time (min)'].setMinimum(-1)
@@ -393,6 +401,11 @@ class SequenceWidget(QFrame):
         self.signal_enable_manualControlWidget.emit()
         QApplication.processEvents()
 
+    def select_row_using_sequence_name(self,sequence_name):
+        self.tableWidget.selectRow(self.row_number[sequence_name])
+
+    def deselect_rows(self):
+        self.tableWidget.clearSelection()
 
 '''
 #########################################################
