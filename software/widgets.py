@@ -8,10 +8,15 @@ from qtpy.QtCore import *
 from qtpy.QtWidgets import *
 from qtpy.QtGui import *
 
+# xml
+from lxml import etree as ET
+
 # app specific libraries
 from datetime import datetime
 import threading
 import utils
+import utils_config
+
 from _def import * 
 
 class PreUseCheckWidget(QFrame):
@@ -152,8 +157,13 @@ class SequenceWidget(QFrame):
         super().__init__(*args, **kwargs)
         self.fluidController = fluidController
         self.abort_requested = False
+        self.config_filename = 'settings_default.xml'
         self.add_components()
+        self.load_sequence_settings()
         self.setFrameStyle(QFrame.Panel | QFrame.Raised)
+
+    def close(self):
+        self.save_sequence_settings(self.config_filename)
 
     def add_components(self):
 
@@ -187,20 +197,6 @@ class SequenceWidget(QFrame):
         self.sequences['Remove Medium'].attributes['Fluidic Port'].setMinimum(0)
         self.sequences['Remove Medium'].attributes['Fluidic Port'].setValue(0)
         self.sequences['Remove Medium'].attributes['Fluidic Port'].setEnabled(False)
-
-        # (temporary) set sequence-specific attributes - to do: load from file
-        self.sequences['Stripping Buffer Wash'].attributes['Repeat'].setValue(2)
-        self.sequences['Stripping Buffer Wash'].attributes['Incubation Time (min)'].setValue(600/60)
-        self.sequences['Stripping Buffer Rinse'].attributes['Repeat'].setValue(1)
-        self.sequences['Stripping Buffer Rinse'].attributes['Incubation Time (min)'].setValue(30/60)
-        self.sequences['PBST Wash'].attributes['Repeat'].setValue(3)
-        self.sequences['PBST Wash'].attributes['Incubation Time (min)'].setValue(300/60)
-        self.sequences['Ligate'].attributes['Incubation Time (min)'].setValue(3600*3/60)
-        self.sequences['Wash (Post Ligation, 1)'].attributes['Repeat'].setValue(2)
-        self.sequences['Wash (Post Ligation, 1)'].attributes['Incubation Time (min)'].setValue(600/60)
-        self.sequences['Wash (Post Ligation, 2)'].attributes['Repeat'].setValue(2)
-        self.sequences['Wash (Post Ligation, 2)'].attributes['Incubation Time (min)'].setValue(600/60)
-        self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setValue(300/60)
 
         # port mapping
         self.sequences['Stripping Buffer Wash'].attributes['Fluidic Port'].setValue(Port['Stripping Buffer'])
@@ -273,6 +269,48 @@ class SequenceWidget(QFrame):
         self.button_save.setEnabled(False) # saving settings to be implemented, disable the button for now
         self.button_load.setEnabled(False) # loading settings to be implemented, disable the button for now
         self.fluidController.signal_sequences_execution_stopped.connect(self.enable_widgets_except_for_abort_btn)
+
+    def load_sequence_settings(self):
+        # (temporary) set sequence-specific attributes - to do: load from file
+        '''
+        self.sequences['Stripping Buffer Wash'].attributes['Repeat'].setValue(2)
+        self.sequences['Stripping Buffer Wash'].attributes['Incubation Time (min)'].setValue(600/60)
+        self.sequences['Stripping Buffer Rinse'].attributes['Repeat'].setValue(1)
+        self.sequences['Stripping Buffer Rinse'].attributes['Incubation Time (min)'].setValue(30/60)
+        self.sequences['PBST Wash'].attributes['Repeat'].setValue(3)
+        self.sequences['PBST Wash'].attributes['Incubation Time (min)'].setValue(300/60)
+        self.sequences['Ligate'].attributes['Incubation Time (min)'].setValue(3600*3/60)
+        self.sequences['Wash (Post Ligation, 1)'].attributes['Repeat'].setValue(2)
+        self.sequences['Wash (Post Ligation, 1)'].attributes['Incubation Time (min)'].setValue(600/60)
+        self.sequences['Wash (Post Ligation, 2)'].attributes['Repeat'].setValue(2)
+        self.sequences['Wash (Post Ligation, 2)'].attributes['Incubation Time (min)'].setValue(600/60)
+        self.sequences['Stain with DAPI'].attributes['Incubation Time (min)'].setValue(300/60)
+        '''
+        # create the config file if it does not alreay exist
+        if(os.path.isfile(self.config_filename)==False):
+            utils_config.generate_default_configuration(self.config_filename)
+
+        # read and parse the config file
+        self.config_xml_tree = ET.parse(self.config_filename)
+        self.config_xml_tree_root = self.config_xml_tree.getroot()
+        for sequence in self.config_xml_tree_root.iter('sequence'):
+            name = sequence.get('Name')
+            self.sequences[name].attributes['Repeat'].setValue(int(sequence.get('Repeat')))
+            self.sequences[name].attributes['Incubation Time (min)'].setValue(float(sequence.get('Incubation_Time_in_minute')))
+            self.sequences[name].attributes['Flow Time (s)'].setValue(float(sequence.get('Flow_Time_in_second')))
+
+    def save_sequence_settings(self,filename):
+        # update the xml tree based on the current settings
+        for sequence_name in self.sequences.keys():
+            list_ = self.config_xml_tree_root.xpath("//sequence[contains(@Name," + "'" + str(sequence_name) + "')]")
+            if list_:
+                sequence_to_update = list_[0]
+                sequence_to_update.set('Repeat',str(self.sequences[sequence_name].attributes['Repeat'].value()))
+                sequence_to_update.set('Incubation_Time_in_minute',str(self.sequences[sequence_name].attributes['Incubation Time (min)'].value()))
+                sequence_to_update.set('Flow_Time_in_second',str(self.sequences[sequence_name].attributes['Flow Time (s)'].value()))
+        # save the configurations
+        self.config_xml_tree.write(filename, encoding="utf-8", xml_declaration=True, pretty_print=True)
+        print('sequence settings saved')
 
     def run_sequences(self):
         msg = QMessageBox()

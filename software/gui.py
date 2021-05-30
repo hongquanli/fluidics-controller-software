@@ -160,4 +160,5 @@ class STARmapAutomationControllerGUI(QMainWindow):
 			self.logWidget.item(self.logWidget.count()-1).setText(text)
 
 	def closeEvent(self, event):
+		self.sequenceWidget.close()
 		event.accept()
