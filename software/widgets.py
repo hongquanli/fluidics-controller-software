@@ -286,9 +286,10 @@ class SequenceWidget(QFrame):
         # create the config file if it does not alreay exist
         if(os.path.isfile(filename)==False):
             utils_config.generate_default_configuration(filename)
+            print('creating default configurations')
 
         # read and parse the config file
-        self.config_xml_tree = ET.parse(self.config_filename)
+        self.config_xml_tree = ET.parse(filename)
         self.config_xml_tree_root = self.config_xml_tree.getroot()
         for sequence in self.config_xml_tree_root.iter('sequence'):
             name = sequence.get('Name')
@@ -300,9 +301,9 @@ class SequenceWidget(QFrame):
         dialog = QFileDialog()
         filename, _filter = dialog.getOpenFileName(None,'Open File','.','XML files (*.xml)')
         if filename:
+            self.config_filename = filename
             self.load_sequence_settings(filename)
             self.lineEdit_setting_file.setText(filename)
-            self.config_filename = filename
 
     def saveas_sequence_settings(self):
         dialog = QFileDialog()
@@ -323,7 +324,7 @@ class SequenceWidget(QFrame):
                 sequence_to_update.set('Flow_Time_in_second',str(self.sequences[sequence_name].attributes['Flow Time (s)'].value()))
         # save the configurations
         self.config_xml_tree.write(filename, encoding="utf-8", xml_declaration=True, pretty_print=True)
-        print('sequence settings saved')    
+        print('sequence settings saved to ' + str(filename))    
 
     def run_sequences(self):
         msg = QMessageBox()
