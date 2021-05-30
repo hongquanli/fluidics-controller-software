@@ -550,7 +550,7 @@ class FluidController(QObject):
 					elif self.current_subsequence.type == SUBSEQUENCE_TYPE.COMPUTER_STOPWATCH:
 						self.current_stopwatch = QTimer()
 						self.current_stopwatch.setInterval(self.current_subsequence.stopwatch_time_remaining_seconds*1000)
-						self.current_stopwatch.setInterval(self.current_subsequence.stopwatch_time_remaining_seconds*1000/60) # for simulation, speed up by 60x
+						# self.current_stopwatch.setInterval(self.current_subsequence.stopwatch_time_remaining_seconds*1000/60) # for simulation, speed up by 60x
 						self.current_stopwatch.timeout.connect(self._current_stopwatch_timeout_callback)
 						self.current_stopwatch.start()
 						self.computer_stopwatch_subsequence_in_progress = True
