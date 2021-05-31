@@ -698,7 +698,7 @@ class ManualControlWidget(QWidget):
         self.entry_aspiration_time_s.setKeyboardTracking(False)
         self.entry_aspiration_time_s.setMinimum(0)
         self.entry_aspiration_time_s.setMaximum(PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE)
-        self.entry_aspiration_time_s.setDecimals(5)
+        self.entry_aspiration_time_s.setDecimals(2)
         self.entry_aspiration_time_s.setSingleStep(0.01)
         self.entry_aspiration_time_s.setValue(DEFAULT_VALUES.vacuum_aspiration_time_s)
 
@@ -737,14 +737,15 @@ class ManualControlWidget(QWidget):
         hbox3.addStretch()
 
         hbox4 = QHBoxLayout()
-        tmp = QLabel('Pressure loop   p gain')
-        tmp.setFixedWidth(130)
+        tmp = QLabel('Pressure Loop Settings  p gain')
+        # tmp.setFixedWidth(160)
         hbox4.addWidget(tmp)
         hbox4.addWidget(self.entry_p_gain)
         tmp = QLabel('i gain')
         tmp.setFixedWidth(40)
         hbox4.addWidget(tmp)
         hbox4.addWidget(self.entry_i_gain)
+        hbox4.addStretch()
 
         hbox5 = QHBoxLayout()
         tmp = QLabel('Pressure set point (psi)')
@@ -753,6 +754,7 @@ class ManualControlWidget(QWidget):
         self.entry_pressure_setpoint_psi.setFixedWidth(60)
         hbox5.addWidget(self.entry_pressure_setpoint_psi)
         hbox5.addWidget(self.btn_enable_pressure_loop)
+        hbox5.addStretch()
 
         hbox6 = QHBoxLayout()
         tmp = QLabel('Aspiration settings   Pump Power (0-1)')
@@ -765,26 +767,50 @@ class ManualControlWidget(QWidget):
         hbox6.addWidget(self.entry_aspiration_time_s)
         hbox6.addStretch()
 
+        '''
         framedHbox0 = frameWidget(hbox0)
         framedHbox1 = frameWidget(hbox1)
         framedHbox2 = frameWidget(hbox2)
         framedHbox3 = frameWidget(hbox3)
         framedHbox4 = frameWidget(hbox4)
+        framedHbox6 = frameWidget(hbox6)
         framedHbox5 = frameWidget(hbox5)
         hlayout = QHBoxLayout()
         hlayout.addWidget(framedHbox4)
         hlayout.addWidget(framedHbox5)
-        framedHbox6 = frameWidget(hbox6)
         
         vbox = QVBoxLayout()
+        vbox.addWidget(framedHbox6)
+        vbox.addWidget(QHLine())
+        vbox.addLayout(hlayout)
+        vbox.addWidget(QHLine())
         vbox.addWidget(framedHbox0)
         vbox.addWidget(framedHbox1)
         vbox.addWidget(framedHbox2)
         vbox.addWidget(framedHbox3)
-        # vbox.addWidget(framedHbox4)
-        # vbox.addWidget(framedHbox5)
-        vbox.addLayout(hlayout)
-        # vbox.addWidget(framedHbox6)
+        vbox.addWidget(QHLine())
+        vbox.addStretch()
+        '''
+
+        vlayout1 = QVBoxLayout()
+        vlayout1.addLayout(hbox6)
+        vlayout1.addLayout(vlayout1)
+        vlayout1_framed = frameWidget(vlayout1)
+
+        framedHbox4 = frameWidget(hbox4)
+
+        vlayout2 = QVBoxLayout()
+        vlayout2.addLayout(hbox0)
+        vlayout2.addLayout(hbox1)
+        vlayout2.addLayout(hbox2)
+        vlayout2.addLayout(hbox3)
+        vlayout2.addLayout(hbox5)
+        vlayout2_framed = frameWidget(vlayout2)
+                
+        vbox = QVBoxLayout()
+        vbox.addWidget(vlayout1_framed)
+        vbox.addWidget(framedHbox4)
+        vbox.addWidget(vlayout2_framed)
         vbox.addStretch()
 
         self.setLayout(vbox)
@@ -910,3 +936,9 @@ class frameWidget(QFrame):
         super().__init__(*args, **kwargs)
         self.setFrameStyle(QFrame.Panel | QFrame.Raised)
         self.setLayout(layout)
+
+class QHLine(QFrame):
+    def __init__(self):
+        super(QHLine, self).__init__()
+        self.setFrameShape(QFrame.HLine)
+        self.setFrameShadow(QFrame.Sunken)
