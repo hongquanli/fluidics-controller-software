@@ -852,6 +852,8 @@ class ManualControlWidget(QWidget):
         if pressed :
             self.fluidController.add_sequence('Enable Manual Control')
             self.fluidController.start_sequence_execution()
+            self.btn_enable_pressure_loop.setChecked(False) # todo: check if this is also implemented in the firmware
+            self.repaint()
         else:
             self.fluidController.add_sequence('Disable Manual Control')
             self.fluidController.start_sequence_execution()
@@ -860,6 +862,8 @@ class ManualControlWidget(QWidget):
         if pressed :
             self.fluidController.add_sequence('Enable Pressure Control Loop')
             self.fluidController.start_sequence_execution()
+            self.btn_enable_manual_control.setChecked(False)
+            self.repaint()
         else:
             self.fluidController.add_sequence('Disable Pressure Control Loop')
             self.fluidController.start_sequence_execution()
