@@ -327,7 +327,6 @@ class Sequence():
 			mcu_command.set_description('Enable Pressure Control Loop')
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			self.is_single_round_sequence = True
-			self.disable_manual_control = True
 
 		if sequence_name == 'Disable Pressure Control Loop':
 			mcu_command = Microcontroller_Command(CMD_SET.ENABLE_PRESSURE_CONTROL_LOOP,payload1=0)
