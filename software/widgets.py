@@ -767,6 +767,52 @@ class ManualControlWidget(QWidget):
         hbox6.addWidget(self.entry_aspiration_time_s)
         hbox6.addStretch()
 
+        ##################################
+        ############# flush ##############
+        ##################################
+        # create and layout the checkboxes
+        hbox_1 = QHBoxLayout()
+        self.checkbox = {}
+        for port_name in Port.keys():
+            port = Port[port_name]
+            if port_name == str(port):
+                checkbox_text =  port_name
+            else:
+                checkbox_text = port_name + ' (' + str(port) + ')'
+            self.checkbox[port_name] = QCheckBox(checkbox_text)
+            self.checkbox[port_name].setChecked(True)
+            hbox_1.addWidget(self.checkbox[port_name])
+
+        # target pressure 
+        self.entry_target_pressure = QDoubleSpinBox()
+        self.entry_target_pressure.setMinimum(0)
+        self.entry_target_pressure.setMaximum(5.0) 
+        self.entry_target_pressure.setSingleStep(0.1)
+        self.entry_target_pressure.setValue(DEFAULT_VALUES.pressure_setpoint_for_pumping_fluid_constant_pressure_mode)
+        hbox_2 = QHBoxLayout()
+        hbox_2.addWidget(QLabel('Flush Pressure Setpoint (psi)'))
+        hbox_2.addWidget(self.entry_target_pressure)
+        # hbox_2.addStretch()
+
+        self.entry_flush_duration = QDoubleSpinBox()
+        self.entry_flush_duration.setMinimum(0)
+        self.entry_flush_duration.setMaximum(300) 
+        self.entry_flush_duration.setSingleStep(0.1)
+        self.entry_flush_duration.setValue(15)
+        hbox_2.addWidget(QLabel('Flush Duration (s)'))
+        hbox_2.addWidget(self.entry_flush_duration)
+       
+        # add buttons
+        self.button_flush = QPushButton('Flush')
+        self.button_flush.setCheckable(False)
+        # self.button_flush.clicked.connect(self.flush)
+
+        vbox_flush = QVBoxLayout()
+        vbox_flush.addLayout(hbox_1)
+        vbox_flush.addLayout(hbox_2)
+        vbox_flush.addWidget(self.button_flush)
+
+
         '''
         framedHbox0 = frameWidget(hbox0)
         framedHbox1 = frameWidget(hbox1)
@@ -811,6 +857,7 @@ class ManualControlWidget(QWidget):
         vbox.addWidget(vlayout1_framed)
         vbox.addWidget(framedHbox4)
         vbox.addWidget(vlayout2_framed)
+        vbox.addWidget(frameWidget(vbox_flush))
         vbox.addStretch()
 
         self.setLayout(vbox)
