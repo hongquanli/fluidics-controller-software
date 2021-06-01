@@ -85,10 +85,8 @@ class PreUseCheckWidget(QFrame):
             for port_name in Port.keys():
                 if(self.checkbox[port_name].isChecked()==True):
                     print('checking port ' + port_name )
-                    self.log_message.emit(utils.timestamp() + 'checking port ' + port_name)
+                    self.log_message.emit(utils.timestamp() + 'flushing line ' + port_name)
                     QApplication.processEvents()
-                else:
-                    pass
         self.button_preuse_check.setChecked(False)
         QApplication.processEvents()
 
@@ -614,6 +612,8 @@ class ManualControlWidget(QWidget):
     log_message = Signal(str)
     signal_aspiration_time_s = Signal(float)
     signal_aspiration_power = Signal(float)
+    signal_disable_userinterface = Signal()
+    signal_enable_userinterface = Signal()
 
     def __init__(self, fluidController, main=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -803,14 +803,13 @@ class ManualControlWidget(QWidget):
         hbox_2.addWidget(self.entry_flush_duration)
        
         # add buttons
-        self.button_flush = QPushButton('Flush')
-        self.button_flush.setCheckable(False)
-        # self.button_flush.clicked.connect(self.flush)
+        self.btn_flush = QPushButton('Flush')
+        self.btn_flush.setCheckable(True)
 
         vbox_flush = QVBoxLayout()
         vbox_flush.addLayout(hbox_1)
         vbox_flush.addLayout(hbox_2)
-        vbox_flush.addWidget(self.button_flush)
+        vbox_flush.addWidget(self.btn_flush)
 
 
         '''
@@ -871,6 +870,9 @@ class ManualControlWidget(QWidget):
         self.entry_p_gain.valueChanged.connect(self.set_pressure_loop_p_coefficient)
         self.entry_i_gain.valueChanged.connect(self.set_pressure_loop_i_coefficient)
         self.btn_enable_pressure_loop.clicked.connect(self.enable_pressure_loop)
+
+        self.btn_flush.clicked.connect(self.flush)
+        self.fluidController.signal_sequences_execution_stopped.connect(self.enable_user_interface)        
 
     def update_selector_valve(self,pos_str):
         if pos_str is not '':
@@ -937,6 +939,38 @@ class ManualControlWidget(QWidget):
 
     def set_aspiration_power(self,value):
         self.signal_aspiration_power.emit(value)
+
+    def flush(self):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText("Confirm your action")
+        msg.setInformativeText("Click OK to flush the selected lines")
+        msg.setWindowTitle("Confirmation")
+        msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        msg.setDefaultButton(QMessageBox.Cancel)
+
+        retval = msg.exec_()
+        if QMessageBox.Ok == retval:
+            self.signal_disable_userinterface.emit()
+            counter = 0
+            for port_name in Port.keys():
+                if(self.checkbox[port_name].isChecked()==True):
+                    self.fluidController.add_sequence('Flush',Port[port_name],flow_time_s=10,pressure_setting=3)
+                    counter = counter + 1
+            if counter > 0:
+                self.fluidController.start_sequence_execution()
+                self.disable_user_interface()
+            else:
+                self.btn_flush.setChecked(False)
+
+    def disable_user_interface(self):
+        self.setEnabled(False)
+
+    def enable_user_interface(self):
+        self.setEnabled(True)
+        self.btn_flush.setChecked(False)
+        self.signal_enable_userinterface.emit()
+        self.repaint()
 
 class ChillerWidget(QFrame):
 

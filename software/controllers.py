@@ -281,6 +281,23 @@ class Sequence():
 			self.is_single_round_sequence = False # for message display only, no other essence
 			self.disable_manual_control = True
 
+		# case 4: flush
+		if sequence_name == 'Flush':
+			control_type = DEFAULT_VALUES.control_type_for_adding_medium
+			if control_type == MCU_CMD_PARAMETERS.CONSTANT_POWER:
+				pump_power = DEFAULT_VALUES.pump_power_for_adding_medium_constant_power_mode # *** make this adjustable in the GUI ***
+				payload3 = pump_power*65535 # *** make this adjustable in the GUI ***
+				# *** to do: add timeout limit ***
+			if control_type == MCU_CMD_PARAMETERS.CONSTANT_PRESSURE:
+				payload3 = ((pressure_setting)/PRESSURE_FULL_SCALE_PSI)*65535
+			payload4 = flow_time_s*1000
+			mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,fluidic_port,payload3,payload4)
+			mcu_command.set_description('Flush line ' + str(fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			
+			self.is_single_round_sequence = True
+			self.disable_manual_control = True
+
 		# manual control sequences
 		# case 10
 		if sequence_name == 'Set Selector Valve Position':

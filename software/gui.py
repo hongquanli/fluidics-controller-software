@@ -101,6 +101,7 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		# self.triggerController.log_message.connect(self.logWidget.addItem)
 		self.sequenceWidget.log_message.connect(self.logWidget.addItem)
 		self.manualFlushWidget.log_message.connect(self.logWidget.addItem)
+		self.manualControlWidget.log_message.connect(self.logWidget.addItem)
 
 		self.chillerWidget.log_message.connect(self.logWidget.scrollToBottom)
 		self.preUseCheckWidget.log_message.connect(self.logWidget.scrollToBottom)
@@ -108,6 +109,7 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		# self.triggerController.log_message.connect(self.logWidget.scrollToBottom)
 		self.sequenceWidget.log_message.connect(self.logWidget.scrollToBottom)
 		self.manualFlushWidget.log_message.connect(self.logWidget.scrollToBottom)
+		self.manualControlWidget.log_message.connect(self.logWidget.scrollToBottom)
 		
 		self.chillerWidget.log_message.connect(self.logger.log)
 		self.preUseCheckWidget.log_message.connect(self.logger.log)
@@ -115,11 +117,14 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		# self.triggerController.log_message.connect(self.logger.log)
 		self.sequenceWidget.log_message.connect(self.logger.log)
 		self.manualFlushWidget.log_message.connect(self.logger.log)
+		self.manualControlWidget.log_message.connect(self.logger.log)
 
 		self.fluidController.signal_log_highlight_current_item.connect(self.highlight_current_log_item)
 
 		self.sequenceWidget.signal_disable_manualControlWidget.connect(self.disableManualControlWidget)
 		self.sequenceWidget.signal_enable_manualControlWidget.connect(self.enableManualControlWidget)
+		self.manualControlWidget.signal_disable_userinterface.connect(self.disableSequenceWidget) # to-do: also disable sequence widget
+		self.manualControlWidget.signal_enable_userinterface.connect(self.enableSequenceWidget)
 
 		self.fluidController.signal_initialize_stopwatch_display.connect(self.logWidget.addItem)
 		self.fluidController.signal_initialize_stopwatch_display.connect(self.logWidget.scrollToBottom)
@@ -160,6 +165,12 @@ class STARmapAutomationControllerGUI(QMainWindow):
 	def enableManualControlWidget(self):
 		self.tabWidget.setTabEnabled(1,True)
 		self.preUseCheckWidget.setEnabled(True)
+
+	def disableSequenceWidget(self):
+		self.tabWidget.setTabEnabled(0,False)
+
+	def enableSequenceWidget(self):
+		self.tabWidget.setTabEnabled(0,True)
 
 	def update_stopwatch_display(self,text):
 		if 'stop watch remaining time' in self.logWidget.item(self.logWidget.count()-1).text():
