@@ -433,6 +433,8 @@ class SequenceWidget(QFrame):
 
     def disable_widgets_except_for_abort_btn(self):
         self.signal_disable_manualControlWidget.emit()
+        self.entry_aspiration_time_s.setEnabled(False)
+        self.entry_aspiration_pump_power.setEnabled(False)
         self.tableWidget.setEnabled(False)
         self.lineEdit_setting_file.setEnabled(False)
         self.button_load.setEnabled(False)
@@ -442,6 +444,8 @@ class SequenceWidget(QFrame):
         QApplication.processEvents()
 
     def enable_widgets_except_for_abort_btn(self):
+        self.entry_aspiration_time_s.setEnabled(True)
+        self.entry_aspiration_pump_power.setEnabled(True)
         self.tableWidget.setEnabled(True)
         self.lineEdit_setting_file.setEnabled(True)
         self.button_load.setEnabled(True)
