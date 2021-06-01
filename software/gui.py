@@ -71,7 +71,7 @@ class STARmapAutomationControllerGUI(QMainWindow):
 
 		self.tabWidget = QTabWidget()
 		self.tabWidget.addTab(tab1_widget, "Run Experiments")
-		self.tabWidget.addTab(tab2_widget, "Manual Control")
+		self.tabWidget.addTab(tab2_widget, "Settings and Manual Control")
 		
 		layout = QGridLayout()
 		layout.addWidget(self.tabWidget,0,0)
