@@ -41,6 +41,9 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		self.manualControlWidget = widgets.ManualControlWidget(self.fluidController)
 		self.microcontrollerStateDisplayWidget = widgets.MicrocontrollerStateDisplayWidget()
 
+		# disable preuse check before it is fully implemented
+		self.preUseCheckWidget.setEnabled(False)
+
 		# layout widgets (linear)
 		'''
 		layout = QGridLayout()
