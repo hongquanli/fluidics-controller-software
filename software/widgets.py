@@ -237,34 +237,72 @@ class SequenceWidget(QFrame):
         self.tableWidget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.tableWidget.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
+        # aspiration settings
+        self.entry_aspiration_pump_power = QDoubleSpinBox()
+        self.entry_aspiration_pump_power.setKeyboardTracking(False)
+        self.entry_aspiration_pump_power.setMinimum(0)
+        self.entry_aspiration_pump_power.setMaximum(1)
+        self.entry_aspiration_pump_power.setDecimals(2)
+        self.entry_aspiration_pump_power.setSingleStep(0.01)
+        self.entry_aspiration_pump_power.setValue(DEFAULT_VALUES.aspiration_pump_power)
+
+        self.entry_aspiration_time_s = QDoubleSpinBox()
+        self.entry_aspiration_time_s.setKeyboardTracking(False)
+        self.entry_aspiration_time_s.setMinimum(0)
+        self.entry_aspiration_time_s.setMaximum(PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE)
+        self.entry_aspiration_time_s.setDecimals(1)
+        self.entry_aspiration_time_s.setSingleStep(1)
+        self.entry_aspiration_time_s.setValue(DEFAULT_VALUES.vacuum_aspiration_time_s)
+
+        hbox_aspiration_settings = QHBoxLayout()
+        hbox_aspiration_settings.addWidget(QLabel(' Aspiration Settings: '))
+        hbox_aspiration_settings.addWidget(QLabel('Pump Power'))
+        hbox_aspiration_settings.addWidget(self.entry_aspiration_pump_power)
+        hbox_aspiration_settings.addWidget(QLabel('Duration (s)'))
+        hbox_aspiration_settings.addWidget(self.entry_aspiration_time_s)
+        hbox_aspiration_settings.addStretch()
+
         # settings loading and saveing
         self.lineEdit_setting_file = QLineEdit()
         self.lineEdit_setting_file.setReadOnly(True)
-        # self.lineEdit_setting_file.setText('[ Click Browse to Select a Setting File ]')
         self.lineEdit_setting_file.setText(self.config_filename)
         # self.btn_select_setting_file = QPushButton('Browse')
         # self.btn_select_setting_file.setDefault(False)
         # self.btn_select_setting_file.setIcon(QIcon('icon/folder.png'))
+        self.button_save = QPushButton('Save Setttings')
+        self.button_load = QPushButton('Load Setttings')
+        self.button_save.setIcon(QIcon('icon/folder.png'))
+        self.button_load.setIcon(QIcon('icon/folder.png'))
 
-        # button
-        self.button_save = QPushButton('Save Sequence Setttings')
-        self.button_load = QPushButton('Load Sequence Setttings')
-        self.button_run = QPushButton('Run Selected Sequences')
-        self.button_stop = QPushButton('Abort')
-
-        vbox = QVBoxLayout()
-        vbox.addWidget(self.tableWidget)
         hbox_settings_loading_and_saving = QHBoxLayout()
         hbox_settings_loading_and_saving.addWidget(self.button_save)
         # hbox_settings_loading_and_saving.addWidget(self.btn_select_setting_file)
         hbox_settings_loading_and_saving.addWidget(self.button_load)
         hbox_settings_loading_and_saving.addWidget(self.lineEdit_setting_file)
-        vbox.addLayout(hbox_settings_loading_and_saving)
-        grid_btns = QGridLayout()
+        hbox_settings_loading_and_saving.addStretch()
+
+        # start and stop
+        self.button_run = QPushButton('Run Selected Sequences')
+        self.button_stop = QPushButton('Abort')
+        self.button_run.setFixedWidth(264)
+        #self.button_run.setFixedHeight(50)
+        self.button_stop.setFixedWidth(240)
+        #self.button_stop.setFixedHeight(50)
+
+        # grid_btns = QGridLayout()
         # grid_btns.addWidget(self.button_save,0,0)
         # grid_btns.addWidget(self.button_load,0,1)
-        grid_btns.addWidget(self.button_run,1,0)
-        grid_btns.addWidget(self.button_stop,1,1)
+        # grid_btns.addWidget(self.button_run,1,0)
+        # grid_btns.addWidget(self.button_stop,1,1)
+        grid_btns = QHBoxLayout()
+        grid_btns.addWidget(self.button_run)
+        grid_btns.addWidget(self.button_stop)
+        grid_btns.addStretch()
+
+        vbox = QVBoxLayout()
+        vbox.addLayout(hbox_settings_loading_and_saving)
+        vbox.addLayout(hbox_aspiration_settings)
+        vbox.addWidget(self.tableWidget)
         vbox.addLayout(grid_btns)
         self.setLayout(vbox)
 
@@ -340,6 +378,7 @@ class SequenceWidget(QFrame):
             # print a seperator for visuals
             self.log_message.emit('--------------------------------')
             # go through sequences and execute *selected* sequences
+            counter = 0
             for i in range(len(SEQUENCE_NAME)):
                 current_sequence = self.sequences[SEQUENCE_NAME[i]]
                 if current_sequence.attributes['Include'].isChecked() == True:
@@ -355,10 +394,12 @@ class SequenceWidget(QFrame):
                             current_sequence.attributes['Flow Time (s)'].value(),
                             current_sequence.attributes['Incubation Time (min)'].value(),
                             pressure_setting=None,
+                            aspiration_pump_power=self.entry_aspiration_pump_power.value(),
+                            aspiration_time_s=self.entry_aspiration_time_s.value(),
                             round_ = k)
-            self.fluidController.start_sequence_execution()
-
-            # self.signal_enable_manualControlWidget.emit()
+                        counter = counter + 1
+            if counter > 0:
+                self.fluidController.start_sequence_execution()
         else:
             self.log_message.emit(utils.timestamp() + 'no action.')
             QApplication.processEvents()
@@ -610,8 +651,8 @@ class SettingsWidget(QWidget):
 class ManualControlWidget(QWidget):
 
     log_message = Signal(str)
-    signal_aspiration_time_s = Signal(float)
-    signal_aspiration_power = Signal(float)
+    # signal_aspiration_time_s = Signal(float)
+    # signal_aspiration_power = Signal(float)
     signal_disable_userinterface = Signal()
     signal_enable_userinterface = Signal()
 
@@ -685,22 +726,22 @@ class ManualControlWidget(QWidget):
         self.btn_enable_pressure_loop.setChecked(False)
         self.btn_enable_pressure_loop.setDefault(False)
 
-        # vaccum settings
-        self.entry_aspiration_pump_power = QDoubleSpinBox()
-        self.entry_aspiration_pump_power.setKeyboardTracking(False)
-        self.entry_aspiration_pump_power.setMinimum(0)
-        self.entry_aspiration_pump_power.setMaximum(1)
-        self.entry_aspiration_pump_power.setDecimals(3)
-        self.entry_aspiration_pump_power.setSingleStep(0.01)
-        self.entry_aspiration_pump_power.setValue(DEFAULT_VALUES.aspiration_pump_power)
+        # # vaccum settings
+        # self.entry_aspiration_pump_power = QDoubleSpinBox()
+        # self.entry_aspiration_pump_power.setKeyboardTracking(False)
+        # self.entry_aspiration_pump_power.setMinimum(0)
+        # self.entry_aspiration_pump_power.setMaximum(1)
+        # self.entry_aspiration_pump_power.setDecimals(3)
+        # self.entry_aspiration_pump_power.setSingleStep(0.01)
+        # self.entry_aspiration_pump_power.setValue(DEFAULT_VALUES.aspiration_pump_power)
 
-        self.entry_aspiration_time_s = QDoubleSpinBox()
-        self.entry_aspiration_time_s.setKeyboardTracking(False)
-        self.entry_aspiration_time_s.setMinimum(0)
-        self.entry_aspiration_time_s.setMaximum(PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE)
-        self.entry_aspiration_time_s.setDecimals(2)
-        self.entry_aspiration_time_s.setSingleStep(0.01)
-        self.entry_aspiration_time_s.setValue(DEFAULT_VALUES.vacuum_aspiration_time_s)
+        # self.entry_aspiration_time_s = QDoubleSpinBox()
+        # self.entry_aspiration_time_s.setKeyboardTracking(False)
+        # self.entry_aspiration_time_s.setMinimum(0)
+        # self.entry_aspiration_time_s.setMaximum(PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE)
+        # self.entry_aspiration_time_s.setDecimals(2)
+        # self.entry_aspiration_time_s.setSingleStep(0.01)
+        # self.entry_aspiration_time_s.setValue(DEFAULT_VALUES.vacuum_aspiration_time_s)
 
         hbox0 = QHBoxLayout()
         tmp = QLabel('Enable Control Through the Physical Knob and Switches')
@@ -756,16 +797,16 @@ class ManualControlWidget(QWidget):
         hbox5.addWidget(self.btn_enable_pressure_loop)
         hbox5.addStretch()
 
-        hbox6 = QHBoxLayout()
-        tmp = QLabel('Aspiration settings   Pump Power (0-1)')
-        tmp.setFixedWidth(200)
-        hbox6.addWidget(tmp)
-        hbox6.addWidget(self.entry_aspiration_pump_power)
-        tmp = QLabel('Duration (seconds)')
-        tmp.setFixedWidth(120)
-        hbox6.addWidget(tmp)
-        hbox6.addWidget(self.entry_aspiration_time_s)
-        hbox6.addStretch()
+        # hbox6 = QHBoxLayout()
+        # tmp = QLabel('Aspiration settings   Pump Power (0-1)')
+        # tmp.setFixedWidth(200)
+        # hbox6.addWidget(tmp)
+        # hbox6.addWidget(self.entry_aspiration_pump_power)
+        # tmp = QLabel('Duration (seconds)')
+        # tmp.setFixedWidth(120)
+        # hbox6.addWidget(tmp)
+        # hbox6.addWidget(self.entry_aspiration_time_s)
+        # hbox6.addStretch()
 
         ##################################
         ############# flush ##############
@@ -837,10 +878,9 @@ class ManualControlWidget(QWidget):
         vbox.addStretch()
         '''
 
-        vlayout1 = QVBoxLayout()
-        vlayout1.addLayout(hbox6)
-        vlayout1.addLayout(vlayout1)
-        vlayout1_framed = frameWidget(vlayout1)
+        # vlayout1 = QVBoxLayout()
+        # vlayout1.addLayout(hbox6)
+        # vlayout1_framed = frameWidget(vlayout1)
 
         framedHbox4 = frameWidget(hbox4)
 
@@ -853,7 +893,7 @@ class ManualControlWidget(QWidget):
         vlayout2_framed = frameWidget(vlayout2)
                 
         vbox = QVBoxLayout()
-        vbox.addWidget(vlayout1_framed)
+        # vbox.addWidget(vlayout1_framed)
         vbox.addWidget(framedHbox4)
         vbox.addWidget(vlayout2_framed)
         vbox.addWidget(frameWidget(vbox_flush))
@@ -934,11 +974,11 @@ class ManualControlWidget(QWidget):
         self.btn_connect_selector_valve_to_chamber.setChecked(False)
         self.btn_enable_pressure_loop.setChecked(False)
 
-    def set_aspiration_time(self,value):
-        self.signal_aspiration_time_s.emit(value)
+    # def set_aspiration_time(self,value):
+    #     self.signal_aspiration_time_s.emit(value)
 
-    def set_aspiration_power(self,value):
-        self.signal_aspiration_power.emit(value)
+    # def set_aspiration_power(self,value):
+    #     self.signal_aspiration_power.emit(value)
 
     def flush(self):
         msg = QMessageBox()

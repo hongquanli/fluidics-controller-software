@@ -207,7 +207,7 @@ class Microcontroller_Simulation(object):
 ################# Sequence Defination #################
 #######################################################
 class Sequence():
-	def __init__(self,sequence_name,fluidic_port=None,flow_time_s=None,incubation_time_min=None,pressure_setting=None,round_=1):
+	def __init__(self,sequence_name,fluidic_port=None,flow_time_s=None,incubation_time_min=None,pressure_setting=None,aspiration_pump_power=None,aspiration_time_s=None,round_=1):
 		self.sequence_name = sequence_name
 		self.fluidic_port = fluidic_port
 		self.flow_time_s = flow_time_s
@@ -231,7 +231,7 @@ class Sequence():
 		# case 3, remove medium
 		if sequence_name == 'Remove Medium':
 			# subsequence 1
-			mcu_command = Microcontroller_Command(CMD_SET.REMOVE_MEDIUM,payload3=int(65535*DEFAULT_VALUES.aspiration_pump_power),payload4=DEFAULT_VALUES.vacuum_aspiration_time_s*1000)
+			mcu_command = Microcontroller_Command(CMD_SET.REMOVE_MEDIUM,payload3=int(65535*aspiration_pump_power),payload4=aspiration_time_s*1000)
 			mcu_command.set_description(CMD_SET_DESCRIPTION.REMOVE_MEDIUM)
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			self.is_single_round_sequence = True
@@ -274,7 +274,7 @@ class Sequence():
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.COMPUTER_STOPWATCH,microcontroller_command=None,stopwatch_time_remaining_seconds=incubation_time_min*60))
 
 			# subsequence 3: remove medium
-			mcu_command = Microcontroller_Command(CMD_SET.REMOVE_MEDIUM,payload3=int(65535*DEFAULT_VALUES.aspiration_pump_power),payload4=DEFAULT_VALUES.vacuum_aspiration_time_s*1000)
+			mcu_command = Microcontroller_Command(CMD_SET.REMOVE_MEDIUM,payload3=int(65535*aspiration_pump_power),payload4=aspiration_time_s*1000)
 			mcu_command.set_description(CMD_SET_DESCRIPTION.REMOVE_MEDIUM)
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 
@@ -757,9 +757,9 @@ class FluidController(QObject):
 			self.microcontroller.send_command(cmd_with_uid)
 		'''
 
-	def add_sequence(self,sequence_name,fluidic_port=None,flow_time_s=None,incubation_time_min=None,pressure_setting=None,round_=1):
+	def add_sequence(self,sequence_name,fluidic_port=None,flow_time_s=None,incubation_time_min=None,pressure_setting=None,aspiration_pump_power=None,aspiration_time_s=None,round_=1):
 		print('adding sequence to the queue ' + sequence_name + ' - flow time: ' + str(flow_time_s) + ' s, incubation time: ' + str(incubation_time_min) + ' s [negative number means no removal]')
-		sequence_to_add = Sequence(sequence_name,fluidic_port,flow_time_s,incubation_time_min,pressure_setting,round_)
+		sequence_to_add = Sequence(sequence_name,fluidic_port,flow_time_s,incubation_time_min,pressure_setting,aspiration_pump_power,aspiration_time_s,round_)
 		self.queue_sequence.put(sequence_to_add)
 		if sequence_to_add.disable_manual_control == True:
 			self.signal_uncheck_manual_control_enabled.emit()
