@@ -160,11 +160,11 @@ class STARmapAutomationControllerGUI(QMainWindow):
 
 	def disableManualControlWidget(self):
 		self.tabWidget.setTabEnabled(1,False)
-		self.preUseCheckWidget.setEnabled(False)
+		# self.preUseCheckWidget.setEnabled(False)
 
 	def enableManualControlWidget(self):
 		self.tabWidget.setTabEnabled(1,True)
-		self.preUseCheckWidget.setEnabled(True)
+		# self.preUseCheckWidget.setEnabled(True)
 
 	def disableSequenceWidget(self):
 		self.tabWidget.setTabEnabled(0,False)
