@@ -882,7 +882,7 @@ class ManualControlWidget(QWidget):
             self.dropdown_10mm_solenoid_valve_selection.setCurrentText(pos_str)
         
     def update_10mm_solenoid_valves(self,pos_str):
-        if pos_str is '-':
+        if pos_str == '-':
             self.fluidController.add_sequence('Set 10 mm Valve State',int(0))
             self.fluidController.start_sequence_execution()
         else:
