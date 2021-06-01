@@ -332,6 +332,9 @@ class SequenceWidget(QFrame):
             self.sequences[name].attributes['Repeat'].setValue(int(sequence.get('Repeat')))
             self.sequences[name].attributes['Incubation Time (min)'].setValue(float(sequence.get('Incubation_Time_in_minute')))
             self.sequences[name].attributes['Flow Time (s)'].setValue(float(sequence.get('Flow_Time_in_second')))
+        for aspiration_setting in self.config_xml_tree_root.iter('aspiration_setting'):
+            self.entry_aspiration_pump_power.setValue(float(aspiration_setting.get('Pump_Power')))
+            self.entry_aspiration_time_s.setValue(float(aspiration_setting.get('Duration_Seconds')))
 
     def load_user_selected_sequence_settings(self):
         dialog = QFileDialog()
@@ -351,6 +354,7 @@ class SequenceWidget(QFrame):
 
     def save_sequence_settings(self,filename):
         # update the xml tree based on the current settings
+        # sequence settings
         for sequence_name in self.sequences.keys():
             list_ = self.config_xml_tree_root.xpath("//sequence[contains(@Name," + "'" + str(sequence_name) + "')]")
             if list_:
@@ -358,6 +362,12 @@ class SequenceWidget(QFrame):
                 sequence_to_update.set('Repeat',str(self.sequences[sequence_name].attributes['Repeat'].value()))
                 sequence_to_update.set('Incubation_Time_in_minute',str(self.sequences[sequence_name].attributes['Incubation Time (min)'].value()))
                 sequence_to_update.set('Flow_Time_in_second',str(self.sequences[sequence_name].attributes['Flow Time (s)'].value()))
+        # aspiration settings
+        list_ = self.config_xml_tree_root.xpath("//aspiration_setting")
+        if list_:
+            aspiration_setting = list_[0]
+            aspiration_setting.set('Pump_Power',str(self.entry_aspiration_pump_power.value()))
+            aspiration_setting.set('Duration_Seconds',str(self.entry_aspiration_time_s.value()))
         # save the configurations
         self.config_xml_tree.write(filename, encoding="utf-8", xml_declaration=True, pretty_print=True)
         print('sequence settings saved to ' + str(filename))    
