@@ -126,8 +126,9 @@ byte 12-13  : pressure sensor 1 reading (vacuum)
 byte 14-15  : pressure sensor 2 reading (pressure)
 byte 16-17  : flow sensor 1 reading (downstream)
 byte 18-19  : flow sensor 2 reading (upstream)
-byte 20-21  : volume (ul) [range: 0 - 5000 ul]
-byte 22-24  : reserved
+byte 20     : elapsed time since the start of the last internal program (in seconds)
+byte 21-22  : volume (ul), range: 0 - 5000
+byte 23-24  : reserved
 */
 static const int FROM_MCU_MSG_LENGTH = 25; // search for MCU_MSG_LENGTH in _def.py
 static const int TO_MCU_CMD_LENGTH = 15; // search for MCU_CMD_LENGTH in _def.py
@@ -643,11 +644,11 @@ void loop() {
       int signed_flow_value = (int16_t) sensor_flow_value;
       float scaled_flow_value = ((float) signed_flow_value) / SCALE_FACTOR_FLOW;*/
       Wire1.requestFrom(SLF3x_ADDRESS, 3);
-      signed_flow_value  = Wire1.read() << 8; // read the MSB from the sensor
-      signed_flow_value |= Wire1.read();      // read the LSB from the sensor
+      flow_2_raw  = Wire1.read() << 8; // read the MSB from the sensor
+      flow_2_raw |= Wire1.read();      // read the LSB from the sensor
       sensor_flow_crc    = Wire1.read();
+      int signed_flow_value = (int16_t) flow_2_raw;
       scaled_flow_value = ((float) signed_flow_value) / SCALE_FACTOR_FLOW;
-      Serial.println(scaled_flow_value);
     }
         
     // pressure sensor 2
