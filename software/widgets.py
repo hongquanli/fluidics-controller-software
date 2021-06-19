@@ -508,6 +508,9 @@ class MicrocontrollerStateDisplayWidget(QFrame):
         self.label_bubble_sensor_upstream = QLabel()
         self.label_bubble_sensor_downstream = QLabel()
 
+        self.label_flowrate_upstream = QLabel()
+        self.label_dispensed_volume = QLabel()
+
         self.label_MCU_CMD_UID.setFixedWidth(50)
         self.label_CMD.setFixedWidth(30)
         self.label_CMD_status.setFixedWidth(50)
@@ -516,6 +519,8 @@ class MicrocontrollerStateDisplayWidget(QFrame):
         self.label_selector_valve_position.setFixedWidth(30)
         self.label_pressure.setFixedWidth(50)
         self.label_vacuum.setFixedWidth(50)
+        self.label_flowrate_upstream.setFixedWidth(50)
+        self.label_dispensed_volume.setFixedWidth(50)
 
         self.label_MCU_CMD_UID.setFrameStyle(QFrame.Panel | QFrame.Sunken)        
         self.label_CMD.setFrameStyle(QFrame.Panel | QFrame.Sunken)
@@ -528,11 +533,13 @@ class MicrocontrollerStateDisplayWidget(QFrame):
         self.label_vacuum.setFrameStyle(QFrame.Panel | QFrame.Sunken)        
         self.label_bubble_sensor_upstream.setFrameStyle(QFrame.Panel | QFrame.Sunken)
         self.label_bubble_sensor_downstream.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+        self.label_flowrate_upstream.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+        self.label_dispensed_volume.setFrameStyle(QFrame.Panel | QFrame.Sunken)
 
         hbox1 = QHBoxLayout()
         hbox2 = QHBoxLayout()
-        # hbox3 = QHBoxLayout()
-        hbox4 = QHBoxLayout()
+        hbox3 = QHBoxLayout()
+        # hbox4 = QHBoxLayout()
 
         tmp = QLabel('CMD UID')
         tmp.setFixedWidth(80)
@@ -585,10 +592,20 @@ class MicrocontrollerStateDisplayWidget(QFrame):
         hbox2.addWidget(self.label_bubble_sensor_downstream) # 0 - liquid present
         hbox2.addStretch()
 
+        tmp = QLabel('Flow Rate (ul/min)')
+        tmp.setFixedWidth(110)
+        hbox3.addWidget(tmp)
+        hbox3.addWidget(self.label_flowrate_upstream)
+        tmp = QLabel('Dispensed Volume (ul)')
+        tmp.setFixedWidth(140)
+        hbox3.addWidget(tmp)
+        hbox3.addWidget(self.label_dispensed_volume)
+        hbox3.addStretch()
+
         vbox = QVBoxLayout()
         vbox.addLayout(hbox1)
         vbox.addLayout(hbox2)
-        vbox.addLayout(hbox4)
+        vbox.addLayout(hbox3)
         self.setLayout(vbox)
 
 

@@ -91,6 +91,8 @@ class MCU_CONSTANTS:
 	_output_max = 14745; # 90% of 2^14
 	_p_min = -30; # psi
 	_p_max = 30; # psi
+	VOLUME_UL_MAX = 5000
+	SCALE_FACTOR_FLOW = 10 # Scale Factor for flow rate measurement, ul/min, SLF3S-0600F
 
 class DEFAULT_VALUES:
 	aspiration_pump_power = 0.3
@@ -138,7 +140,9 @@ byte 12-13	: pressure sensor 1 reading (vacuum)
 byte 14-15	: pressure sensor 2 reading (pressure)
 byte 16-17	: flow sensor 1 reading (downstream)
 byte 18-19	: flow sensor 2 reading (upstream)
-byte 20-24	: reserved
+byte 20     : elapsed time since the start of the last internal program (in seconds)
+byte 21-22  : volume (ul), range: 0 - 5000
+byte 23-24  : reserved
 
 #########################################################
 #########   Computer -> MCU command structure   #########

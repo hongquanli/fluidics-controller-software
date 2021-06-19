@@ -146,6 +146,8 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		self.fluidController.signal_vacuum.connect(self.microcontrollerStateDisplayWidget.label_vacuum.setText)
 		self.fluidController.signal_bubble_sensor_1.connect(self.microcontrollerStateDisplayWidget.label_bubble_sensor_downstream.setNum)
 		self.fluidController.signal_bubble_sensor_2.connect(self.microcontrollerStateDisplayWidget.label_bubble_sensor_upstream.setNum)
+		self.fluidController.signal_flow_upstream.connect(self.microcontrollerStateDisplayWidget.label_flowrate_upstream.setNum)
+		self.fluidController.signal_volume_ul.connect(self.microcontrollerStateDisplayWidget.label_dispensed_volume.setNum)
 
 		# highlight current sequence
 		self.fluidController.signal_highlight_current_sequence.connect(self.sequenceWidget.select_row_using_sequence_name)

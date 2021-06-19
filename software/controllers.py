@@ -18,6 +18,7 @@ import sys
 import time
 import queue
 from pathlib import Path
+import numpy as np
 
 from _def import *
 
@@ -449,6 +450,8 @@ class FluidController(QObject):
 	signal_vacuum = Signal(str)
 	signal_bubble_sensor_1 = Signal(bool)
 	signal_bubble_sensor_2 = Signal(bool)
+	signal_flow_upstream = Signal(float)
+	signal_volume_ul = Signal(float)
 
 	signal_uncheck_manual_control_enabled = Signal()
 
@@ -658,7 +661,9 @@ class FluidController(QObject):
 		byte 13-15	: pressure sensor 2 reading
 		byte 16-17	: flow sensor 1 reading
 		byte 18-19	: flow sensor 2 reading
-		byte 20-24	: reserved
+		byte 20     : elapsed time since the start of the last internal program (in seconds)
+		byte 21-22  : volume (ul), range: 0 - 5000
+		byte 23-24  : reserved
 
 		'''
 		# parse packet, step 0: display parsed packet (to add)
@@ -679,6 +684,9 @@ class FluidController(QObject):
 		bubble_sensor_1_state = MCU_valve_A_B_and_bubble_sensors & 0b00001000
 		bubble_sensor_2_state = MCU_valve_A_B_and_bubble_sensors & 0b00000100
 
+		flow_upstream = float(np.int16((int(msg[21])<<8)+msg[22]))/MCU_CONSTANTS.SCALE_FACTOR_FLOW
+		volume_ul = float(np.int16((int(msg[21])<<8)+msg[22]))/MCU_CONSTANTS.VOLUME_UL_MAX
+
 		self.signal_MCU_CMD_UID.emit(MCU_received_command_UID)
 		self.signal_MCU_CMD.emit(MCU_received_command) # @@@ to-do: map the command to the command description
 		self.signal_MCU_CMD_status.emit(str(MCU_command_execution_status)) # @@@ to-do: map the numerical value to text description
@@ -693,6 +701,9 @@ class FluidController(QObject):
 
 		self.signal_bubble_sensor_1.emit(bubble_sensor_1_state>0)
 		self.signal_bubble_sensor_2.emit(bubble_sensor_2_state>0)
+
+		self.signal_flow_upstream.emit(flow_upstream)
+		self.signal_volume_ul.emit(volume_ul)
 
 		# step 1: check if MCU is "up to date" with the computer in terms of command
 		if (MCU_received_command_UID != self.computer_to_MCU_command_counter) or (MCU_received_command != self.computer_to_MCU_command):
