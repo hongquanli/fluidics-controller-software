@@ -283,20 +283,23 @@ void setup()
   if(counter_tmp < 5)
     flow_sensor_present = true;
 
-  // To perform a measurement, first send 0x3608 to switch to continuous
-  do {
-    Wire1.beginTransmission(SLF3x_ADDRESS);
-    Wire1.write(0x36);
-    Wire1.write(0x08);
-    ret = Wire1.endTransmission();
-    if (ret != 0) {
-      if(DEBUG_WITH_SERIAL)
-        Serial.println("Error starting measurement ...");
-      delay(500); // wait long enough for chip reset to complete
-    }
-  } while (ret != 0);
-
-  delay(100); // 60 ms needed for reliable measurements to begin
+  if(flow_sensor_present)
+  {
+    // To perform a measurement, first send 0x3608 to switch to continuous
+    do {
+      Wire1.beginTransmission(SLF3x_ADDRESS);
+      Wire1.write(0x36);
+      Wire1.write(0x08);
+      ret = Wire1.endTransmission();
+      if (ret != 0) {
+        if(DEBUG_WITH_SERIAL)
+          Serial.println("Error starting measurement ...");
+        delay(500); // wait long enough for chip reset to complete
+      }
+    } while (ret != 0);
+  
+    delay(100); // 60 ms needed for reliable measurements to begin
+  }
 
   // 33996 and SPI
   pinMode(pin_33996_CS_0,OUTPUT);
