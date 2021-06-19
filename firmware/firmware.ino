@@ -4,7 +4,7 @@
 //#define DEBUG_WITH_SERIAL true
 #define DEBUG_WITH_SERIAL false
 #define SELECTOR_VALVE_PRESENT true
-#define FLOW_SENSOR_2_PRESENT false
+// #define FLOW_SENSOR_2_PRESENT false
 
 static const int pin_manual_control_enable = 24;
 static const int pin_pressure_vacuum = 25;
@@ -67,6 +67,10 @@ int ret;
 int16_t signed_flow_value;
 float scaled_flow_value;
 byte sensor_flow_crc;
+bool flow_sensor_present = false;
+float volume_ul = 0;
+float VOLUME_UL_MIN = 0;
+float VOLUME_UL_MAX = 5000;
 
 // IDEX selector valve
 #define UART_Titan Serial5
@@ -122,7 +126,8 @@ byte 12-13  : pressure sensor 1 reading (vacuum)
 byte 14-15  : pressure sensor 2 reading (pressure)
 byte 16-17  : flow sensor 1 reading (downstream)
 byte 18-19  : flow sensor 2 reading (upstream)
-byte 20-24  : reserved
+byte 20-21  : volume (ul) [range: 0 - 5000 ul]
+byte 22-24  : reserved
 */
 static const int FROM_MCU_MSG_LENGTH = 25; // search for MCU_MSG_LENGTH in _def.py
 static const int TO_MCU_CMD_LENGTH = 15; // search for MCU_CMD_LENGTH in _def.py
@@ -259,36 +264,39 @@ void setup()
   Wire1.begin();
 
   // flow sensor
-  if(FLOW_SENSOR_2_PRESENT)
-  {
-    select_sensor_2();
-    // Soft reset the sensor
-    do {
-      Wire1.beginTransmission(0x00);
-      Wire1.write(0x06);
-      ret = Wire1.endTransmission();
-      if (ret != 0) {
-        if(DEBUG_WITH_SERIAL)
-          Serial.println("Error while sending soft reset command, retrying...");
-        delay(500); // wait long enough for chip reset to complete
-      }
-    } while (ret != 0);
-  
-    // To perform a measurement, first send 0x3608 to switch to continuous
-    do {
-      Wire1.beginTransmission(SLF3x_ADDRESS);
-      Wire1.write(0x36);
-      Wire1.write(0x08);
-      ret = Wire1.endTransmission();
-      if (ret != 0) {
-        if(DEBUG_WITH_SERIAL)
-          Serial.println("Error starting measurement ...");
-        delay(500); // wait long enough for chip reset to complete
-      }
-    } while (ret != 0);
-  
-    delay(100); // 60 ms needed for reliable measurements to begin
-  }
+  int counter_tmp = 0;
+  select_sensor_2();
+  // Soft reset the sensor
+  do {
+    counter_tmp = counter_tmp + 1;
+    Wire1.beginTransmission(0x00);
+    Wire1.write(0x06);
+    ret = Wire1.endTransmission();
+    if (ret != 0) {
+      if(DEBUG_WITH_SERIAL)
+        Serial.println("Error while sending soft reset command, retrying...");
+      delay(500); // wait long enough for chip reset to complete
+    }
+    if(counter_tmp == 5)
+      break;
+  } while (ret != 0);
+  if(counter_tmp < 5)
+    flow_sensor_present = true;
+
+  // To perform a measurement, first send 0x3608 to switch to continuous
+  do {
+    Wire1.beginTransmission(SLF3x_ADDRESS);
+    Wire1.write(0x36);
+    Wire1.write(0x08);
+    ret = Wire1.endTransmission();
+    if (ret != 0) {
+      if(DEBUG_WITH_SERIAL)
+        Serial.println("Error starting measurement ...");
+      delay(500); // wait long enough for chip reset to complete
+    }
+  } while (ret != 0);
+
+  delay(100); // 60 ms needed for reliable measurements to begin
 
   // 33996 and SPI
   pinMode(pin_33996_CS_0,OUTPUT);
@@ -604,20 +612,12 @@ void loop() {
   if (flag_read_sensors)
   {
     flag_read_sensors = false;
-    /*
-      // sensor measurement
-      Wire1.requestFrom(SLF3x_ADDRESS, 3);
-      signed_flow_value  = Wire1.read() << 8; // read the MSB from the sensor
-      signed_flow_value |= Wire1.read();      // read the LSB from the sensor
-      sensor_flow_crc    = Wire1.read();
-      scaled_flow_value = ((float) signed_flow_value) / SCALE_FACTOR_FLOW;
-      Serial.println(scaled_flow_value);
-    */
-    
+
     // flow sensor - disable for now
-    if(FLOW_SENSOR_2_PRESENT)
+    if(flow_sensor_present)
     {
       select_sensor_2();
+      /*
       Wire1.requestFrom(SLF3x_ADDRESS, 9);
       if (Wire1.available() < 9)
       {
@@ -638,7 +638,13 @@ void loop() {
       int signed_temp_value = (int16_t) sensor_temp_value;
       float scaled_temp_value = ((float) signed_temp_value) / SCALE_FACTOR_TEMP;
       int signed_flow_value = (int16_t) sensor_flow_value;
-      float scaled_flow_value = ((float) signed_flow_value) / SCALE_FACTOR_FLOW;
+      float scaled_flow_value = ((float) signed_flow_value) / SCALE_FACTOR_FLOW;*/
+      Wire1.requestFrom(SLF3x_ADDRESS, 3);
+      signed_flow_value  = Wire1.read() << 8; // read the MSB from the sensor
+      signed_flow_value |= Wire1.read();      // read the LSB from the sensor
+      sensor_flow_crc    = Wire1.read();
+      scaled_flow_value = ((float) signed_flow_value) / SCALE_FACTOR_FLOW;
+      Serial.println(scaled_flow_value);
     }
         
     // pressure sensor 2
@@ -750,13 +756,15 @@ void loop() {
         internal_program = INTERNAL_PROGRAM_PUMP_FLUID;
         // (3) reset the timer
         elapsed_millis_since_the_start_of_the_internal_program = 0;
+        // (4) reset the dispensed volume
+        volume_ul = 0;
       }
-      // to add - condition for switching to the next phase when pressure reaches the setpoint
       break;
 
     // pump fluid
     case INTERNAL_PROGRAM_PUMP_FLUID:
       time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000;
+      volume_ul = volume_ul + scaled_flow_value*(read_sensors_interval_us/1000000/60);
       if(elapsed_millis_since_the_start_of_the_internal_program>=set_flow_time_ms)
       {
         // (1) close the valve between the selector valve and the chamber
@@ -862,7 +870,9 @@ void loop() {
       byte 14-15  : pressure sensor 2 reading (pressure)
       byte 16-17  : flow sensor 1 reading (downstram)
       byte 18-19  : flow sensor 2 reading (upstram)
-      byte 20-24  : reserved
+      byte 20     : elapsed time since the start of the last internal program (in seconds)
+      byte 21-22  : volume (ul), range: 0 - 5000
+      byte 23-24  : reserved
       */
       buffer_tx[0] = byte(current_command_uid >> 8);
       buffer_tx[1] = byte(current_command_uid % 256);
@@ -887,6 +897,9 @@ void loop() {
       buffer_tx[18] = byte(flow_2_raw >> 8); // pressure
       buffer_tx[19] = byte(flow_2_raw % 256 ); // vacuum
       buffer_tx[20] = byte(time_elapsed_s);
+      uint16_t volume_ul_uint16 = (volume_ul/VOLUME_UL_MAX)*65535;
+      buffer_tx[21] = byte(volume_ul_uint16 >> 8);
+      buffer_tx[22] = byte(volume_ul_uint16 % 256);
       SerialUSB.write(buffer_tx,FROM_MCU_MSG_LENGTH);  
     }
     flag_send_update = false;
