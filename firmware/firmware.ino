@@ -887,13 +887,25 @@ void loop() {
             // and use longer duration for the stripping buffer
             // may well switch to 0.04" ID tubing
             if(fluidic_port == PORT_STRIPPING_BUFFER)
+            {
               duration_for_emptying_the_fluidic_line_s = 10;
+              disc_pump_power = 1000;
+              set_disc_pump_power(disc_pump_power);
+              disc_pump_enabled = true;
+              set_disc_pump_enabled(disc_pump_enabled);
+            }
             else
+            {
               duration_for_emptying_the_fluidic_line_s = DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S_DEFAULT;
-            disc_pump_power = 1000;
-            set_disc_pump_power(disc_pump_power);
-            disc_pump_enabled = true;
-            set_disc_pump_enabled(disc_pump_enabled);
+              pressure_set_point = control_setpoint*PRESSURE_FULL_SCALE_PSI;
+              pressure_control_loop_enabled = true;
+              pressure_loop_integral_error = 0;
+              disc_pump_power = 0;
+              set_disc_pump_power(disc_pump_power);
+              disc_pump_enabled = true;
+              set_disc_pump_enabled(disc_pump_enabled);
+            }
+              
           }
         }
         // (6) reset the timer and go to the next phase
@@ -903,7 +915,7 @@ void loop() {
       break;
     case INTERNAL_PROGRAM_EMPTY_FLUIDIC_LINE:
       time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000;
-      if(elapsed_millis_since_the_start_of_the_internal_program>=1000*DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S_DEFAULT)
+      if(elapsed_millis_since_the_start_of_the_internal_program>=1000*duration_for_emptying_the_fluidic_line_s)
       {
         // stop the pressure loop if the control type is constant pressure
         if(control_type==CONSTANT_PRESSURE) // we may remove this if as we only intend to use pressure control (we don't want to worry about flushing and washing the flow sensor)
