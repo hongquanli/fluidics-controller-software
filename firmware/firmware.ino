@@ -70,7 +70,7 @@ byte sensor_flow_crc;
 bool flow_sensor_present = false;
 float volume_ul = 0;
 float VOLUME_UL_MIN = 0;
-float VOLUME_UL_MAX = 5000;
+static const float VOLUME_UL_MAX = 5000;
 
 // IDEX selector valve
 #define UART_Titan Serial5
@@ -91,6 +91,7 @@ uint16_t pressure_2_raw = 0;
 uint16_t pressure_1_raw = 0;
 uint16_t flow_2_raw = 0; // upstram
 uint16_t flow_1_raw = 0; // downstream
+bool flag_measure_volume = false;
 
 // bubble sensor 
 static const int pin_OCB350_0_calibrate = 29;
@@ -207,11 +208,11 @@ static const float PRESSURE_FULL_SCALE_PSI = 5;
 static const int VACUUM_DECAY_TIME_S = 1;
 static const int PRESSURE_RAMP_UP_TIME_S = 5;
 static const int DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 5;
-static const float PUMP_POWER_FOR_EMPTYING_THE_FLUIDIC_LINE = 0.8;
+static const float PUMP_POWER_FOR_EMPTYING_THE_FLUIDIC_LINE = 0.4;
 static const float PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE = 100;
 
 // fludic port setting
-static const int PORT_AIR = 10;
+static const int PORT_AIR = 11;
 
 /*************************************************************
  ************************** SETUP() **************************
@@ -649,6 +650,8 @@ void loop() {
       sensor_flow_crc    = Wire1.read();
       int signed_flow_value = (int16_t) flow_2_raw;
       scaled_flow_value = ((float) signed_flow_value) / SCALE_FACTOR_FLOW;
+      if(flag_measure_volume)
+        volume_ul = volume_ul + scaled_flow_value*(read_sensors_interval_us/1000000.0/60.0);
     }
         
     // pressure sensor 2
@@ -767,8 +770,8 @@ void loop() {
 
     // pump fluid
     case INTERNAL_PROGRAM_PUMP_FLUID:
+      flag_measure_volume = true;
       time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000;
-      volume_ul = volume_ul + scaled_flow_value*(read_sensors_interval_us/1000000/60);
       if(elapsed_millis_since_the_start_of_the_internal_program>=set_flow_time_ms)
       {
         // (1) close the valve between the selector valve and the chamber
@@ -825,6 +828,7 @@ void loop() {
         time_elapsed_s = 0;
         // close the valve between the selector valve and the chamber
         digitalWrite(pin_valve_B1,LOW);
+        flag_measure_volume = false;
       }
       break;
    }
