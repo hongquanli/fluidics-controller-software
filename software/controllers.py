@@ -684,8 +684,8 @@ class FluidController(QObject):
 		bubble_sensor_1_state = MCU_valve_A_B_and_bubble_sensors & 0b00001000
 		bubble_sensor_2_state = MCU_valve_A_B_and_bubble_sensors & 0b00000100
 
-		flow_upstream = float(np.int16((int(msg[21])<<8)+msg[22]))/MCU_CONSTANTS.SCALE_FACTOR_FLOW
-		volume_ul = float(np.int16((int(msg[21])<<8)+msg[22]))/MCU_CONSTANTS.VOLUME_UL_MAX
+		flow_upstream = float(np.int16((int(msg[18])<<8)+msg[19]))/MCU_CONSTANTS.SCALE_FACTOR_FLOW
+		volume_ul = (float(np.int16((int(msg[21])<<8)+msg[22]))/65535)*MCU_CONSTANTS.VOLUME_UL_MAX
 
 		self.signal_MCU_CMD_UID.emit(MCU_received_command_UID)
 		self.signal_MCU_CMD.emit(MCU_received_command) # @@@ to-do: map the command to the command description
