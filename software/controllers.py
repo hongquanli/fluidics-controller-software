@@ -497,7 +497,7 @@ class FluidController(QObject):
 
 		self.log_measurements = log_measurements
 		if(self.log_measurements):
-			self.measurement_file = open(os.path.join(Path.home(),"Downloads","Fluidic Controller Logged Measurement_" + datetime.now().strftime('%Y-%m-%d %H-%M-%S.%f') + ".csv", "w+"))
+			self.measurement_file = open(os.path.join(Path.home(),"Downloads","Fluidic Controller Logged Measurement_" + datetime.now().strftime('%Y-%m-%d %H-%M-%S.%f') + ".csv"), "w+")
 			self.counter_measurement_file_flush = 0
 
 	def _add_UID_to_mcu_command_packet(self,cmd,command_UID):
