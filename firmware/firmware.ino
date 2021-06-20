@@ -100,6 +100,7 @@ static const int pin_OCB350_1_calibrate = 31;
 static const int pin_OCB350_1_B = 32;
 volatile bool liquid_present_1 = false;
 volatile bool liquid_present_2 = false;
+bool liquid_has_passed_bubble_sensor_2_during_pumping = false;
 
 // communication with the python software
 /*
@@ -765,6 +766,11 @@ void loop() {
         elapsed_millis_since_the_start_of_the_internal_program = 0;
         // (4) reset the dispensed volume
         volume_ul = 0;
+        // (5) set liquid_has_passed_bubble_sensor_2_during_pumping to false for resetting the elapsed time
+        // only change this flag "within" the internal program so that this is not reset by a bubble during pumping,
+        // which will cause problems if that leads to a elasped time reset.
+        if(liquid_present_2 == false)
+          liquid_has_passed_bubble_sensor_2_during_pumping = false;
       }
       break;
 
@@ -772,6 +778,11 @@ void loop() {
     case INTERNAL_PROGRAM_PUMP_FLUID:
       flag_measure_volume = true;
       time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000;
+      if(liquid_has_passed_bubble_sensor_2_during_pumping==false && liquid_present_2 ==true)
+      {
+        liquid_has_passed_bubble_sensor_2_during_pumping = true;
+        elapsed_millis_since_the_start_of_the_internal_program = 0;
+      }
       if(elapsed_millis_since_the_start_of_the_internal_program>=set_flow_time_ms)
       {
         // (1) close the valve between the selector valve and the chamber
@@ -912,8 +923,8 @@ void loop() {
       buffer_tx[3] = command_execution_status;
       buffer_tx[4] = internal_program;
       buffer_tx[5] = 0; // to finish
-      buffer_tx[5] = buffer_tx[5] | (liquid_present_1 << 3);
-      buffer_tx[5] = buffer_tx[5] | (liquid_present_2 << 2);
+      buffer_tx[5] = buffer_tx[5] | (liquid_present_1 << 3); // downstream
+      buffer_tx[5] = buffer_tx[5] | (liquid_present_2 << 2); // upstream
       buffer_tx[6] = 0; // to do
       buffer_tx[7] = byte(NXP33996_state >> 8);
       buffer_tx[8] = byte(NXP33996_state % 256);
