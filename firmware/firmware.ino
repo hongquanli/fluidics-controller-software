@@ -799,13 +799,30 @@ void loop() {
           // to add: error handling
         NXP33996_turn_on(PORT_AIR-1);
         NXP33996_update();
-        // (5) start the pump
-        disc_pump_power = PUMP_POWER_FOR_EMPTYING_THE_FLUIDIC_LINE*1000;
-        set_disc_pump_power(disc_pump_power);
-        disc_pump_enabled = true;
-        set_disc_pump_enabled(disc_pump_enabled);  
-        // (5.5) open the valve between the selector valve and the chamber
-        digitalWrite(pin_valve_B1,HIGH);
+        // (5) start pumping again
+        if(control_type==CONSTANT_POWER)
+        {
+          // start the pump
+          disc_pump_power = PUMP_POWER_FOR_EMPTYING_THE_FLUIDIC_LINE*1000;
+          set_disc_pump_power(disc_pump_power);
+          disc_pump_enabled = true;
+          set_disc_pump_enabled(disc_pump_enabled);  
+          // open the valve between the selector valve and the chamber
+          digitalWrite(pin_valve_B1,HIGH);
+        }
+        else if(control_type==CONSTANT_PRESSURE)
+        {
+          // connect the fluidic path and re-enter the pressure loop
+          digitalWrite(pin_valve_B1,HIGH);
+          // enable the pressure loop again
+          pressure_set_point = control_setpoint*PRESSURE_FULL_SCALE_PSI;
+          pressure_control_loop_enabled = true;
+          pressure_loop_integral_error = 0;
+          disc_pump_power = 0;
+          set_disc_pump_power(disc_pump_power);
+          disc_pump_enabled = true;
+          set_disc_pump_enabled(disc_pump_enabled);
+        }
         // (6) reset the timer and go to the next phase
         internal_program = INTERNAL_PROGRAM_EMPTY_FLUIDIC_LINE;
         elapsed_millis_since_the_start_of_the_internal_program = 0;
@@ -815,6 +832,13 @@ void loop() {
       time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000;
       if(elapsed_millis_since_the_start_of_the_internal_program>=1000*DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S)
       {
+        // stop the pressure loop if the control type is constant pressure
+        if(control_type==CONSTANT_PRESSURE)
+        {
+          pressure_set_point = 0;
+          pressure_control_loop_enabled = false;
+          pressure_loop_integral_error = 0;
+        }
         // stop the disc pump
         disc_pump_power = 0;
         set_disc_pump_power(disc_pump_power);
