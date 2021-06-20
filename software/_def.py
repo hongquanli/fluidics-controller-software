@@ -8,8 +8,8 @@ Port['6'] = 6
 Port['Stripping Buffer'] = 7
 Port['PBST'] = 8
 Port['Imaging Buffer'] = 9
-Port['DAPI'] = 11
-Port['Air'] = 10
+Port['DAPI'] = 10
+Port['Air'] = 11
 
 INCUBATION_TIME_MAX_MIN = 60*12
 FLOW_TIME_MAX = 60 # in seconds
