@@ -204,11 +204,19 @@ float pressure_loop_integral_error = 0;
 float pressure_loop_error = 0;
 static const float PRESSURE_FULL_SCALE_PSI = 5;
 
+// flow rate control loop
+bool flowrate_control_loop_enabled = false;
+float flowrate_set_point = 0;
+float flowrate_loop_p_coefficient = 1;
+float flowrate_loop_i_coefficient = 10;
+float flowrate_loop_integral_error = 0;
+float flowrate_loop_error = 0;
+
 // default settings
 //static const int DISC_PUMP_POWER_VACUUM = 960;
 static const int VACUUM_DECAY_TIME_S = 1;
 static const int PRESSURE_RAMP_UP_TIME_S = 5;
-static const int DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 5;
+int DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 5;
 static const float PUMP_POWER_FOR_EMPTYING_THE_FLUIDIC_LINE = 0.4;
 static const float PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE = 100;
 
@@ -720,6 +728,23 @@ void loop() {
       disc_pump_power = max(0,disc_pump_power);
       set_disc_pump_power(disc_pump_power);
     }
+    if(flowrate_control_loop_enabled)
+    {
+      flowrate_loop_error = (flowrate_set_point - scaled_flow_value)/1000;
+      flowrate_loop_integral_error = flowrate_loop_integral_error + flowrate_loop_error;
+      flowrate_loop_integral_error = min(1/flowrate_loop_i_coefficient,flowrate_loop_integral_error);
+      flowrate_loop_integral_error = max(0,flowrate_loop_integral_error);
+      disc_pump_power = int((flowrate_loop_integral_error*flowrate_loop_i_coefficient+flowrate_loop_error*flowrate_loop_p_coefficient)*1000);
+      disc_pump_power = min(400,disc_pump_power);
+      disc_pump_power = max(0,disc_pump_power); 
+      disc_pump_power = max(50,disc_pump_power); 
+      // since right now the loop is only enabled during emptying fludic line, 
+      // we can set the min power power to be non-zero to ensure the line is 
+      // emptied to ensure the line is emptied after there's no more fluid in the flow sensor
+      // set max power to 400 so that the pressure in the system does not become too high to
+      // still cause overshoot
+      set_disc_pump_power(disc_pump_power);
+    }
     flag_control_loop_update = false;
   }
 
@@ -811,7 +836,7 @@ void loop() {
         NXP33996_turn_on(PORT_AIR-1);
         NXP33996_update();
         // (5) start pumping again
-        if(control_type==CONSTANT_POWER)
+        if(control_type==CONSTANT_POWER) // we may remove this as we only intend to use pressure control (we don't want to worry about flushing and washing the flow sensor)
         {
           // start the pump
           disc_pump_power = PUMP_POWER_FOR_EMPTYING_THE_FLUIDIC_LINE*1000;
@@ -821,18 +846,39 @@ void loop() {
           // open the valve between the selector valve and the chamber
           digitalWrite(pin_valve_B1,HIGH);
         }
-        else if(control_type==CONSTANT_PRESSURE)
+        else if(control_type==CONSTANT_PRESSURE) // we may remove this if as we only intend to use pressure control (we don't want to worry about flushing and washing the flow sensor)
         {
           // connect the fluidic path and re-enter the pressure loop
           digitalWrite(pin_valve_B1,HIGH);
-          // enable the pressure loop again
-          pressure_set_point = control_setpoint*PRESSURE_FULL_SCALE_PSI;
-          pressure_control_loop_enabled = true;
-          pressure_loop_integral_error = 0;
-          disc_pump_power = 0;
-          set_disc_pump_power(disc_pump_power);
-          disc_pump_enabled = true;
-          set_disc_pump_enabled(disc_pump_enabled);
+          if(flow_sensor_present)
+          {
+            DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 10;
+            /*
+             * // pressure_set_point = 1.8; 
+             * // DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 10;
+             * use fixed pressure for emptying the fluidic line, and use a low value for volume measurement
+             * (so that the flow rate is within the measurement range) the above two lines can be commented 
+             * out when not doing volume measurement
+             */
+            flowrate_set_point = 2000;
+            flowrate_control_loop_enabled = true;
+            flowrate_loop_integral_error = 0;
+            disc_pump_power = 0;
+            set_disc_pump_power(disc_pump_power);
+            disc_pump_enabled = true;
+            set_disc_pump_enabled(disc_pump_enabled);
+          }
+          else
+          {
+            // enable the pressure loop again
+            pressure_set_point = control_setpoint*PRESSURE_FULL_SCALE_PSI;
+            pressure_control_loop_enabled = true;
+            pressure_loop_integral_error = 0;
+            disc_pump_power = 0;
+            set_disc_pump_power(disc_pump_power);
+            disc_pump_enabled = true;
+            set_disc_pump_enabled(disc_pump_enabled);
+          }
         }
         // (6) reset the timer and go to the next phase
         internal_program = INTERNAL_PROGRAM_EMPTY_FLUIDIC_LINE;
@@ -844,11 +890,17 @@ void loop() {
       if(elapsed_millis_since_the_start_of_the_internal_program>=1000*DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S)
       {
         // stop the pressure loop if the control type is constant pressure
-        if(control_type==CONSTANT_PRESSURE)
+        if(control_type==CONSTANT_PRESSURE) // we may remove this if as we only intend to use pressure control (we don't want to worry about flushing and washing the flow sensor)
         {
           pressure_set_point = 0;
           pressure_control_loop_enabled = false;
           pressure_loop_integral_error = 0;
+          if(flow_sensor_present)
+          {
+            flowrate_set_point = 0;
+            flowrate_control_loop_enabled = false;
+            flowrate_loop_integral_error = 0;
+          }
         }
         // stop the disc pump
         disc_pump_power = 0;
