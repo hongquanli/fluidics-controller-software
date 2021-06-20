@@ -14,7 +14,7 @@ import widgets
 
 class STARmapAutomationControllerGUI(QMainWindow):
 
-	def __init__(self, is_simulation=False, *args, **kwargs):
+	def __init__(self, is_simulation=False, log_measurements=False, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 
 		# load objects
@@ -28,7 +28,7 @@ class STARmapAutomationControllerGUI(QMainWindow):
 			serial_number = '8219530'
 			# serial_number = '9178980'
 			self.teensy41 = controllers.Microcontroller(serial_number)
-		self.fluidController = controllers.FluidController(self.teensy41)
+		self.fluidController = controllers.FluidController(self.teensy41,log_measurements)
 		self.logger = controllers.Logger()
 
 		# load widgets
@@ -183,5 +183,6 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		self.logWidget.setCurrentRow(self.logWidget.count()-1)
 		
 	def closeEvent(self, event):
+		self.fluidController.close()
 		self.sequenceWidget.close()
 		event.accept()

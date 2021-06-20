@@ -19,6 +19,7 @@ import time
 import queue
 from pathlib import Path
 import numpy as np
+from datetime import datetime
 
 from _def import *
 
@@ -455,7 +456,7 @@ class FluidController(QObject):
 
 	signal_uncheck_manual_control_enabled = Signal()
 
-	def __init__(self,microcontroller):
+	def __init__(self,microcontroller,log_measurements=False):
 		QObject.__init__(self)
 		self.microcontroller = microcontroller		
 		self.cmd_length = MCU_CMD_LENGTH
@@ -493,6 +494,11 @@ class FluidController(QObject):
 		self.timer_update_sequence_execution_state.timeout.connect(self._update_sequence_execution_state)
 
 		self.timestamp_last_computer_mcu_mismatch = None
+
+		self.log_measurements = log_measurements
+		if(self.log_measurements):
+			self.measurement_file = open(str(Path.home()) + "/Downloads/Fluidic Controller Logged Measurement_" + datetime.now().strftime('%Y-%m-%d %H-%M-%-S.%f') + ".csv", "w+")
+			self.counter_measurement_file_flush = 0
 
 	def _add_UID_to_mcu_command_packet(self,cmd,command_UID):
 		cmd[0] = command_UID >> 8
@@ -728,7 +734,7 @@ class FluidController(QObject):
 		if (MCU_command_execution_status != CMD_EXECUTION_STATUS.IN_PROGRESS) and (MCU_command_execution_status != CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS):
 			print('cmd execution error, status code: ' + str(MCU_command_execution_status))
 			# @@@@@ to-do: add error handling @@@@@ #
-			return
+			# return # no need to return here
 		if MCU_command_execution_status == CMD_EXECUTION_STATUS.IN_PROGRESS:
 			# the commented section below is not necessary, as when MCU_received_command_UID and MCU_received_command are set or initialized to 0, 
 			# MCU_command_execution_status will also be set to CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS, 
@@ -746,7 +752,8 @@ class FluidController(QObject):
 			if PRINT_DEBUG_INFO:
 				# print('[ cmd being executed on the MCU ]')
 				pass
-			return 
+			# return # no need to return here
+
 		if MCU_command_execution_status == CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS:
 			# command execucation has completed, can move to the next command
 			# important: only move to the next subsequence upon completion of a *MCU* subsequence
@@ -768,6 +775,29 @@ class FluidController(QObject):
 			self.microcontroller.send_command(cmd_with_uid)
 		'''
 
+		# log measurement
+		if(self.measurement_file):
+			line = str(time.time()) + ',' + \
+				str(MCU_received_command_UID) + ',' + \
+				str(MCU_received_command) + ',' + \
+				str(MCU_command_execution_status) + ',' + \
+				str(MCU_interal_program) + ',' + \
+				str(MCU_valve_A_B_and_bubble_sensors) + ',' + \
+				str(MCU_CMD_time_elapsed) + ',' + \
+				str(measurement_selector_valve_position) + ',' + \
+				"{:.2f}".format(measurement_pump_power) + ',' + \
+				"{:.2f}".format(measurement_pressure) + ',' + \
+				"{:.2f}".format(measurement_vacuum) + ',' + \
+				str(bubble_sensor_1_state) + ',' + \
+				str(bubble_sensor_2_state) + ',' + \
+				"{:.2f}".format(flow_upstream) + ',' + \
+				"{:.2f}".format(volume_ul) + '\n'
+			self.measurement_file.write(line)
+			self.counter_measurement_file_flush = self.counter_measurement_file_flush + 1
+			if self.counter_measurement_file_flush>=500:
+				self.counter_measurement_file_flush = 0
+				self.measurement_file.flush()
+
 	def add_sequence(self,sequence_name,fluidic_port=None,flow_time_s=None,incubation_time_min=None,pressure_setting=None,aspiration_pump_power=None,aspiration_time_s=None,round_=1):
 		print('adding sequence to the queue ' + sequence_name + ' - flow time: ' + str(flow_time_s) + ' s, incubation time: ' + str(incubation_time_min) + ' s [negative number means no removal]')
 		sequence_to_add = Sequence(sequence_name,fluidic_port,flow_time_s,incubation_time_min,pressure_setting,aspiration_pump_power,aspiration_time_s,round_)
@@ -783,6 +813,9 @@ class FluidController(QObject):
 		self.sequences_in_progress = True
 		self.signal_sequences_execution_started.emit()
 		self.timer_update_sequence_execution_state.start()
+
+	def close(self):
+		self.measurement_file.close()
 
 class Logger(QObject):
 
