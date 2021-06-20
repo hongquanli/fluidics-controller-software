@@ -373,6 +373,25 @@ class SequenceWidget(QFrame):
         print('sequence settings saved to ' + str(filename))    
 
     def run_sequences(self):
+        
+        # check if any sequence is selected
+        at_least_one_sequence_is_selected = False
+        for i in range(len(SEQUENCE_NAME)):
+            current_sequence = self.sequences[SEQUENCE_NAME[i]]
+            if current_sequence.attributes['Include'].isChecked() == True:
+                at_least_one_sequence_is_selected = True
+                break;
+        if(at_least_one_sequence_is_selected is False):
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Information)
+            msg.setText("No sequence is selected")
+            msg.setInformativeText("Check the \"include\" check box for sequences that you want to run")
+            msg.setWindowTitle("Warning")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.setDefaultButton(QMessageBox.Ok)
+            retval = msg.exec_()
+            return
+
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Information)
         msg.setText("Confirm your action")
@@ -380,7 +399,6 @@ class SequenceWidget(QFrame):
         msg.setWindowTitle("Confirmation")
         msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
         msg.setDefaultButton(QMessageBox.Cancel)
-
         retval = msg.exec_()
         if QMessageBox.Ok == retval:
             self.abort_requested = False
