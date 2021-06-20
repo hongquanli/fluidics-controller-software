@@ -216,12 +216,14 @@ float flowrate_loop_error = 0;
 //static const int DISC_PUMP_POWER_VACUUM = 960;
 static const int VACUUM_DECAY_TIME_S = 1;
 static const int PRESSURE_RAMP_UP_TIME_S = 5;
-int DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 5;
+static const int DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S_DEFAULT = 5;
 static const float PUMP_POWER_FOR_EMPTYING_THE_FLUIDIC_LINE = 0.4;
 static const float PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE = 100;
+float duration_for_emptying_the_fluidic_line_s = DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S_DEFAULT;
 
 // fludic port setting
 static const int PORT_AIR = 11;
+static const int PORT_STRIPPING_BUFFER = 7;
 
 /*************************************************************
  ************************** SETUP() **************************
@@ -852,7 +854,7 @@ void loop() {
           digitalWrite(pin_valve_B1,HIGH);
           if(flow_sensor_present)
           {
-            DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 10;
+            duration_for_emptying_the_fluidic_line_s = 10; // use longer time
             /*
              * // pressure_set_point = 1.8; 
              * // DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 10;
@@ -870,11 +872,25 @@ void loop() {
           }
           else
           {
+            /*
             // enable the pressure loop again
             pressure_set_point = control_setpoint*PRESSURE_FULL_SCALE_PSI;
             pressure_control_loop_enabled = true;
             pressure_loop_integral_error = 0;
             disc_pump_power = 0;
+            set_disc_pump_power(disc_pump_power);
+            disc_pump_enabled = true;
+            set_disc_pump_enabled(disc_pump_enabled);
+            */
+            // we found that 3.6 psi is not sufficient for emptying the fluidic path for the stripping buffer, when using 0.02" ID tubing.
+            // as a result, use constant power mode 
+            // and use longer duration for the stripping buffer
+            // may well switch to 0.04" ID tubing
+            if(fluidic_port == PORT_STRIPPING_BUFFER)
+              duration_for_emptying_the_fluidic_line_s = 10;
+            else
+              duration_for_emptying_the_fluidic_line_s = DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S_DEFAULT;
+            disc_pump_power = 1000;
             set_disc_pump_power(disc_pump_power);
             disc_pump_enabled = true;
             set_disc_pump_enabled(disc_pump_enabled);
@@ -887,7 +903,7 @@ void loop() {
       break;
     case INTERNAL_PROGRAM_EMPTY_FLUIDIC_LINE:
       time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000;
-      if(elapsed_millis_since_the_start_of_the_internal_program>=1000*DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S)
+      if(elapsed_millis_since_the_start_of_the_internal_program>=1000*DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S_DEFAULT)
       {
         // stop the pressure loop if the control type is constant pressure
         if(control_type==CONSTANT_PRESSURE) // we may remove this if as we only intend to use pressure control (we don't want to worry about flushing and washing the flow sensor)
