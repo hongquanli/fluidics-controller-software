@@ -451,8 +451,8 @@ class FluidController(QObject):
 	signal_vacuum = Signal(str)
 	signal_bubble_sensor_1 = Signal(bool)
 	signal_bubble_sensor_2 = Signal(bool)
-	signal_flow_upstream = Signal(float)
-	signal_volume_ul = Signal(float)
+	signal_flow_upstream = Signal(str)
+	signal_volume_ul = Signal(str)
 
 	signal_uncheck_manual_control_enabled = Signal()
 
