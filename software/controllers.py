@@ -708,8 +708,8 @@ class FluidController(QObject):
 		self.signal_bubble_sensor_1.emit(bubble_sensor_1_state>0)
 		self.signal_bubble_sensor_2.emit(bubble_sensor_2_state>0)
 
-		self.signal_flow_upstream.emit(flow_upstream)
-		self.signal_volume_ul.emit(volume_ul)
+		self.signal_flow_upstream.emit('{:.1f}'.format(flow_upstream))
+		self.signal_volume_ul.emit('{:.1f}'.format(volume_ul))
 
 		# step 1: check if MCU is "up to date" with the computer in terms of command
 		if (MCU_received_command_UID != self.computer_to_MCU_command_counter) or (MCU_received_command != self.computer_to_MCU_command):
