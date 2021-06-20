@@ -776,7 +776,7 @@ class FluidController(QObject):
 		'''
 
 		# log measurement
-		if(self.measurement_file):
+		if(self.log_measurements):
 			line = str(time.time()) + ',' + \
 				str(MCU_received_command_UID) + ',' + \
 				str(MCU_received_command) + ',' + \
@@ -815,7 +815,8 @@ class FluidController(QObject):
 		self.timer_update_sequence_execution_state.start()
 
 	def close(self):
-		self.measurement_file.close()
+		if(self.log_measurements):
+			self.measurement_file.close()
 
 class Logger(QObject):
 
