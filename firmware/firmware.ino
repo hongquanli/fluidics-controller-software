@@ -208,7 +208,7 @@ static const float PRESSURE_FULL_SCALE_PSI = 5;
 bool flowrate_control_loop_enabled = false;
 float flowrate_set_point = 0;
 float flowrate_loop_p_coefficient = 1;
-float flowrate_loop_i_coefficient = 10;
+float flowrate_loop_i_coefficient = 1;
 float flowrate_loop_integral_error = 0;
 float flowrate_loop_error = 0;
 
@@ -224,6 +224,7 @@ float duration_for_emptying_the_fluidic_line_s = DURATION_FOR_EMPTYING_THE_FLUID
 // fludic port setting
 static const int PORT_AIR = 11;
 static const int PORT_STRIPPING_BUFFER = 7;
+static const int PORT_PBST = 7;
 
 /*************************************************************
  ************************** SETUP() **************************
@@ -854,21 +855,33 @@ void loop() {
           digitalWrite(pin_valve_B1,HIGH);
           if(flow_sensor_present)
           {
-            duration_for_emptying_the_fluidic_line_s = 10; // use longer time
-            /*
-             * // pressure_set_point = 1.8; 
-             * // DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 10;
-             * use fixed pressure for emptying the fluidic line, and use a low value for volume measurement
-             * (so that the flow rate is within the measurement range) the above two lines can be commented 
-             * out when not doing volume measurement
-             */
-            flowrate_set_point = 2000;
-            flowrate_control_loop_enabled = true;
-            flowrate_loop_integral_error = 0;
-            disc_pump_power = 0;
-            set_disc_pump_power(disc_pump_power);
-            disc_pump_enabled = true;
-            set_disc_pump_enabled(disc_pump_enabled);
+            // use full pump power for the stripping port
+            if(fluidic_port == PORT_STRIPPING_BUFFER || fluidic_port == PORT_PBST)
+            {
+              duration_for_emptying_the_fluidic_line_s = 36;
+              disc_pump_power = 1000;
+              set_disc_pump_power(disc_pump_power);
+              disc_pump_enabled = true;
+              set_disc_pump_enabled(disc_pump_enabled);
+            }
+            else
+            {
+              duration_for_emptying_the_fluidic_line_s = 15; // use longer time
+              /*
+               * // pressure_set_point = 1.8; 
+               * // DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 10;
+               * use fixed pressure for emptying the fluidic line, and use a low value for volume measurement
+               * (so that the flow rate is within the measurement range) the above two lines can be commented 
+               * out when not doing volume measurement
+               */
+              flowrate_set_point = 1500;
+              flowrate_control_loop_enabled = true;
+              flowrate_loop_integral_error = 0;
+              disc_pump_power = 0;
+              set_disc_pump_power(disc_pump_power);
+              disc_pump_enabled = true;
+              set_disc_pump_enabled(disc_pump_enabled);
+            }
           }
           else
           {
@@ -886,9 +899,9 @@ void loop() {
             // as a result, use constant power mode 
             // and use longer duration for the stripping buffer
             // may well switch to 0.04" ID tubing
-            if(fluidic_port == PORT_STRIPPING_BUFFER)
+            if(fluidic_port == PORT_STRIPPING_BUFFER || fluidic_port == PORT_PBST)
             {
-              duration_for_emptying_the_fluidic_line_s = 10;
+              duration_for_emptying_the_fluidic_line_s = 36;
               disc_pump_power = 1000;
               set_disc_pump_power(disc_pump_power);
               disc_pump_enabled = true;
