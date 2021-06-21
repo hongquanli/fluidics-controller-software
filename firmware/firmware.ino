@@ -738,7 +738,7 @@ void loop() {
       flowrate_loop_integral_error = min(1/flowrate_loop_i_coefficient,flowrate_loop_integral_error);
       flowrate_loop_integral_error = max(0,flowrate_loop_integral_error);
       disc_pump_power = int((flowrate_loop_integral_error*flowrate_loop_i_coefficient+flowrate_loop_error*flowrate_loop_p_coefficient)*1000);
-      disc_pump_power = min(400,disc_pump_power);
+      disc_pump_power = min(1000,disc_pump_power);
       disc_pump_power = max(0,disc_pump_power); 
       disc_pump_power = max(50,disc_pump_power); 
       // since right now the loop is only enabled during emptying fludic line, 
@@ -856,7 +856,7 @@ void loop() {
           if(flow_sensor_present)
           {
             // use full pump power for the stripping port
-            if(fluidic_port == PORT_STRIPPING_BUFFER || fluidic_port == PORT_PBST)
+            if(fluidic_port == PORT_STRIPPING_BUFFER)
             {
               duration_for_emptying_the_fluidic_line_s = 36;
               disc_pump_power = 1000;
@@ -883,6 +883,7 @@ void loop() {
               set_disc_pump_enabled(disc_pump_enabled);
             }
           }
+          // flow sensor not present
           else
           {
             /*
@@ -899,7 +900,7 @@ void loop() {
             // as a result, use constant power mode 
             // and use longer duration for the stripping buffer
             // may well switch to 0.04" ID tubing
-            if(fluidic_port == PORT_STRIPPING_BUFFER || fluidic_port == PORT_PBST)
+            if(fluidic_port == PORT_STRIPPING_BUFFER)
             {
               duration_for_emptying_the_fluidic_line_s = 36;
               disc_pump_power = 1000;
