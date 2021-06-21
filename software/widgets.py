@@ -1023,7 +1023,7 @@ class ManualControlWidget(QWidget):
         self.btn_connect_selector_valve_to_chamber.setChecked(False)
         self.btn_enable_pressure_loop.setChecked(False)
         self.dropdown_selector_valve_position.setCurrentText('')
-        self.dropdown_10mm_solenoid_valve_selection.setCurrentText('')
+        self.dropdown_10mm_solenoid_valve_selection.setCurrentText('-')
 
     # def set_aspiration_time(self,value):
     #     self.signal_aspiration_time_s.emit(value)
