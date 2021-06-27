@@ -129,6 +129,8 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		self.manualControlWidget.signal_disable_userinterface.connect(self.disableSequenceWidget) # to-do: also disable sequence widget
 		self.manualControlWidget.signal_enable_userinterface.connect(self.enableSequenceWidget)
 
+		self.fluidController.signal_uncheck_all_sequences.connect(self.sequenceWidget.uncheck_all_sequences)
+
 		self.fluidController.signal_initialize_stopwatch_display.connect(self.logWidget.addItem)
 		self.fluidController.signal_initialize_stopwatch_display.connect(self.logWidget.scrollToBottom)
 		self.fluidController.signal_update_stopwatch_display.connect(self.update_stopwatch_display)

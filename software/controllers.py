@@ -457,6 +457,8 @@ class FluidController(QObject):
 
 	signal_uncheck_manual_control_enabled = Signal()
 
+	signal_uncheck_all_sequences = Signal()
+
 	def __init__(self,microcontroller,log_measurements=False):
 		QObject.__init__(self)
 		self.microcontroller = microcontroller		
@@ -559,6 +561,7 @@ class FluidController(QObject):
 			else:
 				self.sequences_in_progress = False
 				self.timer_update_sequence_execution_state.stop()
+				self.signal_uncheck_all_sequences.emit()
 				self.signal_sequences_execution_stopped.emit()
 				self.log_message.emit(utils.timestamp() + 'Finished executing all the selected sequences')
 				self.signal_clear_highlight.emit()

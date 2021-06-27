@@ -480,6 +480,10 @@ class SequenceWidget(QFrame):
     def deselect_rows(self):
         self.tableWidget.clearSelection()
 
+    def uncheck_all_sequences(self):
+        for sequence_name in self.sequences.keys():
+            self.sequences[sequence_name].attributes['Include'].setCheckState(Qt.Unchecked);
+
 '''
 #########################################################
 #########   MCU -> Computer message structure   #########
