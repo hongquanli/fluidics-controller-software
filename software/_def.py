@@ -34,7 +34,7 @@ class SUBSEQUENCE_TYPE:
 	MCU_CMD = 'MCU CMD'
 	COMPUTER_STOPWATCH = 'COMPUTER STOPWATCH'
 
-PRINT_DEBUG_INFO = True
+PRINT_DEBUG_INFO = False
 
 # status of command execution on the MCU
 class CMD_EXECUTION_STATUS:
@@ -43,6 +43,7 @@ class CMD_EXECUTION_STATUS:
 	CMD_CHECKSUM_ERROR = 2
 	CMD_INVALID = 3
 	CMD_EXECUTION_ERROR = 4
+	ERROR_CODE_EMPTYING_THE_FLUDIIC_LINE_FAILED = 100
 
 #########################################################
 ############   Computer -> MCU command set   ############

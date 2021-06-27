@@ -201,6 +201,7 @@ class Microcontroller_Simulation(object):
 	def _simulation_update_cmd_execution_status(self):
 		print('simulation - MCU command execution finished')
 		self.cmd_execution_status = CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS
+		# self.cmd_execution_status = CMD_EXECUTION_STATUS.ERROR_CODE_EMPTYING_THE_FLUDIIC_LINE_FAILED
 		# print('simulation - MCU command execution error')
 		# self.cmd_execution_status = CMD_EXECUTION_STATUS.CMD_EXECUTION_ERROR
 		self.timer_update_command_execution_status.stop()
@@ -732,9 +733,26 @@ class FluidController(QObject):
 
 		# step 2: check command execution on MCU
 		if (MCU_command_execution_status != CMD_EXECUTION_STATUS.IN_PROGRESS) and (MCU_command_execution_status != CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS):
-			print('cmd execution error, status code: ' + str(MCU_command_execution_status))
 			# @@@@@ to-do: add error handling @@@@@ #
 			# return # no need to return here
+			if MCU_command_execution_status == CMD_EXECUTION_STATUS.ERROR_CODE_EMPTYING_THE_FLUDIIC_LINE_FAILED:
+				# abort all the steps that follows
+				if self.mcu_subsequence_in_progress:
+					self.mcu_subsequence_in_progress = False
+					self.current_subsequence = None
+					self.abort_sequences_requested = True
+					print('cmd execution error, status code: ' + str(MCU_command_execution_status))
+					print('emptying fluidic line failed, all subsequent sequences aborted')
+					self.log_message.emit(utils.timestamp() + '! emptying fluidic line failed, all subsequent sequences aborted !')
+					msg = QMessageBox()
+					msg.setIcon(QMessageBox.Information)
+					msg.setText("Emptying Fluidic Line Failed")
+					msg.setInformativeText("The fludic path has been switched to port 24. Now use a syringe to manually empty the fluidic line.")
+					msg.setWindowTitle("Warning")
+					msg.setStandardButtons(QMessageBox.Ok)
+					msg.setDefaultButton(QMessageBox.Ok)
+					retval = msg.exec_()
+
 		if MCU_command_execution_status == CMD_EXECUTION_STATUS.IN_PROGRESS:
 			# the commented section below is not necessary, as when MCU_received_command_UID and MCU_received_command are set or initialized to 0, 
 			# MCU_command_execution_status will also be set to CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS, 
