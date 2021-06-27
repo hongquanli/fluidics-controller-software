@@ -6,6 +6,14 @@
 #define SELECTOR_VALVE_PRESENT true
 // #define FLOW_SENSOR_2_PRESENT false
 
+// settings for flushing the fluidic line with air
+static const int TINE_TIMEOUT_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 60;
+static const int THRESHOLD_PRESSURE_EMPTYING_THE_FLUIDIC_LINE_PSI = 3.95;
+static const int TIME_REMAINING_EMPTYING_THE_FLUIDIC_LINE_S = 10;
+static const int ERROR_CODE_EMPTYING_THE_FLUDIIC_LINE_FAILED = 100;
+bool empty_fluidic_line_countdown_started = false;
+static const int PORT_MANUAL_FLUSHING = 24;
+
 static const int pin_manual_control_enable = 24;
 static const int pin_pressure_vacuum = 25;
 static const int pin_analog_in = A12; // pin 26
@@ -883,23 +891,15 @@ void loop() {
               set_disc_pump_enabled(disc_pump_enabled);
             }
           }
-          // flow sensor not present
+          // flow sensor not present - normal operation
           else
           {
-            /*
-            // enable the pressure loop again
-            pressure_set_point = control_setpoint*PRESSURE_FULL_SCALE_PSI;
-            pressure_control_loop_enabled = true;
-            pressure_loop_integral_error = 0;
-            disc_pump_power = 0;
-            set_disc_pump_power(disc_pump_power);
-            disc_pump_enabled = true;
-            set_disc_pump_enabled(disc_pump_enabled);
-            */
             // we found that 3.6 psi is not sufficient for emptying the fluidic path for the stripping buffer, when using 0.02" ID tubing.
             // as a result, use constant power mode 
             // and use longer duration for the stripping buffer
-            // may well switch to 0.04" ID tubing
+            // may well switch to 0.04" ID tubing - didn't work
+            /*
+            // instead of just for the stripping buffer port, use max power for flushing for all ports
             if(fluidic_port == PORT_STRIPPING_BUFFER)
             {
               duration_for_emptying_the_fluidic_line_s = 36;
@@ -919,7 +919,14 @@ void loop() {
               disc_pump_enabled = true;
               set_disc_pump_enabled(disc_pump_enabled);
             }
-              
+            */
+            // use max power for flushing for all ports
+            duration_for_emptying_the_fluidic_line_s = TINE_TIMEOUT_FOR_EMPTYING_THE_FLUIDIC_LINE_S;
+            disc_pump_power = 1000;
+            set_disc_pump_power(disc_pump_power);
+            disc_pump_enabled = true;
+            set_disc_pump_enabled(disc_pump_enabled);
+            empty_fluidic_line_countdown_started = false;
           }
         }
         // (6) reset the timer and go to the next phase
@@ -927,10 +934,17 @@ void loop() {
         elapsed_millis_since_the_start_of_the_internal_program = 0;
       }
       break;
-    case INTERNAL_PROGRAM_EMPTY_FLUIDIC_LINE:
+    case INTERNAL_PROGRAM_EMPTY_FLUIDIC_LINE:      
       time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000;
+      if( ( time_elapsed_s > 5 ) && ( pressure_2 <THRESHOLD_PRESSURE_EMPTYING_THE_FLUIDIC_LINE_PSI ) && ( empty_fluidic_line_countdown_started == false ) )
+      {
+        duration_for_emptying_the_fluidic_line_s = TIME_REMAINING_EMPTYING_THE_FLUIDIC_LINE_S; // update time remaining
+        elapsed_millis_since_the_start_of_the_internal_program = 0; // reset the timer
+        empty_fluidic_line_countdown_started = true;
+      }
       if(elapsed_millis_since_the_start_of_the_internal_program>=1000*duration_for_emptying_the_fluidic_line_s)
       {
+        flag_measure_volume = false;
         // stop the pressure loop if the control type is constant pressure
         if(control_type==CONSTANT_PRESSURE) // we may remove this if as we only intend to use pressure control (we don't want to worry about flushing and washing the flow sensor)
         {
@@ -953,11 +967,20 @@ void loop() {
         NXP33996_clear_all();
         NXP33996_update();
         internal_program = INTERNAL_PROGRAM_IDLE;
-        command_execution_status = COMPLETED_WITHOUT_ERRORS;
-        time_elapsed_s = 0;
-        // close the valve between the selector valve and the chamber
-        digitalWrite(pin_valve_B1,LOW);
-        flag_measure_volume = false;
+        if(empty_fluidic_line_countdown_started == true)
+        {
+          command_execution_status = COMPLETED_WITHOUT_ERRORS;
+          digitalWrite(pin_valve_B1,LOW); // close the valve between the selector valve and the chamber
+        }
+        else
+        {
+          command_execution_status = ERROR_CODE_EMPTYING_THE_FLUDIIC_LINE_FAILED;
+          // keep the valve between the selector valve and the chamber open for manual flushing // digitalWrite(pin_valve_B1,LOW);
+          // set selector valve position to PORT_MANUAL_FLUSHING for manual flushing
+          selector_valve_position_setValue = PORT_MANUAL_FLUSHING;
+          set_selector_valve_position_blocking(selector_valve_position_setValue);
+        }
+        time_elapsed_s = 0;        
       }
       break;
    }
