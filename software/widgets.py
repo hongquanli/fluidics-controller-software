@@ -141,7 +141,7 @@ class SequenceEntry(QWidget):
         self.attributes['Incubation Time (min)'].setMaximum(INCUBATION_TIME_MAX_MIN)
         self.attributes['Repeat'] = QSpinBox()
         self.attributes['Repeat'].setMinimum(1)
-        self.attributes['Repeat'].setMaximum(5)
+        self.attributes['Repeat'].setMaximum(25) # change to 25 for testing
         self.attributes['Include'] = QCheckBox()
         # manually make sure the keys are included in SEQUENCE_ATTRIBUTES_KEYS
         
@@ -195,11 +195,11 @@ class SequenceWidget(QFrame):
 
         self.sequences['Add Imaging Buffer'].attributes['Incubation Time (min)'].setEnabled(False)
         self.sequences['Remove Medium'].attributes['Flow Time (s)'].setEnabled(False) 
-        self.sequences['Ligate'].attributes['Repeat'].setEnabled(False)
+        # self.sequences['Ligate'].attributes['Repeat'].setEnabled(False) # change to false for testing
         self.sequences['Add Imaging Buffer'].attributes['Repeat'].setEnabled(False)
         self.sequences['Remove Medium'].attributes['Repeat'].setEnabled(False)
         self.sequences['Remove Medium'].attributes['Incubation Time (min)'].setEnabled(False)
-        self.sequences['Stain with DAPI'].attributes['Repeat'].setEnabled(False)
+        # self.sequences['Stain with DAPI'].attributes['Repeat'].setEnabled(False) # change to false for testing
         self.sequences['Remove Medium'].attributes['Fluidic Port'].setMinimum(0)
         self.sequences['Remove Medium'].attributes['Fluidic Port'].setValue(0)
         self.sequences['Remove Medium'].attributes['Fluidic Port'].setEnabled(False)
