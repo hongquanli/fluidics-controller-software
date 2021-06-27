@@ -935,8 +935,8 @@ void loop() {
       }
       break;
     case INTERNAL_PROGRAM_EMPTY_FLUIDIC_LINE:      
-      time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000;
-      if( ( time_elapsed_s > 5 ) && ( pressure_2 <THRESHOLD_PRESSURE_EMPTYING_THE_FLUIDIC_LINE_PSI ) && ( empty_fluidic_line_countdown_started == false ) )
+      time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000.0;
+      if( ( time_elapsed_s >= 5.0 ) && ( pressure_2 < THRESHOLD_PRESSURE_EMPTYING_THE_FLUIDIC_LINE_PSI ) && ( empty_fluidic_line_countdown_started == false ) )
       {
         duration_for_emptying_the_fluidic_line_s = TIME_REMAINING_EMPTYING_THE_FLUIDIC_LINE_S; // update time remaining
         elapsed_millis_since_the_start_of_the_internal_program = 0; // reset the timer
