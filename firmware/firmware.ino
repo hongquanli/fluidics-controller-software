@@ -7,10 +7,9 @@
 // #define FLOW_SENSOR_2_PRESENT false
 
 // settings for flushing the fluidic line with air
-static const int TINE_TIMEOUT_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 60;
+static const int TIME_TIMEOUT_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 60;
 static const int THRESHOLD_PRESSURE_EMPTYING_THE_FLUIDIC_LINE_PSI = 3.95;
 static const int TIME_REMAINING_EMPTYING_THE_FLUIDIC_LINE_S = 10;
-static const int ERROR_CODE_EMPTYING_THE_FLUDIIC_LINE_FAILED = 100;
 bool empty_fluidic_line_countdown_started = false;
 static const int PORT_MANUAL_FLUSHING = 24;
 
@@ -161,8 +160,8 @@ static const int ENABLE_PRESSURE_CONTROL_LOOP = 30;
 static const int SET_PRESSURE_CONTROL_SETPOINT_PSI = 31;
 static const int SET_PRESSURE_CONTROL_LOOP_P_COEFFICIENT = 32;
 static const int SET_PRESSURE_CONTROL_LOOP_I_COEFFICIENT = 33;
-//static const int SET_ASPIRATION_PUMP_POWER = 40;
-//static const int SET_ASPIRATION_TIME_MS = 41;
+static const int PREUSE_CHECK_PRESSURE = 40;
+static const int PREUSE_CHECK_VACUUM = 41;
 
 // command parameters
 // search for class MCU_CMD_PARAMETERS in _def.py
@@ -178,6 +177,8 @@ static const int IN_PROGRESS = 1;
 static const int CMD_CHECKSUM_ERROR = 2;
 static const int CMD_INVALID = 3;
 static const int CMD_EXECUTION_ERROR = 4;
+static const int ERROR_CODE_EMPTYING_THE_FLUDIIC_LINE_FAILED = 100;
+static const int ERROR_CODE_PREUSE_CHECK_FAILED = 110;
 
 // variables related to control by the software program
 uint16_t current_command_uid = 0;
@@ -193,7 +194,9 @@ static const int INTERNAL_PROGRAM_REMOVE_MEDIUM = 1;
 static const int INTERNAL_PROGRAM_RAMP_UP_PRESSURE = 2;   // 2 -> 3 always
 static const int INTERNAL_PROGRAM_PUMP_FLUID = 3;         // 3 -> 4 always 
 static const int INTERNAL_PROGRAM_EMPTY_FLUIDIC_LINE = 4;
-elapsedMillis elapsed_millis_since_remove_medium_started = 0;
+static const int INTERNAL_PROGRAM_PREUSE_CHECK_PRESSURE = 5;
+static const int INTERNAL_PROGRAM_PREUSE_CHECK_VACUUM = 6;
+
 elapsedMillis elapsed_millis_since_the_start_of_the_internal_program = 0; // for internal program 2-4
 byte time_elapsed_s = 0;
 unsigned long set_vacuum_duration_ms = 0;
@@ -232,7 +235,6 @@ float duration_for_emptying_the_fluidic_line_s = DURATION_FOR_EMPTYING_THE_FLUID
 // fludic port setting
 static const int PORT_AIR = 11;
 static const int PORT_STRIPPING_BUFFER = 7;
-static const int PORT_PBST = 7;
 
 /*************************************************************
  ************************** SETUP() **************************
@@ -414,6 +416,60 @@ void loop() {
           }
           command_execution_status = COMPLETED_WITHOUT_ERRORS;
           break;
+
+        // preuse check
+        case PREUSE_CHECK_PRESSURE:
+          fluidic_port = payload2;
+          control_setpoint = float(payload3)/65535;
+          set_flow_time_ms = payload4;
+          manual_control_disabled_by_software = true;
+          pressure_control_loop_enabled = false;
+          // (1) disconnect the chamber from the selector valve
+          digitalWrite(pin_valve_B1,LOW);
+          set_mode_to_pressure();
+          // (2) connect the selector valve 
+          selector_valve_position_setValue = fluidic_port;
+          set_selector_valve_position_blocking(selector_valve_position_setValue);
+          check_selector_valve_position();
+          uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
+          // to add: convert the string to numeric value and compare it with selector_valve_position_setValue
+          // to add: error handling
+          // (3) open the 10 mm valve
+          NXP33996_clear_all();
+          NXP33996_turn_on(fluidic_port-1);
+          NXP33996_update();
+          // (4) set the configuration to pressure
+          set_mode_to_pressure();
+          // (5) turn on the pump
+          disc_pump_power = 1000;
+          set_disc_pump_power(disc_pump_power);
+          disc_pump_enabled = true;
+          set_disc_pump_enabled(disc_pump_enabled);
+          // (6) start timing
+          command_execution_status = IN_PROGRESS;
+          internal_program = INTERNAL_PROGRAM_PREUSE_CHECK_PRESSURE;
+          elapsed_millis_since_the_start_of_the_internal_program = 0;
+          break;
+
+        case PREUSE_CHECK_VACUUM:
+          manual_control_disabled_by_software = true;
+          pressure_control_loop_enabled = false;
+          // (1) disconnect the chamber from the selector valve
+          digitalWrite(pin_valve_B1,LOW);
+          control_setpoint = float(payload3)/65535;
+          set_flow_time_ms = payload4;
+          // (2) set to vacuum
+          set_mode_to_vacuum();
+          // (3) turn on the pump
+          disc_pump_power = 1000;
+          set_disc_pump_power(disc_pump_power);
+          disc_pump_enabled = true;
+          set_disc_pump_enabled(disc_pump_enabled);
+          // (4) start timing
+          command_execution_status = IN_PROGRESS;
+          internal_program = INTERNAL_PROGRAM_PREUSE_CHECK_VACUUM;
+          elapsed_millis_since_the_start_of_the_internal_program = 0;
+          break;
           
         // remove medium
         case REMOVE_MEDIUM:
@@ -429,7 +485,7 @@ void loop() {
           disc_pump_enabled = true;
           set_disc_pump_enabled(disc_pump_enabled);
           set_disc_pump_power(disc_pump_power);
-          elapsed_millis_since_remove_medium_started = 0;
+          elapsed_millis_since_the_start_of_the_internal_program = 0;
           break;
           
         // add medium
@@ -767,12 +823,66 @@ void loop() {
     // idle
     case INTERNAL_PROGRAM_IDLE:
       break;
-      
+
+    // preuse check - pressure
+    case INTERNAL_PROGRAM_PREUSE_CHECK_PRESSURE:
+      time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000;
+      // timeout
+      if(time_elapsed_s >= set_flow_time_ms/1000)
+      {
+        disc_pump_enabled = false;
+        disc_pump_power = 0;
+        set_disc_pump_enabled(disc_pump_enabled);
+        set_disc_pump_power(disc_pump_power);
+        internal_program = INTERNAL_PROGRAM_IDLE;
+        command_execution_status = ERROR_CODE_PREUSE_CHECK_FAILED;
+      }
+      // preuse check completed for the present port
+      // can add debounce or filtering in the future
+      if(pressure_2 > control_setpoint)
+      {
+        disc_pump_enabled = false;
+        disc_pump_power = 0;
+        set_disc_pump_power(disc_pump_power);
+        set_disc_pump_enabled(disc_pump_enabled);
+        internal_program = INTERNAL_PROGRAM_IDLE;
+        command_execution_status = COMPLETED_WITHOUT_ERRORS;
+      }
+      break;
+
+    // preuse check - vacuum
+    case INTERNAL_PROGRAM_PREUSE_CHECK_VACUUM:
+      time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000;
+      // timeout
+      if(time_elapsed_s >= set_flow_time_ms/1000)
+      {
+        disc_pump_enabled = false;
+        disc_pump_power = 0;
+        set_disc_pump_enabled(disc_pump_enabled);
+        set_disc_pump_power(disc_pump_power);
+        set_mode_to_pressure();
+        internal_program = INTERNAL_PROGRAM_IDLE;
+        command_execution_status = ERROR_CODE_PREUSE_CHECK_FAILED;
+      }
+      // preuse check completed for the present port
+      // can add debounce or filtering in the future
+      if(abs(pressure_1) > control_setpoint)
+      {
+        disc_pump_enabled = false;
+        disc_pump_power = 0;
+        set_disc_pump_power(disc_pump_power);
+        set_disc_pump_enabled(disc_pump_enabled);
+        set_mode_to_pressure();
+        internal_program = INTERNAL_PROGRAM_IDLE;
+        command_execution_status = COMPLETED_WITHOUT_ERRORS;
+      }
+      break;
+    
     // remove medium
     case INTERNAL_PROGRAM_REMOVE_MEDIUM:
-      time_elapsed_s = elapsed_millis_since_remove_medium_started/1000;
+      time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000;
       // to add - bubble sensor integration
-      if(elapsed_millis_since_remove_medium_started>set_vacuum_duration_ms)
+      if(elapsed_millis_since_the_start_of_the_internal_program>set_vacuum_duration_ms)
       {
         disc_pump_power = 0;
         set_disc_pump_power(disc_pump_power);
@@ -780,11 +890,10 @@ void loop() {
         set_disc_pump_enabled(disc_pump_enabled);
         set_mode_to_pressure();
       }
-      if(elapsed_millis_since_remove_medium_started>set_vacuum_duration_ms+1000*VACUUM_DECAY_TIME_S)
+      if(elapsed_millis_since_the_start_of_the_internal_program>set_vacuum_duration_ms+1000*VACUUM_DECAY_TIME_S)
       {
         internal_program = INTERNAL_PROGRAM_IDLE;
         command_execution_status = COMPLETED_WITHOUT_ERRORS;
-        time_elapsed_s = 0;
       }
       break;
 
@@ -921,7 +1030,7 @@ void loop() {
             }
             */
             // use max power for flushing for all ports
-            duration_for_emptying_the_fluidic_line_s = TINE_TIMEOUT_FOR_EMPTYING_THE_FLUIDIC_LINE_S;
+            duration_for_emptying_the_fluidic_line_s = TIME_TIMEOUT_FOR_EMPTYING_THE_FLUIDIC_LINE_S;
             disc_pump_power = 1000;
             set_disc_pump_power(disc_pump_power);
             disc_pump_enabled = true;
@@ -934,6 +1043,7 @@ void loop() {
         elapsed_millis_since_the_start_of_the_internal_program = 0;
       }
       break;
+    
     case INTERNAL_PROGRAM_EMPTY_FLUIDIC_LINE:      
       time_elapsed_s = elapsed_millis_since_the_start_of_the_internal_program/1000.0;
       if( ( time_elapsed_s >= 5.0 ) && ( pressure_2 < THRESHOLD_PRESSURE_EMPTYING_THE_FLUIDIC_LINE_PSI ) && ( empty_fluidic_line_countdown_started == false ) )
