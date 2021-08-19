@@ -373,19 +373,19 @@ class Sequence():
 			self.is_single_round_sequence = True
 
 		if sequence_name == 'Set Pressure Control Setpoint (psi)':
-			mcu_command = Microcontroller_Command(CMD_SET.SET_PRESSURE_CONTROL_SETPOINT_PSI,payload3=(pressure_setting/PRESSURE_FULL_SCALE_PSI)*65536)
+			mcu_command = Microcontroller_Command(CMD_SET.SET_PRESSURE_CONTROL_SETPOINT_PSI,payload3=(pressure_setting/PRESSURE_FULL_SCALE_PSI)*65535)
 			mcu_command.set_description('Set Pressure Control Setpoint to ' + str(pressure_setting) + ' psi')
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			self.is_single_round_sequence = True
 
 		if sequence_name == 'Set Pressure Loop P Coefficient':
-			mcu_command = Microcontroller_Command(CMD_SET.SET_PRESSURE_CONTROL_LOOP_P_COEFFICIENT,payload4=(pressure_setting/PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE)*4294967296)
+			mcu_command = Microcontroller_Command(CMD_SET.SET_PRESSURE_CONTROL_LOOP_P_COEFFICIENT,payload4=(pressure_setting/PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE)*4294967295)
 			mcu_command.set_description('Set Pressure Loop P Coefficient to ' + str(pressure_setting))
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			self.is_single_round_sequence = True
 
 		if sequence_name == 'Set Pressure Loop I Coefficient':
-			mcu_command = Microcontroller_Command(CMD_SET.SET_PRESSURE_CONTROL_LOOP_I_COEFFICIENT,payload4=(pressure_setting/PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE)*4294967296)
+			mcu_command = Microcontroller_Command(CMD_SET.SET_PRESSURE_CONTROL_LOOP_I_COEFFICIENT,payload4=(pressure_setting/PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE)*4294967295)
 			mcu_command.set_description('Set Pressure Loop I Coefficient to ' + str(pressure_setting))
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			self.is_single_round_sequence = True
