@@ -8,7 +8,7 @@
 
 // settings for flushing the fluidic line with air
 static const int TIME_TIMEOUT_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 60;
-static const int THRESHOLD_PRESSURE_EMPTYING_THE_FLUIDIC_LINE_PSI = 4.10;
+static const int THRESHOLD_PRESSURE_EMPTYING_THE_FLUIDIC_LINE_PSI = 4.20;
 static const int TIME_REMAINING_EMPTYING_THE_FLUIDIC_LINE_S = 10;
 bool empty_fluidic_line_countdown_started = false;
 static const int PORT_MANUAL_FLUSHING = 24;
