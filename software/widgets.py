@@ -61,7 +61,7 @@ class PreUseCheckWidget(QFrame):
         self.entry_target_vacuum.setMinimum(-4.0)
         self.entry_target_vacuum.setMaximum(0) 
         self.entry_target_vacuum.setSingleStep(0.1)
-        self.entry_target_vacuum.setValue(-3.0)
+        self.entry_target_vacuum.setValue(-1.0)
         # hbox_3 = QHBoxLayout()
         hbox_2.addWidget(QLabel('\t Target Vacuum (psi)'))
         hbox_2.addWidget(self.entry_target_vacuum)
@@ -121,15 +121,14 @@ class PreUseCheckWidget(QFrame):
                         self.fluidController.add_sequence('Preuse Check (Pressure)',Port[port_name],
                             flow_time_s=PREUSE_CHECK_SETTINGS.TIMEOUT_S,pressure_setting=self.entry_target_pressure.value(),port_name=port_name)
             self.fluidController.start_sequence_execution()
+            # disable widgets
+            self.signal_disable_manualControlWidget.emit()
+            self.signal_disable_sequenceWidget.emit()
+            self.disable_preuse_check_widget()
+            QApplication.processEvents()
         else:
             self.log_message.emit(utils.timestamp() + 'no action.')
             QApplication.processEvents()
-
-        # disable widgets
-        self.signal_disable_manualControlWidget.emit()
-        self.signal_disable_sequenceWidget.emit()
-        self.disable_preuse_check_widget()
-        QApplication.processEvents()
 
     def enable_preuse_check_widget(self):
         self.setEnabled(True)
