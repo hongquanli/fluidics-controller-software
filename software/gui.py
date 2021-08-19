@@ -42,7 +42,7 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		self.microcontrollerStateDisplayWidget = widgets.MicrocontrollerStateDisplayWidget()
 
 		# disable preuse check before it is fully implemented
-		self.preUseCheckWidget.setEnabled(False)
+		# self.preUseCheckWidget.setEnabled(False)
 
 		# layout widgets (linear)
 		'''
@@ -126,8 +126,11 @@ class STARmapAutomationControllerGUI(QMainWindow):
 
 		self.sequenceWidget.signal_disable_manualControlWidget.connect(self.disableManualControlWidget)
 		self.sequenceWidget.signal_enable_manualControlWidget.connect(self.enableManualControlWidget)
-		self.manualControlWidget.signal_disable_userinterface.connect(self.disableSequenceWidget) # to-do: also disable sequence widget
+		self.manualControlWidget.signal_disable_userinterface.connect(self.disableSequenceWidget)
 		self.manualControlWidget.signal_enable_userinterface.connect(self.enableSequenceWidget)
+		self.preUseCheckWidget.signal_disable_manualControlWidget.connect(self.disableManualControlWidget)
+		self.preUseCheckWidget.signal_disable_sequenceWidget.connect(self.disableSequenceWidget)
+		self.fluidController.signal_preuse_check_result.connect(self.preUseCheckWidget.show_preuse_check_result)
 
 		self.fluidController.signal_uncheck_all_sequences.connect(self.sequenceWidget.uncheck_all_sequences)
 
@@ -164,11 +167,11 @@ class STARmapAutomationControllerGUI(QMainWindow):
 
 	def disableManualControlWidget(self):
 		self.tabWidget.setTabEnabled(1,False)
-		# self.preUseCheckWidget.setEnabled(False)
+		self.preUseCheckWidget.setEnabled(False)
 
 	def enableManualControlWidget(self):
 		self.tabWidget.setTabEnabled(1,True)
-		# self.preUseCheckWidget.setEnabled(True)
+		self.preUseCheckWidget.setEnabled(True)
 
 	def disableSequenceWidget(self):
 		self.tabWidget.setTabEnabled(0,False)

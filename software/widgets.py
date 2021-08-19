@@ -22,6 +22,8 @@ from _def import *
 class PreUseCheckWidget(QFrame):
 
     log_message = Signal(str)
+    signal_disable_manualControlWidget = Signal()
+    signal_disable_sequenceWidget = Signal()
 
     def __init__(self, fluidController, main=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -36,7 +38,7 @@ class PreUseCheckWidget(QFrame):
         self.checkbox = {}
         for port_name in Port.keys():
             port = Port[port_name]
-            if port_name == str(port):
+            if port_name == str(port) or port_name == 'Vacuum' :
                 checkbox_text =  port_name
             else:
                 checkbox_text = port_name + ' (' + str(port) + ')'
@@ -66,7 +68,7 @@ class PreUseCheckWidget(QFrame):
        
         # add buttons
         self.button_preuse_check = QPushButton('Run Pre-Use Check')
-        self.button_preuse_check.setCheckable(True)
+        self.button_preuse_check.setCheckable(False)
         self.button_preuse_check.clicked.connect(self.run_preuse_check)
 
         vbox = QVBoxLayout()
@@ -77,19 +79,74 @@ class PreUseCheckWidget(QFrame):
         hbox = QHBoxLayout()
         # hbox.addWidget(QLabel('[Pre-use Check]]'))
         hbox.addLayout(vbox)
-
         self.setLayout(hbox)
 
-    def run_preuse_check(self,pressed):
-        if pressed:
+        self.fluidController.signal_sequences_execution_stopped.connect(self.enable_preuse_check_widget)
+
+    # def run_preuse_check(self,pressed):
+    #     if pressed:
+    #         for port_name in Port.keys():
+    #             if(self.checkbox[port_name].isChecked()==True):
+    #                 print('checking port ' + port_name )
+    #                 self.log_message.emit(utils.timestamp() + 'preuse check for ' + port_name)
+    #                 QApplication.processEvents()
+    #     self.button_preuse_check.setChecked(False)
+    #     QApplication.processEvents()
+
+    def run_preuse_check(self):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText("Confirm your action")
+        msg.setInformativeText("Click OK to run preuse check")
+        msg.setWindowTitle("Confirmation")
+        msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        msg.setDefaultButton(QMessageBox.Cancel)
+        retval = msg.exec_()
+        if QMessageBox.Ok == retval:
+            # print a seperator for visuals
+            self.log_message.emit('--------------------------------')
+            # go through ports for pressure check
             for port_name in Port.keys():
                 if(self.checkbox[port_name].isChecked()==True):
-                    print('checking port ' + port_name )
-                    self.log_message.emit(utils.timestamp() + 'flushing line ' + port_name)
+                    self.clear_preuse_check_result(port_name)
+                    self.log_message.emit(utils.timestamp() + 'Run preuse check for ' + port_name)
                     QApplication.processEvents()
-        self.button_preuse_check.setChecked(False)
+                    if port_name == 'Vacuum':
+                        self.fluidController.add_sequence('Preuse Check (Vacuum)',0,
+                            flow_time_s=PREUSE_CHECK_SETTINGS.TIMEOUT_S,pressure_setting=abs(self.entry_target_vacuum.value()),port_name=port_name)
+                    elif port_name == 'Air':
+                        self.fluidController.add_sequence('Preuse Check (Pressure)',Port[port_name],
+                            flow_time_s=PREUSE_CHECK_SETTINGS.TIMEOUT_S,pressure_setting=PREUSE_CHECK_SETTINGS.TARGET_PRESSURE_AIR_PATH_PSI,port_name=port_name)
+                    else:
+                        self.fluidController.add_sequence('Preuse Check (Pressure)',Port[port_name],
+                            flow_time_s=PREUSE_CHECK_SETTINGS.TIMEOUT_S,pressure_setting=self.entry_target_pressure.value(),port_name=port_name)
+            self.fluidController.start_sequence_execution()
+        else:
+            self.log_message.emit(utils.timestamp() + 'no action.')
+            QApplication.processEvents()
+
+        # disable widgets
+        self.signal_disable_manualControlWidget.emit()
+        self.signal_disable_sequenceWidget.emit()
+        self.disable_preuse_check_widget()
         QApplication.processEvents()
 
+    def enable_preuse_check_widget(self):
+        self.setEnabled(True)
+
+    def disable_preuse_check_widget(self):
+        self.setEnabled(False)
+
+    def show_preuse_check_result(self,port_name,passed):
+        if passed == True:
+            self.checkbox[port_name].setStyleSheet("color: white;"
+                "background-color: green")
+        else:
+            self.checkbox[port_name].setStyleSheet("color: white;"
+                "background-color: red")
+
+    def clear_preuse_check_result(self,port_name):
+        self.checkbox[port_name].setStyleSheet("")
 
 class TriggerWidget(QFrame):
 

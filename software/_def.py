@@ -10,6 +10,7 @@ Port['PBST'] = 8
 Port['Imaging Buffer'] = 9
 Port['DAPI'] = 10
 Port['Air'] = 11
+Port['Vacuum'] = 0
 
 INCUBATION_TIME_MAX_MIN = 60*12
 FLOW_TIME_MAX = 60 # in seconds
@@ -44,6 +45,7 @@ class CMD_EXECUTION_STATUS:
 	CMD_INVALID = 3
 	CMD_EXECUTION_ERROR = 4
 	ERROR_CODE_EMPTYING_THE_FLUDIIC_LINE_FAILED = 100
+	ERROR_CODE_PREUSE_CHECK_FAILED = 110
 
 #########################################################
 ############   Computer -> MCU command set   ############
@@ -61,8 +63,8 @@ class CMD_SET:
 	SET_PRESSURE_CONTROL_SETPOINT_PSI = 31
 	SET_PRESSURE_CONTROL_LOOP_P_COEFFICIENT = 32
 	SET_PRESSURE_CONTROL_LOOP_I_COEFFICIENT = 33
-	# SET_ASPIRATION_PUMP_POWER = 40
-	# SET_ASPIRATION_TIME_MS = 41
+	PREUSE_CHECK_PRESSURE = 40
+	PREUSE_CHECK_VACUUM = 41
 
 class CMD_SET_DESCRIPTION:
 	CLEAR = 'Clear'
@@ -106,6 +108,9 @@ class DEFAULT_VALUES:
 	pressure_loop_i_gain = 1
 	pressure_setpoint_for_pumping_fluid_constant_pressure_mode = 3.6
 
+class PREUSE_CHECK_SETTINGS:
+	TARGET_PRESSURE_AIR_PATH_PSI = 3
+	TIMEOUT_S = 10
 
 #########################################################
 ###############   MCU Internal Programs   ###############

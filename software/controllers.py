@@ -202,6 +202,7 @@ class Microcontroller_Simulation(object):
 		print('simulation - MCU command execution finished')
 		self.cmd_execution_status = CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS
 		# self.cmd_execution_status = CMD_EXECUTION_STATUS.ERROR_CODE_EMPTYING_THE_FLUDIIC_LINE_FAILED
+		# self.cmd_execution_status = CMD_EXECUTION_STATUS.ERROR_CODE_PREUSE_CHECK_FAILED
 		# print('simulation - MCU command execution error')
 		# self.cmd_execution_status = CMD_EXECUTION_STATUS.CMD_EXECUTION_ERROR
 		self.timer_update_command_execution_status.stop()
@@ -210,13 +211,14 @@ class Microcontroller_Simulation(object):
 ################# Sequence Defination #################
 #######################################################
 class Sequence():
-	def __init__(self,sequence_name,fluidic_port=None,flow_time_s=None,incubation_time_min=None,pressure_setting=None,aspiration_pump_power=None,aspiration_time_s=None,round_=1):
+	def __init__(self,sequence_name,fluidic_port=None,flow_time_s=None,incubation_time_min=None,pressure_setting=None,aspiration_pump_power=None,aspiration_time_s=None,round_=1,port_name = None):
 		self.sequence_name = sequence_name
 		self.fluidic_port = fluidic_port
 		self.flow_time_s = flow_time_s
 		self.incubation_time_min = incubation_time_min
 		self.pressure_setting = pressure_setting
 		self.round = round_
+		self.port_name = port_name
 
 		self.sequence_started = False  # can be removed
 		self.sequence_finished = False # can be removed
@@ -297,7 +299,23 @@ class Sequence():
 			mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,fluidic_port,payload3,payload4)
 			mcu_command.set_description('Flush line ' + str(fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
-			
+			self.is_single_round_sequence = True
+			self.disable_manual_control = True
+
+		# preuse check sequences
+		if sequence_name == 'Preuse Check (Pressure)':
+			mcu_command = Microcontroller_Command(CMD_SET.PREUSE_CHECK_PRESSURE,payload2=fluidic_port,
+				payload3=(pressure_setting/PRESSURE_FULL_SCALE_PSI)*65535,payload4=flow_time_s*1000)
+			mcu_command.set_description('Preuse Check For Port ' + str(fluidic_port))
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			self.is_single_round_sequence = True
+			self.disable_manual_control = True
+
+		if sequence_name == 'Preuse Check (Vacuum)':
+			mcu_command = Microcontroller_Command(CMD_SET.PREUSE_CHECK_VACUUM,payload2=fluidic_port,
+				payload3=(pressure_setting/PRESSURE_FULL_SCALE_PSI)*65535,payload4=flow_time_s*1000)
+			mcu_command.set_description('Preuse Check (Vacuum)')
+			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			self.is_single_round_sequence = True
 			self.disable_manual_control = True
 
@@ -371,18 +389,6 @@ class Sequence():
 			mcu_command.set_description('Set Pressure Loop I Coefficient to ' + str(pressure_setting))
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			self.is_single_round_sequence = True
-
-		# if sequence_name == 'Set Aspiration Pump Power':
-		# 	mcu_command = Microcontroller_Command(CMD_SET.SET_ASPIRATION_PUMP_POWER,payload3=pressure_setting*65535) # "reuse pressure_setting" for pump power (0-1)
-		# 	mcu_command.set_description('Set Pressure Loop I Coefficient to ' + str(pressure_setting))
-		# 	self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
-		# 	self.is_single_round_sequence = True
-
-		# if sequence_name == 'Set Aspiration Time':
-		# 	mcu_command = Microcontroller_Command(CMD_SET.SET_ASPIRATION_TIME_MS,payload4=flow_time_s*1000)
-		# 	mcu_command.set_description('Set Pressure Loop I Coefficient to ' + str(pressure_setting))
-		# 	self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
-		# 	self.is_single_round_sequence = True
 
 class Subsequence():
 	def __init__(self,subsequence_type=None,microcontroller_command=None,stopwatch_time_remaining_seconds=None):
@@ -458,6 +464,8 @@ class FluidController(QObject):
 	signal_uncheck_manual_control_enabled = Signal()
 
 	signal_uncheck_all_sequences = Signal()
+
+	signal_preuse_check_result = Signal(str,bool)
 
 	def __init__(self,microcontroller,log_measurements=False):
 		QObject.__init__(self)
@@ -622,6 +630,7 @@ class FluidController(QObject):
 				# finished executing all the subsequences of the current sequence
 				self.current_sequence.sequence_finished = True # can be removed
 				self.current_sequence = None
+				# can add a signal here to set the sequence text to green #TO-DO
 
 		# case for updating the stopwatch display
 		if self.computer_stopwatch_subsequence_in_progress == True:
@@ -739,6 +748,7 @@ class FluidController(QObject):
 			# @@@@@ to-do: add error handling @@@@@ #
 			# return # no need to return here
 			if MCU_command_execution_status == CMD_EXECUTION_STATUS.ERROR_CODE_EMPTYING_THE_FLUDIIC_LINE_FAILED:
+				# can add a signal here to set the sequence text to green #TO-DO
 				# abort all the steps that follows
 				if self.mcu_subsequence_in_progress:
 					self.mcu_subsequence_in_progress = False
@@ -755,6 +765,18 @@ class FluidController(QObject):
 					msg.setStandardButtons(QMessageBox.Ok)
 					msg.setDefaultButton(QMessageBox.Ok)
 					retval = msg.exec_()
+
+			if MCU_command_execution_status == CMD_EXECUTION_STATUS.ERROR_CODE_PREUSE_CHECK_FAILED:
+				if self.mcu_subsequence_in_progress:
+					# show preuse check result
+					self.signal_preuse_check_result.emit(self.current_sequence.port_name,False)
+					# close the current subsequence
+					self.mcu_subsequence_in_progress = False
+					self.current_subsequence = None
+					self.log_message.emit(utils.timestamp() + '! preuse check for port ' + self.current_sequence.port_name + ' failed !')
+					if PRINT_DEBUG_INFO:
+						print('moving to the next subsequence (if any)')
+
 
 		if MCU_command_execution_status == CMD_EXECUTION_STATUS.IN_PROGRESS:
 			# the commented section below is not necessary, as when MCU_received_command_UID and MCU_received_command are set or initialized to 0, 
@@ -779,6 +801,11 @@ class FluidController(QObject):
 			# command execucation has completed, can move to the next command
 			# important: only move to the next subsequence upon completion of a *MCU* subsequence
 			if self.mcu_subsequence_in_progress:
+				# show preuse check result
+				if self.current_sequence.port_name is not None:
+					self.signal_preuse_check_result.emit(self.current_sequence.port_name,True)
+					self.log_message.emit(utils.timestamp() + 'Preuse check for port ' + self.current_sequence.port_name + ' passed')
+				# close the current subsequence
 				self.mcu_subsequence_in_progress = False
 				self.current_subsequence = None
 				if PRINT_DEBUG_INFO:
@@ -819,9 +846,9 @@ class FluidController(QObject):
 				self.counter_measurement_file_flush = 0
 				self.measurement_file.flush()
 
-	def add_sequence(self,sequence_name,fluidic_port=None,flow_time_s=None,incubation_time_min=None,pressure_setting=None,aspiration_pump_power=None,aspiration_time_s=None,round_=1):
+	def add_sequence(self,sequence_name,fluidic_port=None,flow_time_s=None,incubation_time_min=None,pressure_setting=None,aspiration_pump_power=None,aspiration_time_s=None,round_=1,port_name=None):
 		print('adding sequence to the queue ' + sequence_name + ' - flow time: ' + str(flow_time_s) + ' s, incubation time: ' + str(incubation_time_min) + ' s [negative number means no removal]')
-		sequence_to_add = Sequence(sequence_name,fluidic_port,flow_time_s,incubation_time_min,pressure_setting,aspiration_pump_power,aspiration_time_s,round_)
+		sequence_to_add = Sequence(sequence_name,fluidic_port,flow_time_s,incubation_time_min,pressure_setting,aspiration_pump_power,aspiration_time_s,round_,port_name)
 		self.queue_sequence.put(sequence_to_add)
 		if sequence_to_add.disable_manual_control == True:
 			self.signal_uncheck_manual_control_enabled.emit()
