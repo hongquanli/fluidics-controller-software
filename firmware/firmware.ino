@@ -8,7 +8,7 @@
 
 // settings for flushing the fluidic line with air
 static const int TIME_TIMEOUT_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 60;
-static const int THRESHOLD_PRESSURE_EMPTYING_THE_FLUIDIC_LINE_PSI = 3.95;
+static const int THRESHOLD_PRESSURE_EMPTYING_THE_FLUIDIC_LINE_PSI = 4.10;
 static const int TIME_REMAINING_EMPTYING_THE_FLUIDIC_LINE_S = 10;
 bool empty_fluidic_line_countdown_started = false;
 static const int PORT_MANUAL_FLUSHING = 24;
@@ -420,7 +420,7 @@ void loop() {
         // preuse check
         case PREUSE_CHECK_PRESSURE:
           fluidic_port = payload2;
-          control_setpoint = float(payload3)/65535;
+          control_setpoint = PRESSURE_FULL_SCALE_PSI*float(payload3)/65535;
           set_flow_time_ms = payload4;
           manual_control_disabled_by_software = true;
           pressure_control_loop_enabled = false;
@@ -456,7 +456,7 @@ void loop() {
           pressure_control_loop_enabled = false;
           // (1) disconnect the chamber from the selector valve
           digitalWrite(pin_valve_B1,LOW);
-          control_setpoint = float(payload3)/65535;
+          control_setpoint = PRESSURE_FULL_SCALE_PSI*float(payload3)/65535;
           set_flow_time_ms = payload4;
           // (2) set to vacuum
           set_mode_to_vacuum();
