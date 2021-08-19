@@ -116,7 +116,7 @@ class PREUSE_CHECK_SETTINGS:
 ###############   MCU Internal Programs   ###############
 #########################################################
 
-MCU_INTERNAL_PROGRAMS = ['','Remove Medium','Ramp Up Pressure','Pump Fluid','Empty Fluidic Line']
+MCU_INTERNAL_PROGRAMS = ['','Remove Medium','Ramp Up Pressure','Pump Fluid','Empty Fluidic Line','Preuse Check (Pressure)','Preuse Check (Vacuum)']
 
 # status of internal program execution on the MCU
 
