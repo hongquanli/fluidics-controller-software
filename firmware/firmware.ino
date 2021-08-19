@@ -9,7 +9,7 @@
 // settings for flushing the fluidic line with air
 static const int TIME_TIMEOUT_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 60;
 static const int THRESHOLD_PRESSURE_EMPTYING_THE_FLUIDIC_LINE_PSI = 4.20;
-static const int TIME_REMAINING_EMPTYING_THE_FLUIDIC_LINE_S = 10;
+static const int TIME_REMAINING_EMPTYING_THE_FLUIDIC_LINE_S = 5;
 bool empty_fluidic_line_countdown_started = false;
 static const int PORT_MANUAL_FLUSHING = 24;
 
@@ -1035,12 +1035,12 @@ void loop() {
             set_disc_pump_power(disc_pump_power);
             disc_pump_enabled = true;
             set_disc_pump_enabled(disc_pump_enabled);
-            empty_fluidic_line_countdown_started = false;
           }
         }
         // (6) reset the timer and go to the next phase
         internal_program = INTERNAL_PROGRAM_EMPTY_FLUIDIC_LINE;
         elapsed_millis_since_the_start_of_the_internal_program = 0;
+        empty_fluidic_line_countdown_started = false;
       }
       break;
     
