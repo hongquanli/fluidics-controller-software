@@ -251,7 +251,7 @@ class SequenceWidget(QFrame):
 
         self.sequences['Add Imaging Buffer'].attributes['Incubation Time (min)'].setEnabled(False)
         self.sequences['Remove Medium'].attributes['Flow Time (s)'].setEnabled(False) 
-        # self.sequences['Ligate'].attributes['Repeat'].setEnabled(False) # change to false for testing
+        # self.sequences['Hybridize'].attributes['Repeat'].setEnabled(False) # change to false for testing
         self.sequences['Add Imaging Buffer'].attributes['Repeat'].setEnabled(False)
         self.sequences['Remove Medium'].attributes['Repeat'].setEnabled(False)
         self.sequences['Remove Medium'].attributes['Incubation Time (min)'].setEnabled(False)
@@ -263,23 +263,19 @@ class SequenceWidget(QFrame):
         # port mapping
         self.sequences['Stripping Buffer Wash'].attributes['Fluidic Port'].setValue(Port['Stripping Buffer'])
         self.sequences['Stripping Buffer Wash'].attributes['Fluidic Port'].setEnabled(False)
-        self.sequences['Stripping Buffer Rinse'].attributes['Fluidic Port'].setValue(Port['Stripping Buffer'])
-        self.sequences['Stripping Buffer Rinse'].attributes['Fluidic Port'].setEnabled(False)
-        self.sequences['PBST Wash'].attributes['Fluidic Port'].setValue(Port['PBST'])
-        self.sequences['PBST Wash'].attributes['Fluidic Port'].setEnabled(False)
-        self.sequences['Wash (Post Ligation, 1)'].attributes['Fluidic Port'].setValue(Port['Imaging Buffer'])
-        self.sequences['Wash (Post Ligation, 1)'].attributes['Fluidic Port'].setEnabled(False)
-        self.sequences['Wash (Post Ligation, 2)'].attributes['Fluidic Port'].setValue(Port['Imaging Buffer'])
-        self.sequences['Wash (Post Ligation, 2)'].attributes['Fluidic Port'].setEnabled(False)
-        self.sequences['Add Imaging Buffer'].attributes['Fluidic Port'].setValue(Port['Imaging Buffer'])
+        self.sequences['Rendering Buffer Wash'].attributes['Fluidic Port'].setValue(Port['Rendering Buffer'])
+        self.sequences['Rendering Buffer Wash'].attributes['Fluidic Port'].setEnabled(False)
+        # self.sequences['Rendering Buffer Wash 2'].attributes['Fluidic Port'].setValue(Port['Rendering Buffer'])
+        # self.sequences['Rendering Buffer Wash 2)'].attributes['Fluidic Port'].setEnabled(False)
+        self.sequences['Imaging Buffer Wash'].attributes['Fluidic Port'].setValue(Port['H2 Buffer'])
+        self.sequences['Imaging Buffer Wash'].attributes['Fluidic Port'].setEnabled(False)
+        self.sequences['Add Imaging Buffer'].attributes['Fluidic Port'].setValue(Port['H2 Buffer'])
         self.sequences['Add Imaging Buffer'].attributes['Fluidic Port'].setEnabled(False)
-        self.sequences['Stain with DAPI'].attributes['Fluidic Port'].setValue(Port['DAPI'])
-        self.sequences['Stain with DAPI'].attributes['Fluidic Port'].setEnabled(False)
-        self.sequences['Ligate'].attributes['Fluidic Port'].setMaximum(11)
+        # self.sequences['Hybridize'].attributes['Fluidic Port'].setMaximum(11)
 
         '''
         # changed to disable instead of no buttons
-        self.sequences['Ligate'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
+        self.sequences['Hybridize'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
         self.sequences['Add Imaging Buffer'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
         self.sequences['Remove Medium'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)
         self.sequences['Stain with DAPI'].attributes['Repeat'].setButtonSymbols(QAbstractSpinBox.NoButtons)

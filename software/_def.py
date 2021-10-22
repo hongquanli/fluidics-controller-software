@@ -6,9 +6,9 @@ Port['4'] = 4
 Port['5'] = 5
 Port['6'] = 6
 Port['Stripping Buffer'] = 7
-Port['PBST'] = 8
-Port['Imaging Buffer'] = 9
-Port['DAPI'] = 10
+Port['Rendering Buffer'] = 8
+Port['H2 Buffer'] = 9
+# Port['DAPI'] = 10
 Port['Air'] = 11
 Port['Vacuum'] = 0
 
@@ -18,7 +18,7 @@ PRESSURE_FULL_SCALE_PSI = 5
 PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE = 100
 
 SEQUENCE_ATTRIBUTES_KEYS = ['Sequence','Fluidic Port','Flow Time (s)','Incubation Time (min)','Repeat','Include']
-SEQUENCE_NAME = ['Remove Medium','Stripping Buffer Wash','Stripping Buffer Rinse','PBST Wash','Ligate','Wash (Post Ligation, 1)','Stain with DAPI','Wash (Post Ligation, 2)','Add Imaging Buffer']
+SEQUENCE_NAME = ['Remove Medium','Stripping Buffer Wash','Rendering Buffer Wash','Hybridize','Rendering Buffer Wash 2','Imaging Buffer Wash','Add Imaging Buffer']
 
 TIMER_CHECK_MCU_STATE_INTERVAL_MS = 10 # make it half of send_update_interval_us in the firmware
 # TIMER_CHECK_MCU_STATE_INTERVAL_MS = 500 # for simulation
@@ -106,7 +106,7 @@ class DEFAULT_VALUES:
 	pump_power_for_adding_medium_constant_power_mode = 0.8
 	pressure_loop_p_gain = 1
 	pressure_loop_i_gain = 1
-	pressure_setpoint_for_pumping_fluid_constant_pressure_mode = 3.6
+	pressure_setpoint_for_pumping_fluid_constant_pressure_mode = 4.9
 
 class PREUSE_CHECK_SETTINGS:
 	TARGET_PRESSURE_AIR_PATH_PSI = 3
