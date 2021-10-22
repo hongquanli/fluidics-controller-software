@@ -8,7 +8,7 @@
 
 // settings for flushing the fluidic line with air
 static const int TIME_TIMEOUT_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 60;
-static const float THRESHOLD_PRESSURE_EMPTYING_THE_FLUIDIC_LINE_PSI = 4.20;
+static const float THRESHOLD_PRESSURE_EMPTYING_THE_FLUIDIC_LINE_PSI = 4.80;
 static const int TIME_REMAINING_EMPTYING_THE_FLUIDIC_LINE_S = 5;
 bool empty_fluidic_line_countdown_started = false;
 static const int PORT_MANUAL_FLUSHING = 24;
@@ -87,11 +87,11 @@ char uart_titan_rx_buffer[32];
 // 33996
 uint16_t NXP33996_state = 0x0000;
 
-// pressure sensor HSCMRNN030PD2A3(x) HSCMRND030PD3A3(yes)
+// pressure sensor SSCMRRV015PD2A3
 const uint16_t _output_min = 1638; // 10% of 2^14
 const uint16_t _output_max = 14745; // 90% of 2^14
-const float _p_min = -30; // psi
-const float _p_max = 30; // psi
+const float _p_min = -15; // psi
+const float _p_max = 15; // psi
 float pressure_2 = 0; // pressure
 float pressure_1 = 0; // vacuum
 uint16_t pressure_2_raw = 0; 
@@ -732,7 +732,7 @@ void loop() {
         
     // pressure sensor 2
     select_sensor_2();
-    Wire1.requestFrom(0x38,2);
+    Wire1.requestFrom(0x28,2);
     if(Wire1.available() < 2)
     {
       if (DEBUG_WITH_SERIAL)
@@ -755,7 +755,7 @@ void loop() {
 
     // pressure sensor 1
     select_sensor_1();
-    Wire1.requestFrom(0x38,2);
+    Wire1.requestFrom(0x28,2);
     if(Wire1.available() < 2)
     {
       if (DEBUG_WITH_SERIAL)

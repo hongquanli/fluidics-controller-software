@@ -89,11 +89,11 @@ class MCU_CMD_PARAMETERS_DESCRIPTION:
 	VOLUME_CONTROL = 'volume control'
 
 class MCU_CONSTANTS:
-	# pressure sensor HSCMRNN030PD2A3(x) HSCMRND030PD3A3(yes)
+	# pressure sensor SSCMRRV015PD2A3
 	_output_min = 1638; # 10% of 2^14
 	_output_max = 14745; # 90% of 2^14
-	_p_min = -30; # psi
-	_p_max = 30; # psi
+	_p_min = -15; # psi
+	_p_max = 15; # psi
 	VOLUME_UL_MAX = 5000
 	SCALE_FACTOR_FLOW = 10 # Scale Factor for flow rate measurement, ul/min, SLF3S-0600F
 
