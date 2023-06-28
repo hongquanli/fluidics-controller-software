@@ -14,7 +14,7 @@ import widgets
 
 class STARmapAutomationControllerGUI(QMainWindow):
 
-	def __init__(self, is_simulation=False, log_measurements=False, *args, **kwargs):
+	def __init__(self, is_simulation=False, log_measurements=False, debug_mode=False, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 
 		# load objects
@@ -39,6 +39,8 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		self.manualFlushWidget = widgets.ManualFlushWidget(self.fluidController)
 		self.manualControlWidget = widgets.ManualControlWidget(self.fluidController)
 		self.microcontrollerStateDisplayWidget = widgets.MicrocontrollerStateDisplayWidget()
+
+		self.arbitraryCommandWidget = widgets.ArbitraryCommandWidget(self.fluidController)
 
 		# disable preuse check before it is fully implemented
 		# self.preUseCheckWidget.setEnabled(False)
@@ -92,7 +94,9 @@ class STARmapAutomationControllerGUI(QMainWindow):
 		layout.addLayout(mcuStateDisplay,1,0)
 		'''
 		layout.addWidget(self.microcontrollerStateDisplayWidget,1,0)
-		layout.addWidget(self.framedLogWidget,2,0)
+		if debug_mode:
+			layout.addWidget(self.arbitraryCommandWidget,2,0)
+		layout.addWidget(self.framedLogWidget,3,0)
 		# layout widgets (using tabs)  - end
 
 		# connecting signals to slots

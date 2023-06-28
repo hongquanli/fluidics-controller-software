@@ -862,6 +862,12 @@ class FluidController(QObject):
 		self.signal_sequences_execution_started.emit()
 		self.timer_update_sequence_execution_state.start()
 
+	def send_arbitrary_command(self,cmd,payload1,payload2,payload3,payload4):
+		mcu_cmd = Microcontroller_Command(cmd,payload1,payload2,payload3,payload4)
+		cmd_packet = mcu_cmd.get_ready_to_decorate_cmd_packet()
+		cmd_packet = self._add_UID_to_mcu_command_packet(cmd_packet,self.computer_to_MCU_command_counter)
+		self.microcontroller.send_command(cmd_packet)
+
 	def close(self):
 		if(self.log_measurements):
 			self.measurement_file.close()

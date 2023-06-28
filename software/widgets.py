@@ -1161,6 +1161,92 @@ class ChillerWidget(QFrame):
         QApplication.processEvents()
         self.fluidController.check_chiller_temperature()
 
+class ArbitraryCommandWidget(QFrame):
+
+    def __init__(self, fluidController, main=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fluidController = fluidController
+        self.add_components()
+        self.setFrameStyle(QFrame.Panel | QFrame.Raised)
+
+    def add_components(self):
+
+        # Define widgets
+        self.cmd = QSpinBox()
+        self.cmd.setMaximum(255)  # 1 byte
+
+        self.payload1 = QSpinBox()
+        self.payload1.setMaximum(255)  # 1 byte
+
+        self.payload2 = QSpinBox()
+        self.payload2.setMaximum(255)  # 1 byte
+
+        self.payload3 = QSpinBox()
+        self.payload3.setMaximum(65535)  # 2 bytes
+
+        self.payload4 = QSpinBox()
+        self.payload4.setMaximum(2147483647)  # 4 bytes
+
+        self.button = QPushButton('Submit')
+
+        self.button.clicked.connect(self.on_submit)
+
+        # Layout
+        layout = QHBoxLayout()
+        layout.addWidget(QLabel('CMD (1 byte):'))
+        layout.addWidget(self.cmd)
+        layout.addWidget(QLabel('Payload 1 (1 byte):'))
+        layout.addWidget(self.payload1)
+        layout.addWidget(QLabel('Payload 2 (1 byte):'))
+        layout.addWidget(self.payload2)
+        layout.addWidget(QLabel('Payload 3 (2 bytes):'))
+        layout.addWidget(self.payload3)
+        layout.addWidget(QLabel('Payload 4 (4 bytes):'))
+        layout.addWidget(self.payload4)
+        layout.addWidget(self.button)
+
+        self.setLayout(layout)
+
+    def on_submit(self):
+        # Extract values
+        cmd = self.cmd.value()
+        payload1 = self.payload1.value()
+        payload2 = self.payload2.value()
+        payload3 = self.payload3.value()
+        payload4 = self.payload4.value()
+
+        print("CMD: ", cmd)
+        print("Payload 1: ", payload1)
+        print("Payload 2: ", payload2)
+        print("Payload 3: ", payload3)
+        print("Payload 4: ", payload4)
+        self.fluidController.send_arbitrary_command(cmd,payload1,payload2,payload3,payload4)
+
+def main():
+    app = QApplication(sys.argv)
+
+    main_widget = MainWidget()
+    main_widget.show()
+
+    sys.exit(app.exec_())
+
+if __name__ == "__main__":
+    main()
+
+
+
+def main():
+    app = QApplication(sys.argv)
+
+    main_widget = MainWidget()
+    main_widget.show()
+
+    sys.exit(app.exec_())
+
+if __name__ == "__main__":
+    main()
+
+
 
 class frameWidget(QFrame):
 
