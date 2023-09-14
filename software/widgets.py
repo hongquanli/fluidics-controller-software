@@ -192,7 +192,7 @@ class SequenceEntry(QWidget):
         self.attributes['Flow Time (s)'].setMinimum(0) # -1: no flow
         self.attributes['Flow Time (s)'].setMaximum(FLOW_TIME_MAX) 
         self.attributes['Post-Fill Fluidic Port'] = QSpinBox()
-        self.attributes['Post-Fill Fluidic Port'].setMinimum(1) # 0: virtual port - does not care
+        self.attributes['Post-Fill Fluidic Port'].setMinimum(0) # 0: virtual port - does not care
         self.attributes['Post-Fill Fluidic Port'].setMaximum(24)
         self.attributes['Post-Fill Flow Time (s)'] = QDoubleSpinBox()
         self.attributes['Post-Fill Flow Time (s)'].setMinimum(0) # -1: no flow

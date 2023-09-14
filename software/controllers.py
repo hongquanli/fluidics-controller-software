@@ -262,6 +262,16 @@ class Sequence():
 			mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,fluidic_port,payload3,payload4)
 			mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			payload4 = post_flow_time_s * 1000
+			if post_fluidic_port != 0:
+				mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,post_fluidic_port,payload3,payload4)
+				mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
+				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			else:
+				mcu_command = Microcontroller_Command(CMD_SET.EMPTY_FLUIDIC_LINE,control_type,post_fluidic_port,payload3,payload4)
+				mcu_command.set_description(CMD_SET_DESCRIPTION.EMPTY_LINE + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
+				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+
 			self.is_single_round_sequence = True
 			self.disable_manual_control = True
 
@@ -280,7 +290,15 @@ class Sequence():
 			mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,fluidic_port,payload3,payload4)
 			mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
-
+			payload4 = post_flow_time_s * 1000
+			if post_fluidic_port != 0:
+				mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,post_fluidic_port,payload3,payload4)
+				mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
+				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			else:
+				mcu_command = Microcontroller_Command(CMD_SET.EMPTY_FLUIDIC_LINE,control_type,post_fluidic_port,payload3,payload4)
+				mcu_command.set_description(CMD_SET_DESCRIPTION.EMPTY_LINE + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
+				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			# subsequence 2: incubate
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.COMPUTER_STOPWATCH,microcontroller_command=None,stopwatch_time_remaining_seconds=incubation_time_min*60))
 
@@ -305,6 +323,15 @@ class Sequence():
 			mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,fluidic_port,payload3,payload4)
 			mcu_command.set_description('Flush line ' + str(fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			payload4 = post_flow_time_s * 1000
+			if post_fluidic_port != 0:
+				mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,post_fluidic_port,payload3,payload4)
+				mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
+				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			else:
+				mcu_command = Microcontroller_Command(CMD_SET.EMPTY_FLUIDIC_LINE,control_type,post_fluidic_port,payload3,payload4)
+				mcu_command.set_description(CMD_SET_DESCRIPTION.EMPTY_LINE + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
+				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			self.is_single_round_sequence = True
 			self.disable_manual_control = True
 
@@ -325,22 +352,6 @@ class Sequence():
 			self.is_single_round_sequence = True
 			self.disable_manual_control = True
 
-		# post-flow action sequence
-		if post_flow_time_s is not None and post_flow_time_s >= 0:
-			# subsequence 1
-			control_type = DEFAULT_VALUES.control_type_for_adding_medium
-			if control_type == MCU_CMD_PARAMETERS.CONSTANT_POWER:
-				pump_power = DEFAULT_VALUES.pump_power_for_adding_medium_constant_power_mode # *** make this adjustable in the GUI ***
-				payload3 = pump_power*65535 # *** make this adjustable in the GUI ***
-				# *** to do: add timeout limit ***
-			if control_type == MCU_CMD_PARAMETERS.CONSTANT_PRESSURE:
-				payload3 = ((DEFAULT_VALUES.pressure_setpoint_for_pumping_fluid_constant_pressure_mode)/PRESSURE_FULL_SCALE_PSI)*65535
-			payload4 = post_flow_time_s*1000
-			mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,post_fluidic_port,payload3,payload4)
-			mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s. CLEAR LINE')
-			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
-			self.is_single_round_sequence = True
-			self.disable_manual_control = True
 
 		# manual control sequences
 		# case 10

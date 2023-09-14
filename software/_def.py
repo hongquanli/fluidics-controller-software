@@ -54,6 +54,7 @@ class CMD_SET:
 	CLEAR = 0
 	REMOVE_MEDIUM = 1
 	ADD_MEDIUM = 2
+	EMPTY_FLUIDIC_LINE = 3
 	SET_SELECTOR_VALVE = 10
 	SET_10MM_SOLENOID_VALVE = 11
 	SET_SOLENOID_VALVE_B = 12
@@ -70,6 +71,7 @@ class CMD_SET_DESCRIPTION:
 	CLEAR = 'Clear'
 	REMOVE_MEDIUM = 'Remove Medium'
 	ADD_MEDIUM = 'Add Medium'
+	EMPTY_LINE = 'Empty the line'
 	SET_SELECTOR_VALVE = '' # the description is manually added (with parameters)
 	SET_10MM_SOLENOID_VALVE = '' # the description is manually added (with parameters)
 	SET_SOLENOID_VALVE_B = '' # the description is manually added (with parameters)
