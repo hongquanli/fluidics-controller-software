@@ -17,7 +17,7 @@ FLOW_TIME_MAX = 60 # in seconds
 PRESSURE_FULL_SCALE_PSI = 5
 PRESSURE_LOOP_COEFFICIENTS_FULL_SCALE = 100
 
-SEQUENCE_ATTRIBUTES_KEYS = ['Sequence','Fluidic Port','Flow Time (s)','Incubation Time (min)','Repeat','Include']
+SEQUENCE_ATTRIBUTES_KEYS = ['Sequence','Fluidic Port','Flow Time (s)','Incubation Time (min)','Post-Fill Fluidic Port', 'Post-Fill Flow Time (s)', 'Repeat','Include']
 SEQUENCE_NAME = ['Remove Medium','Stripping Buffer Wash','Rendering Buffer Wash','Hybridize','Rendering Buffer Wash 2','Imaging Buffer Wash','Add Imaging Buffer']
 
 TIMER_CHECK_MCU_STATE_INTERVAL_MS = 10 # make it half of send_update_interval_us in the firmware
@@ -116,8 +116,9 @@ class PREUSE_CHECK_SETTINGS:
 ###############   MCU Internal Programs   ###############
 #########################################################
 
-MCU_INTERNAL_PROGRAMS = ['','Remove Medium','Ramp Up Pressure','Pump Fluid','Empty Fluidic Line','Preuse Check (Pressure)','Preuse Check (Vacuum)']
-
+#MCU_INTERNAL_PROGRAMS = ['','Remove Medium','Ramp Up Pressure','Pump Fluid','Empty Fluidic Line','Preuse Check (Pressure)','Preuse Check (Vacuum)']
+MCU_INTERNAL_PROGRAMS = ['IDLE','LOAD_MEDIUM_START','LOAD_MEDIUM','VENT_VB0','UNLOAD_START','CLEAR_START','Preuse Check (Pressure)','Preuse Check (Vacuum)','BUBBLE_START','BUBBLE_FINISH']
+MCU_STATUS = ['DONE','EX', 'INV', 'ERR']
 # status of internal program execution on the MCU
 
 '''
