@@ -151,6 +151,7 @@ volatile int buffer_rx_ptr;
 static const int CLEAR = 0;
 static const int REMOVE_MEDIUM = 1;
 static const int ADD_MEDIUM = 2;
+static const int EMPTY_FLUIDIC_LINE = 3;
 static const int SET_SELECTOR_VALVE = 10;
 static const int SET_10MM_SOLENOID_VALVE = 11;
 static const int SET_SOLENOID_VALVE_B = 12;
@@ -487,7 +488,99 @@ void loop() {
           set_disc_pump_power(disc_pump_power);
           elapsed_millis_since_the_start_of_the_internal_program = 0;
           break;
-          
+        case EMPTY_FLUIDIC_LINE:
+          manual_control_disabled_by_software = true;
+          command_execution_status = IN_PROGRESS;
+          // (1) ensure pump is disabled
+          disc_pump_power = 0;
+          set_disc_pump_power(disc_pump_power);
+          disc_pump_enabled = false;
+          set_disc_pump_enabled(disc_pump_enabled);        
+          // (2) release the pressure
+          NXP33996_clear_all();
+          NXP33996_update();
+          // (3) switch to the air path
+          selector_valve_position_setValue = PORT_AIR;
+          set_selector_valve_position_blocking(selector_valve_position_setValue);
+          check_selector_valve_position();
+          uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
+            // to add: convert the string to numeric value and compare it with selector_valve_position_setValue
+            // to add: error handling
+          NXP33996_turn_on(PORT_AIR-1);
+          NXP33996_update();
+          // connect the fluidic path and re-enter the pressure loop
+          digitalWrite(pin_valve_B1,HIGH);
+          if(flow_sensor_present)
+          {
+            // use full pump power for the stripping port
+            if(fluidic_port == PORT_STRIPPING_BUFFER)
+            {
+              duration_for_emptying_the_fluidic_line_s = 36;
+              disc_pump_power = 1000;
+              set_disc_pump_power(disc_pump_power);
+              disc_pump_enabled = true;
+              set_disc_pump_enabled(disc_pump_enabled);
+            }
+            else
+            {
+              duration_for_emptying_the_fluidic_line_s = 15; // use longer time
+              /*
+               * // pressure_set_point = 1.8; 
+               * // DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 10;
+               * use fixed pressure for emptying the fluidic line, and use a low value for volume measurement
+               * (so that the flow rate is within the measurement range) the above two lines can be commented 
+               * out when not doing volume measurement
+               */
+              flowrate_set_point = 1500;
+              flowrate_control_loop_enabled = true;
+              flowrate_loop_integral_error = 0;
+              disc_pump_power = 0;
+              set_disc_pump_power(disc_pump_power);
+              disc_pump_enabled = true;
+              set_disc_pump_enabled(disc_pump_enabled);
+            }
+          }
+          // flow sensor not present - normal operation
+          else
+          {
+            // we found that 3.6 psi is not sufficient for emptying the fluidic path for the stripping buffer, when using 0.02" ID tubing.
+            // as a result, use constant power mode 
+            // and use longer duration for the stripping buffer
+            // may well switch to 0.04" ID tubing - didn't work
+            /*
+            // instead of just for the stripping buffer port, use max power for flushing for all ports
+            if(fluidic_port == PORT_STRIPPING_BUFFER)
+            {
+              duration_for_emptying_the_fluidic_line_s = 36;
+              disc_pump_power = 1000;
+              set_disc_pump_power(disc_pump_power);
+              disc_pump_enabled = true;
+              set_disc_pump_enabled(disc_pump_enabled);
+            }
+            else
+            {
+              duration_for_emptying_the_fluidic_line_s = DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S_DEFAULT;
+              pressure_set_point = control_setpoint*PRESSURE_FULL_SCALE_PSI;
+              pressure_control_loop_enabled = true;
+              pressure_loop_integral_error = 0;
+              disc_pump_power = 0;
+              set_disc_pump_power(disc_pump_power);
+              disc_pump_enabled = true;
+              set_disc_pump_enabled(disc_pump_enabled);
+            }
+            */
+            // use max power for flushing for all ports
+            duration_for_emptying_the_fluidic_line_s = TIME_TIMEOUT_FOR_EMPTYING_THE_FLUIDIC_LINE_S;
+            disc_pump_power = 1000;
+            set_disc_pump_power(disc_pump_power);
+            disc_pump_enabled = true;
+            set_disc_pump_enabled(disc_pump_enabled);
+          }
+          // (4) Go to internal program 
+          internal_program = INTERNAL_PROGRAM_EMPTY_FLUIDIC_LINE;
+          // (5) start the timer
+          empty_fluidic_line_countdown_started = false;
+          elapsed_millis_since_the_start_of_the_internal_program = 0;   
         // add medium
         case ADD_MEDIUM:
           manual_control_disabled_by_software = true;
@@ -943,104 +1036,13 @@ void loop() {
         set_disc_pump_power(disc_pump_power);
         disc_pump_enabled = false;
         set_disc_pump_enabled(disc_pump_enabled);        
-        // (3) release the pressure
+
+        // turn off the solenoid valve
         NXP33996_clear_all();
         NXP33996_update();
-        // (4) switch to the air path
-        selector_valve_position_setValue = PORT_AIR;
-        set_selector_valve_position_blocking(selector_valve_position_setValue);
-        check_selector_valve_position();
-        uart_titan_rx_buffer[uart_titan_rx_ptr] = '\0'; // terminate the string
-          // to add: convert the string to numeric value and compare it with selector_valve_position_setValue
-          // to add: error handling
-        NXP33996_turn_on(PORT_AIR-1);
-        NXP33996_update();
-        // (5) start pumping again
-        if(control_type==CONSTANT_POWER) // we may remove this as we only intend to use pressure control (we don't want to worry about flushing and washing the flow sensor)
-        {
-          // start the pump
-          disc_pump_power = PUMP_POWER_FOR_EMPTYING_THE_FLUIDIC_LINE*1000;
-          set_disc_pump_power(disc_pump_power);
-          disc_pump_enabled = true;
-          set_disc_pump_enabled(disc_pump_enabled);  
-          // open the valve between the selector valve and the chamber
-          digitalWrite(pin_valve_B1,HIGH);
-        }
-        else if(control_type==CONSTANT_PRESSURE) // we may remove this if as we only intend to use pressure control (we don't want to worry about flushing and washing the flow sensor)
-        {
-          // connect the fluidic path and re-enter the pressure loop
-          digitalWrite(pin_valve_B1,HIGH);
-          if(flow_sensor_present)
-          {
-            // use full pump power for the stripping port
-            if(fluidic_port == PORT_STRIPPING_BUFFER)
-            {
-              duration_for_emptying_the_fluidic_line_s = 36;
-              disc_pump_power = 1000;
-              set_disc_pump_power(disc_pump_power);
-              disc_pump_enabled = true;
-              set_disc_pump_enabled(disc_pump_enabled);
-            }
-            else
-            {
-              duration_for_emptying_the_fluidic_line_s = 15; // use longer time
-              /*
-               * // pressure_set_point = 1.8; 
-               * // DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S = 10;
-               * use fixed pressure for emptying the fluidic line, and use a low value for volume measurement
-               * (so that the flow rate is within the measurement range) the above two lines can be commented 
-               * out when not doing volume measurement
-               */
-              flowrate_set_point = 1500;
-              flowrate_control_loop_enabled = true;
-              flowrate_loop_integral_error = 0;
-              disc_pump_power = 0;
-              set_disc_pump_power(disc_pump_power);
-              disc_pump_enabled = true;
-              set_disc_pump_enabled(disc_pump_enabled);
-            }
-          }
-          // flow sensor not present - normal operation
-          else
-          {
-            // we found that 3.6 psi is not sufficient for emptying the fluidic path for the stripping buffer, when using 0.02" ID tubing.
-            // as a result, use constant power mode 
-            // and use longer duration for the stripping buffer
-            // may well switch to 0.04" ID tubing - didn't work
-            /*
-            // instead of just for the stripping buffer port, use max power for flushing for all ports
-            if(fluidic_port == PORT_STRIPPING_BUFFER)
-            {
-              duration_for_emptying_the_fluidic_line_s = 36;
-              disc_pump_power = 1000;
-              set_disc_pump_power(disc_pump_power);
-              disc_pump_enabled = true;
-              set_disc_pump_enabled(disc_pump_enabled);
-            }
-            else
-            {
-              duration_for_emptying_the_fluidic_line_s = DURATION_FOR_EMPTYING_THE_FLUIDIC_LINE_S_DEFAULT;
-              pressure_set_point = control_setpoint*PRESSURE_FULL_SCALE_PSI;
-              pressure_control_loop_enabled = true;
-              pressure_loop_integral_error = 0;
-              disc_pump_power = 0;
-              set_disc_pump_power(disc_pump_power);
-              disc_pump_enabled = true;
-              set_disc_pump_enabled(disc_pump_enabled);
-            }
-            */
-            // use max power for flushing for all ports
-            duration_for_emptying_the_fluidic_line_s = TIME_TIMEOUT_FOR_EMPTYING_THE_FLUIDIC_LINE_S;
-            disc_pump_power = 1000;
-            set_disc_pump_power(disc_pump_power);
-            disc_pump_enabled = true;
-            set_disc_pump_enabled(disc_pump_enabled);
-          }
-        }
-        // (6) reset the timer and go to the next phase
-        internal_program = INTERNAL_PROGRAM_EMPTY_FLUIDIC_LINE;
-        elapsed_millis_since_the_start_of_the_internal_program = 0;
-        empty_fluidic_line_countdown_started = false;
+        command_execution_status = COMPLETED_WITHOUT_ERRORS;
+        digitalWrite(pin_valve_B1,LOW); // close the valve between the selector valve and the chamber
+        internal_program = INTERNAL_PROGRAM_IDLE;
       }
       break;
     
