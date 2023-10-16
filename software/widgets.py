@@ -497,7 +497,38 @@ class SequenceWidget(QFrame):
         else:
             self.log_message.emit(utils.timestamp() + 'no action.')
             QApplication.processEvents()
-
+    
+    def run_sequence_at_port(self, hybridization_port):
+        for i in range(len(SEQUENCE_NAME)):
+            current_sequence = self.sequences[SEQUENCE_NAME[i]]
+            # If hybridizing, use the hybridization port
+            if SEQUENCE_NAME[i] == 'Hybridize'
+                fluidic_port = hybridization_port
+            else:
+                fluidic_port = current_sequence.attributes['Fluidic Port'].value()
+            if current_sequence.attributes['Include'].isChecked() == True:
+                for k in range(current_sequence.attributes['Repeat'].value()):
+                    self.log_message.emit(utils.timestamp() + 'Add ' + SEQUENCE_NAME[i] + ', round ' + str(k+1) + ' to the queue')
+                    QApplication.processEvents()
+                        ################################################################
+                        ##### let the backend fluidController execute the sequence #####
+                        ################################################################
+                    self.fluidController.add_sequence(
+                        SEQUENCE_NAME[i],
+                        fluidic_port,
+                        current_sequence.attributes['Flow Time (s)'].value(),
+                        current_sequence.attributes['Incubation Time (min)'].value(),
+                        current_sequence.attributes['Post-Fill Fluidic Port'].value(),
+                        current_sequence.attributes['Post-Fill Flow Time (s)'].value(),
+                        pressure_setting=None,
+                        aspiration_pump_power=self.entry_aspiration_pump_power.value(),
+                        aspiration_time_s=self.entry_aspiration_time_s.value(),
+                        round_ = k)
+                    counter = counter + 1
+        if counter > 0:
+            self.fluidController.start_sequence_execution()
+        return
+        
     def request_to_abort_sequences(self):
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Information)
