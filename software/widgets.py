@@ -437,7 +437,6 @@ class SequenceWidget(QFrame):
         print('sequence settings saved to ' + str(filename))    
 
     def run_sequences(self):
-        
         # check if any sequence is selected
         at_least_one_sequence_is_selected = False
         for i in range(len(SEQUENCE_NAME)):
@@ -498,7 +497,7 @@ class SequenceWidget(QFrame):
             self.log_message.emit(utils.timestamp() + 'no action.')
             QApplication.processEvents()
     
-    def run_sequence_at_port(self, hybridization_port):
+    def run_sequence_at_port(self, hybridization_port, include_all = True):
         counter = 0
         for i in range(len(SEQUENCE_NAME)):
             current_sequence = self.sequences[SEQUENCE_NAME[i]]
@@ -507,7 +506,7 @@ class SequenceWidget(QFrame):
                 fluidic_port = hybridization_port
             else:
                 fluidic_port = current_sequence.attributes['Fluidic Port'].value()
-            if current_sequence.attributes['Include'].isChecked() == True:
+            if (current_sequence.attributes['Include'].isChecked() == True) or include_all:
                 for k in range(current_sequence.attributes['Repeat'].value()):
                     self.log_message.emit(utils.timestamp() + 'Add ' + SEQUENCE_NAME[i] + ', round ' + str(k+1) + ' to the queue')
                     QApplication.processEvents()
