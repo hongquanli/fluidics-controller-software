@@ -390,6 +390,7 @@ class SequenceWidget(QFrame):
             self.sequences[name].attributes['Repeat'].setValue(int(sequence.get('Repeat')))
             self.sequences[name].attributes['Incubation Time (min)'].setValue(float(sequence.get('Incubation_Time_in_minute')))
             self.sequences[name].attributes['Flow Time (s)'].setValue(float(sequence.get('Flow_Time_in_second')))
+            self.sequences[name].attributes['Post-Fill Flow Time (s)'].setValue(float(sequence.get('Post_Flow_Time_in_second')))
         for aspiration_setting in self.config_xml_tree_root.iter('aspiration_setting'):
             self.entry_aspiration_pump_power.setValue(float(aspiration_setting.get('Pump_Power')))
             self.entry_aspiration_time_s.setValue(float(aspiration_setting.get('Duration_Seconds')))
@@ -420,6 +421,7 @@ class SequenceWidget(QFrame):
                 sequence_to_update.set('Repeat',str(self.sequences[sequence_name].attributes['Repeat'].value()))
                 sequence_to_update.set('Incubation_Time_in_minute',str(self.sequences[sequence_name].attributes['Incubation Time (min)'].value()))
                 sequence_to_update.set('Flow_Time_in_second',str(self.sequences[sequence_name].attributes['Flow Time (s)'].value()))
+                sequence_to_update.set('Post_Flow_Time_in_second',str(self.sequences[sequence_name].attributes['Post-Fill Flow Time (s)'].value()))
         # aspiration settings
         list_ = self.config_xml_tree_root.xpath("//aspiration_setting")
         if list_:
