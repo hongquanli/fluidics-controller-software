@@ -499,10 +499,11 @@ class SequenceWidget(QFrame):
             QApplication.processEvents()
     
     def run_sequence_at_port(self, hybridization_port):
+        counter = 0
         for i in range(len(SEQUENCE_NAME)):
             current_sequence = self.sequences[SEQUENCE_NAME[i]]
             # If hybridizing, use the hybridization port
-            if SEQUENCE_NAME[i] == 'Hybridize'
+            if SEQUENCE_NAME[i] == 'Hybridize':
                 fluidic_port = hybridization_port
             else:
                 fluidic_port = current_sequence.attributes['Fluidic Port'].value()
