@@ -262,14 +262,15 @@ class Sequence():
 			mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,fluidic_port,payload3,payload4)
 			mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			
 			payload4 = post_flow_time_s * 1000
 			if post_fluidic_port != 0:
 				mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,post_fluidic_port,payload3,payload4)
-				mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
+				mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(post_flow_time_s) + ' s')
 				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			else:
 				mcu_command = Microcontroller_Command(CMD_SET.EMPTY_FLUIDIC_LINE,control_type,post_fluidic_port,payload3,payload4)
-				mcu_command.set_description(CMD_SET_DESCRIPTION.EMPTY_LINE + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
+				mcu_command.set_description(CMD_SET_DESCRIPTION.EMPTY_LINE + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(post_flow_time_s) + ' s')
 				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 
 			self.is_single_round_sequence = True
@@ -290,14 +291,15 @@ class Sequence():
 			mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,fluidic_port,payload3,payload4)
 			mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+			
 			payload4 = post_flow_time_s * 1000
 			if post_fluidic_port != 0:
 				mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,post_fluidic_port,payload3,payload4)
-				mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
+				mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(post_flow_time_s) + ' s')
 				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			else:
 				mcu_command = Microcontroller_Command(CMD_SET.EMPTY_FLUIDIC_LINE,control_type,post_fluidic_port,payload3,payload4)
-				mcu_command.set_description(CMD_SET_DESCRIPTION.EMPTY_LINE + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
+				mcu_command.set_description(CMD_SET_DESCRIPTION.EMPTY_LINE + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(post_flow_time_s) + ' s')
 				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			# subsequence 2: incubate
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.COMPUTER_STOPWATCH,microcontroller_command=None,stopwatch_time_remaining_seconds=incubation_time_min*60))
@@ -865,7 +867,7 @@ class FluidController(QObject):
 				pass
 			# return # no need to return here
 
-		if MCU_command_execution_status == CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS:
+		if (MCU_command_execution_status == CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS) and (MCU_received_command_UID == self.computer_to_MCU_command_counter):
 			# command execucation has completed, can move to the next command
 			# important: only move to the next subsequence upon completion of a *MCU* subsequence
 			if self.mcu_subsequence_in_progress:
