@@ -67,6 +67,6 @@ def generate_default_configuration(filename):
     tree.write(filename,encoding="utf-8", xml_declaration=True, pretty_print=True)
     
 def generate_default_flowtime(filename):
-    settings = {'Ports':[7,8,9], 'Flowtimes':[50, 25, 20], 'Fluid Names':['80% DMSO', '20% DMSO', 'H2 Buffer']}
+    settings = {'Ports':[7,8,9], 'Flowtimes':[57, 27, 20], 'Fluid Names':['80% DMSO', '20% DMSO', 'H2 Buffer']}
     pd.DataFrame(settings).to_csv('flowtimes_default.csv', header=True, index=False)
 
