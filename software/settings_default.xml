@@ -1,9 +1,11 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <settings>
-  <sequence Name="Stripping Buffer Wash" Repeat="2" Incubation_Time_in_minute="10.0" Flow_Time_in_second="15.0"/>
-  <sequence Name="Rendering Buffer Wash" Repeat="3" Incubation_Time_in_minute="5.0" Flow_Time_in_second="15.0"/>
-  <sequence Name="Rendering Buffer Wash 2" Repeat="1" Incubation_Time_in_minute="0.0" Flow_Time_in_second="1.0"/>
-  <sequence Name="Imaging Buffer Wash" Repeat="1" Incubation_Time_in_minute="10.0" Flow_Time_in_second="15.0"/>
-  <sequence Name="Hybridize" Repeat="1" Incubation_Time_in_minute="0.1" Flow_Time_in_second="45.0"/>
-  <aspiration_setting Pump_Power="0.9" Duration_Seconds="15.0"/>
+  <sequence Name="Remove Medium" Fluidic_Port="0" Repeat="1" Incubation_Time_in_minute="0.0" Flow_Time_in_second="-1.0" Post_Fill_Fluidic_Port="1" Post_Flow_Time_in_second="0.0"/>
+  <sequence Name="Stripping Buffer Wash" Fluidic_Port="7" Repeat="1" Incubation_Time_in_minute="0.0" Flow_Time_in_second="15.0" Post_Fill_Fluidic_Port="2" Post_Flow_Time_in_second="15.0"/>
+  <sequence Name="Rendering Buffer Wash" Fluidic_Port="8" Repeat="1" Incubation_Time_in_minute="0.0" Flow_Time_in_second="15.0" Post_Fill_Fluidic_Port="3" Post_Flow_Time_in_second="15.0"/>
+  <sequence Name="Hybridize" Fluidic_Port="9" Repeat="2" Incubation_Time_in_minute="0.0" Flow_Time_in_second="15.0" Post_Fill_Fluidic_Port="9" Post_Flow_Time_in_second="15.0"/>
+  <sequence Name="Rendering Buffer Wash 2" Fluidic_Port="1" Repeat="1" Incubation_Time_in_minute="0.0" Flow_Time_in_second="15.0" Post_Fill_Fluidic_Port="5" Post_Flow_Time_in_second="15.0"/>
+  <sequence Name="Imaging Buffer Wash" Fluidic_Port="9" Repeat="1" Incubation_Time_in_minute="0.0" Flow_Time_in_second="15.0" Post_Fill_Fluidic_Port="6" Post_Flow_Time_in_second="15.0"/>
+  <sequence Name="Add Imaging Buffer" Fluidic_Port="9" Repeat="1" Incubation_Time_in_minute="-1.0" Flow_Time_in_second="0.0" Post_Fill_Fluidic_Port="7" Post_Flow_Time_in_second="15.0"/>
+  <aspiration_setting Pump_Power="0.4" Duration_Seconds="8.0"/>
 </settings>

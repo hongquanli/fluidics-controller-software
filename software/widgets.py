@@ -10,6 +10,8 @@ from qtpy.QtGui import *
 
 # xml
 from lxml import etree as ET
+# csv
+import pandas as pd
 
 # app specific libraries
 from datetime import datetime
@@ -218,8 +220,10 @@ class SequenceWidget(QFrame):
         self.fluidController = fluidController
         self.abort_requested = False
         self.config_filename = 'settings_default.xml'
+        self.flowtime_filename = 'flowtimes_default.csv'
         self.add_components()
         self.load_sequence_settings(self.config_filename)
+        self.load_flowtime_settings(self.flowtime_filename)
         self.setFrameStyle(QFrame.Panel | QFrame.Raised)
 
     def close(self):
@@ -396,7 +400,15 @@ class SequenceWidget(QFrame):
         for aspiration_setting in self.config_xml_tree_root.iter('aspiration_setting'):
             self.entry_aspiration_pump_power.setValue(float(aspiration_setting.get('Pump_Power')))
             self.entry_aspiration_time_s.setValue(float(aspiration_setting.get('Duration_Seconds')))
-
+    
+    def load_flowtime_settings(self, filename):
+        # create the config file if it does not alreay exist
+        if(os.path.isfile(filename)==False):
+            utils_config.generate_default_flowtime(filename)
+            print('creating default configurations')
+        # read and parse config
+        self.flowtime_df = pd.read_csv(filename)
+        
     def load_user_selected_sequence_settings(self):
         dialog = QFileDialog()
         filename, _filter = dialog.getOpenFileName(None,'Open File','.','XML files (*.xml)')
@@ -474,7 +486,18 @@ class SequenceWidget(QFrame):
                 current_sequence = self.sequences[SEQUENCE_NAME[i]]
                 if current_sequence.attributes['Include'].isChecked() == True:
                     for k in range(current_sequence.attributes['Repeat'].value()):
-                        self.log_message.emit(utils.timestamp() + 'Add ' + SEQUENCE_NAME[i] + ', round ' + str(k+1) + ' to the queue')
+                        if k == (current_sequence.attributes['Repeat'].value() - 1):
+                        	self.log_message.emit(utils.timestamp() + 'Add ' + SEQUENCE_NAME[i] + ', round ' + str(k+1) + ' to the queue.' + ' Last round - flush with post-fill fluid')
+                        	# Only flow first fluid for half the time - the second fluid will push out the rest
+                        	# Note - this only works if the volume of fluid in the line is half the desired fluid in the chamber
+                        	flowtime = current_sequence.attributes['Flow Time (s)'].value() / 2
+                        	postflowtime = current_sequence.attributes['Post-Fill Flow Time (s)'].value()
+                        else:
+                        	self.log_message.emit(utils.timestamp() + 'Add ' + SEQUENCE_NAME[i] + ', round ' + str(k+1) + ' to the queue.')
+                        	# If this isn't the last round, don't do the post-flow fluid
+                        	flowtime = current_sequence.attributes['Flow Time (s)'].value()
+                        	postflowtime = 0
+                        	
                         QApplication.processEvents()
                         ################################################################
                         ##### let the backend fluidController execute the sequence #####
@@ -482,10 +505,10 @@ class SequenceWidget(QFrame):
                         self.fluidController.add_sequence(
                             SEQUENCE_NAME[i],
                             current_sequence.attributes['Fluidic Port'].value(),
-                            current_sequence.attributes['Flow Time (s)'].value(),
+                            flowtime,
                             current_sequence.attributes['Incubation Time (min)'].value(),
                             current_sequence.attributes['Post-Fill Fluidic Port'].value(),
-                            current_sequence.attributes['Post-Fill Flow Time (s)'].value(),
+                            postflowtime,
                             pressure_setting=None,
                             aspiration_pump_power=self.entry_aspiration_pump_power.value(),
                             aspiration_time_s=self.entry_aspiration_time_s.value(),
