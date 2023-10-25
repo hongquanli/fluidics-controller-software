@@ -196,9 +196,6 @@ class SequenceEntry(QWidget):
         self.attributes['Post-Fill Fluidic Port'] = QSpinBox()
         self.attributes['Post-Fill Fluidic Port'].setMinimum(0) # 0: virtual port - does not care
         self.attributes['Post-Fill Fluidic Port'].setMaximum(24)
-        self.attributes['Post-Fill Flow Time (s)'] = QDoubleSpinBox()
-        self.attributes['Post-Fill Flow Time (s)'].setMinimum(0) # -1: no flow
-        self.attributes['Post-Fill Flow Time (s)'].setMaximum(FLOW_TIME_MAX) 
         self.attributes['Incubation Time (min)'] = QDoubleSpinBox()
         self.attributes['Incubation Time (min)'].setDecimals(1)
         self.attributes['Incubation Time (min)'].setMinimum(0) # -1: no incubation
@@ -396,7 +393,6 @@ class SequenceWidget(QFrame):
             self.sequences[name].attributes['Flow Time (s)'].setValue(float(sequence.get('Flow_Time_in_second')))
             self.sequences[name].attributes['Incubation Time (min)'].setValue(float(sequence.get('Incubation_Time_in_minute')))
             self.sequences[name].attributes['Post-Fill Fluidic Port'].setValue(float(sequence.get('Post_Fill_Fluidic_Port')))
-            self.sequences[name].attributes['Post-Fill Flow Time (s)'].setValue(float(sequence.get('Post_Flow_Time_in_second')))
         for aspiration_setting in self.config_xml_tree_root.iter('aspiration_setting'):
             self.entry_aspiration_pump_power.setValue(float(aspiration_setting.get('Pump_Power')))
             self.entry_aspiration_time_s.setValue(float(aspiration_setting.get('Duration_Seconds')))
@@ -408,6 +404,7 @@ class SequenceWidget(QFrame):
             print('creating default configurations')
         # read and parse config
         self.flowtime_df = pd.read_csv(filename)
+        self.flowtime_df.set_index('Ports', inplace=True)
         
     def load_user_selected_sequence_settings(self):
         dialog = QFileDialog()
@@ -437,7 +434,6 @@ class SequenceWidget(QFrame):
                 sequence_to_update.set('Incubation_Time_in_minute',str(self.sequences[sequence_name].attributes['Incubation Time (min)'].value()))
                 sequence_to_update.set('Flow_Time_in_second',str(self.sequences[sequence_name].attributes['Flow Time (s)'].value()))
                 sequence_to_update.set('Post_Fill_Fluidic_Port',str(self.sequences[sequence_name].attributes['Post-Fill Fluidic Port'].value()))
-                sequence_to_update.set('Post_Flow_Time_in_second',str(self.sequences[sequence_name].attributes['Post-Fill Flow Time (s)'].value()))
         # aspiration settings
         list_ = self.config_xml_tree_root.xpath("//aspiration_setting")
         if list_:
@@ -485,18 +481,24 @@ class SequenceWidget(QFrame):
             for i in range(len(SEQUENCE_NAME)):
                 current_sequence = self.sequences[SEQUENCE_NAME[i]]
                 if current_sequence.attributes['Include'].isChecked() == True:
+                    # Get information about the fluids
+                    current_fluid = current_sequence.attributes['Fluidic Port'].value()
+                    next_fluid = current_sequence.attributes['Post-Fill Fluidic Port'].value()
+                    current_fluid_time = self.flowtime_df.loc[current_fluid, 'Flowtimes']
+                    next_fluid_time = self.flowtime_df.loc[next_fluid, 'Flowtimes']
                     for k in range(current_sequence.attributes['Repeat'].value()):
                         if k == (current_sequence.attributes['Repeat'].value() - 1):
                         	self.log_message.emit(utils.timestamp() + 'Add ' + SEQUENCE_NAME[i] + ', round ' + str(k+1) + ' to the queue.' + ' Last round - flush with post-fill fluid')
-                        	# Only flow first fluid for half the time - the second fluid will push out the rest
-                        	# Note - this only works if the volume of fluid in the line is half the desired fluid in the chamber
-                        	flowtime = current_sequence.attributes['Flow Time (s)'].value() / 2
-                        	postflowtime = current_sequence.attributes['Post-Fill Flow Time (s)'].value()
+                        	# For the last round use the flow time for the next fluid
+                        	postflowtime = next_fluid_time
+                        	# Subtract off one line's worth of fluid flow time
+                        	flowtime = max(current_sequence.attributes['Flow Time (s)'].value() - current_fluid_time, 0)
                         else:
                         	self.log_message.emit(utils.timestamp() + 'Add ' + SEQUENCE_NAME[i] + ', round ' + str(k+1) + ' to the queue.')
                         	# If this isn't the last round, don't do the post-flow fluid
-                        	flowtime = current_sequence.attributes['Flow Time (s)'].value()
                         	postflowtime = 0
+                        	# Have the normal fluid flow time
+                        	flowtime = current_sequence.attributes['Flow Time (s)'].value()
                         	
                         QApplication.processEvents()
                         ################################################################
@@ -504,10 +506,10 @@ class SequenceWidget(QFrame):
                         ################################################################
                         self.fluidController.add_sequence(
                             SEQUENCE_NAME[i],
-                            current_sequence.attributes['Fluidic Port'].value(),
+                            current_fluid,
                             flowtime,
                             current_sequence.attributes['Incubation Time (min)'].value(),
-                            current_sequence.attributes['Post-Fill Fluidic Port'].value(),
+                            next_fluid,
                             postflowtime,
                             pressure_setting=None,
                             aspiration_pump_power=self.entry_aspiration_pump_power.value(),

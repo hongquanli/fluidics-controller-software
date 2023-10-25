@@ -213,8 +213,6 @@ class Microcontroller_Simulation(object):
 ################# Sequence Defination #################
 #######################################################
 class Sequence():
-	# TODO: Implement post-flow sequence
-	#                 sequence_name,fluidic_port,flow_time_s,incubation_time_min,post_fluidic_port,post_flow_time_s,pressure_setting,aspiration_pump_power,aspiration_time_s,round_,port_name)
 	def __init__(self,sequence_name,fluidic_port=None,flow_time_s=None,incubation_time_min=None,post_fluidic_port=None,post_flow_time_s=None,pressure_setting=None,aspiration_pump_power=None,aspiration_time_s=None,round_=1,port_name = None):
 		self.sequence_name = sequence_name
 		self.fluidic_port = fluidic_port

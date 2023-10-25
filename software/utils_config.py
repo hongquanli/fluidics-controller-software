@@ -11,7 +11,6 @@ def generate_default_configuration(filename):
     sequence.set('Incubation_Time_in_minute','-1')
     sequence.set('Flow_Time_in_second','-1')
     sequence.set('Post_Fill_Fluidic_Port', '0')
-    sequence.set('Post_Flow_Time_in_second', '15')
     
     sequence = ET.SubElement(top,'sequence')
     sequence.set('Name','Stripping Buffer Wash')
@@ -20,7 +19,6 @@ def generate_default_configuration(filename):
     sequence.set('Incubation_Time_in_minute','10')
     sequence.set('Flow_Time_in_second','15')
     sequence.set('Post_Fill_Fluidic_Port', '0')
-    sequence.set('Post_Flow_Time_in_second', '15')
 
     sequence = ET.SubElement(top,'sequence')
     sequence.set('Name','Rendering Buffer Wash')
@@ -29,7 +27,6 @@ def generate_default_configuration(filename):
     sequence.set('Incubation_Time_in_minute','5')
     sequence.set('Flow_Time_in_second','15')
     sequence.set('Post_Fill_Fluidic_Port', '0')
-    sequence.set('Post_Flow_Time_in_second', '15')
     
     sequence = ET.SubElement(top,'sequence')
     sequence.set('Name','Hybridize')
@@ -38,7 +35,6 @@ def generate_default_configuration(filename):
     sequence.set('Incubation_Time_in_minute','180')
     sequence.set('Flow_Time_in_second','15')
     sequence.set('Post_Fill_Fluidic_Port', '0')
-    sequence.set('Post_Flow_Time_in_second', '15')
 
     sequence = ET.SubElement(top,'sequence')
     sequence.set('Name','Rendering Buffer Wash 2')
@@ -46,7 +42,6 @@ def generate_default_configuration(filename):
     sequence.set('Repeat','2')
     sequence.set('Incubation_Time_in_minute','10')
     sequence.set('Flow_Time_in_second','15')
-    sequence.set('Post_Fill_Fluidic_Port', '0')
 
     sequence = ET.SubElement(top,'sequence')
     sequence.set('Name','Imaging Buffer Wash')
@@ -55,7 +50,6 @@ def generate_default_configuration(filename):
     sequence.set('Incubation_Time_in_minute','10')
     sequence.set('Flow_Time_in_second','15')
     sequence.set('Post_Fill_Fluidic_Port', '0')
-    sequence.set('Post_Flow_Time_in_second', '15')
     
     sequence = ET.SubElement(top,'sequence')
     sequence.set('Name','Add Imaging Buffer')
@@ -64,7 +58,6 @@ def generate_default_configuration(filename):
     sequence.set('Incubation_Time_in_minute','-1')
     sequence.set('Flow_Time_in_second','0')
     sequence.set('Post_Fill_Fluidic_Port', '0')
-    sequence.set('Post_Flow_Time_in_second', '15')
     
     setting = ET.SubElement(top,'aspiration_setting')
     setting.set('Pump_Power','0.4')
