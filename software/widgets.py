@@ -507,8 +507,8 @@ class SequenceWidget(QFrame):
             else:
                 fluidic_port = current_sequence.attributes['Fluidic Port'].value()
             if (current_sequence.attributes['Include'].isChecked() == True) or include_all:
-                for k in range(current_sequence.attributes['Repeat'].value()):
-                    self.log_message.emit(utils.timestamp() + 'Add ' + SEQUENCE_NAME[i] + ', round ' + str(k+1) + ' to the queue')
+                for k in range(current_sequence.attributes['Repeat'].value(),0,-1):
+                    self.log_message.emit(utils.timestamp() + 'Add ' + SEQUENCE_NAME[i] + ', round ' + str(current_sequence.attributes['Repeat'].value()-k+1) + ' to the queue')
                     QApplication.processEvents()
                         ################################################################
                         ##### let the backend fluidController execute the sequence #####

@@ -923,7 +923,13 @@ class FluidController(QObject):
 				self.measurement_file.flush()
 
 	def add_sequence(self,sequence_name,fluidic_port=None,flow_time_s=None,incubation_time_min=None,post_fluidic_port=None,post_flow_time_s=None,pressure_setting=None,aspiration_pump_power=None,aspiration_time_s=None,round_=1,port_name=None):
-		print('adding sequence to the queue ' + sequence_name + ' - flow time: ' + str(flow_time_s) + ' s, incubation time: ' + str(incubation_time_min) + ' min, post-flow clear time: ' + str(post_flow_time_s) + 's [negative number means no removal]')
+		# If we are at the last round (round = 1), use the post-flow fluid 
+		# If we aren't at the last round, reuse the same flow time and flow port
+		if round > 1:
+			flow_time_s = flow_time_s/2.0
+			post_fluidic_port = fluidic_port
+			post_flow_time_s = flow_time_s
+		print('adding sequence to the queue ' + sequence_name + ' - flow time: ' + str(flow_time_s + post_flow_time_s) + ' s, incubation time: ' + str(incubation_time_min) + ' min, post-flow clear time: ' + str(post_flow_time_s) + 's [negative number means no removal]')
 		sequence_to_add = Sequence(sequence_name,fluidic_port,flow_time_s,incubation_time_min,post_fluidic_port,post_flow_time_s,pressure_setting,aspiration_pump_power,aspiration_time_s,round_,port_name)
 		self.queue_sequence.put(sequence_to_add)
 		if sequence_to_add.disable_manual_control == True:
