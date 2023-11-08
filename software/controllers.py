@@ -21,8 +21,6 @@ from pathlib import Path
 import numpy as np
 from datetime import datetime
 
-PRINT_DEBUG_INFO = True
-
 from _def import *
 
 '''
@@ -213,13 +211,11 @@ class Microcontroller_Simulation(object):
 ################# Sequence Defination #################
 #######################################################
 class Sequence():
-	def __init__(self,sequence_name,fluidic_port=None,flow_time_s=None,incubation_time_min=None,post_fluidic_port=None,post_flow_time_s=None,pressure_setting=None,aspiration_pump_power=None,aspiration_time_s=None,round_=1,port_name = None):
+	def __init__(self,sequence_name,fluidic_port=None,flow_time_s=None,incubation_time_min=None,pressure_setting=None,aspiration_pump_power=None,aspiration_time_s=None,round_=1,port_name = None):
 		self.sequence_name = sequence_name
 		self.fluidic_port = fluidic_port
 		self.flow_time_s = flow_time_s
 		self.incubation_time_min = incubation_time_min
-		self.post_fluidic_port = post_fluidic_port
-		self.post_flow_time_s = post_flow_time_s
 		self.pressure_setting = pressure_setting
 		self.round = round_
 		self.port_name = port_name
@@ -260,17 +256,6 @@ class Sequence():
 			mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,fluidic_port,payload3,payload4)
 			mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
-			
-			payload4 = post_flow_time_s * 1000
-			if post_fluidic_port != 0:
-				mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,post_fluidic_port,payload3,payload4)
-				mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(post_flow_time_s) + ' s')
-				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
-			else:
-				mcu_command = Microcontroller_Command(CMD_SET.EMPTY_FLUIDIC_LINE,control_type,post_fluidic_port,payload3,payload4)
-				mcu_command.set_description(CMD_SET_DESCRIPTION.EMPTY_LINE + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(post_flow_time_s) + ' s')
-				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
-
 			self.is_single_round_sequence = True
 			self.disable_manual_control = True
 
@@ -289,16 +274,7 @@ class Sequence():
 			mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,fluidic_port,payload3,payload4)
 			mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
-			
-			payload4 = post_flow_time_s * 1000
-			if post_fluidic_port != 0:
-				mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,post_fluidic_port,payload3,payload4)
-				mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(post_flow_time_s) + ' s')
-				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
-			else:
-				mcu_command = Microcontroller_Command(CMD_SET.EMPTY_FLUIDIC_LINE,control_type,post_fluidic_port,payload3,payload4)
-				mcu_command.set_description(CMD_SET_DESCRIPTION.EMPTY_LINE + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(post_flow_time_s) + ' s')
-				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
+
 			# subsequence 2: incubate
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.COMPUTER_STOPWATCH,microcontroller_command=None,stopwatch_time_remaining_seconds=incubation_time_min*60))
 
@@ -323,15 +299,6 @@ class Sequence():
 			mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,fluidic_port,payload3,payload4)
 			mcu_command.set_description('Flush line ' + str(fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
-			payload4 = post_flow_time_s * 1000
-			if post_fluidic_port != 0:
-				mcu_command = Microcontroller_Command(CMD_SET.ADD_MEDIUM,control_type,post_fluidic_port,payload3,payload4)
-				mcu_command.set_description(CMD_SET_DESCRIPTION.ADD_MEDIUM + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
-				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
-			else:
-				mcu_command = Microcontroller_Command(CMD_SET.EMPTY_FLUIDIC_LINE,control_type,post_fluidic_port,payload3,payload4)
-				mcu_command.set_description(CMD_SET_DESCRIPTION.EMPTY_LINE + ' from port ' + str(post_fluidic_port) + ' using ' + MCU_CMD_PARAMETERS_DESCRIPTION.CONSTANT_POWER + ' mode, duration: ' + str(flow_time_s) + ' s')
-				self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			self.is_single_round_sequence = True
 			self.disable_manual_control = True
 
@@ -351,7 +318,6 @@ class Sequence():
 			self.queue_subsequences.put(Subsequence(SUBSEQUENCE_TYPE.MCU_CMD,mcu_command))
 			self.is_single_round_sequence = True
 			self.disable_manual_control = True
-
 
 		# manual control sequences
 		# case 10
@@ -466,7 +432,6 @@ class Microcontroller_Command():
 		cmd_packet[8] = (int(self.payload4) >> 16) & 0xff
 		cmd_packet[9] = (int(self.payload4) >> 8) & 0xff
 		cmd_packet[10] = int(self.payload4) & 0xff
-		print([b for b in cmd_packet])
 		return cmd_packet
 
 class FluidController(QObject):
@@ -720,36 +685,14 @@ class FluidController(QObject):
 		byte 23-24  : reserved
 
 		'''
-		
-		#print (' '.join('{:02x}'.format(x) for x in msg))
 		# parse packet, step 0: display parsed packet (to add)
 		MCU_received_command_UID = (msg[0] << 8) + msg[1] # the parentheses around << is necessary !!!
 		MCU_received_command = msg[2]
 		MCU_command_execution_status = msg[3]
 		MCU_interal_program = msg[4]
-		fluids = msg[5]
+		MCU_valve_A_B_and_bubble_sensors = msg[5]
 		MCU_CMD_time_elapsed = msg[20]
-		if PRINT_DEBUG_INFO:
-			try:
-				print((MCU_STATUS[MCU_command_execution_status],MCU_INTERNAL_PROGRAMS[MCU_interal_program]))
-			except:
-				print("OOB")
-				print((str(MCU_command_execution_status), str(MCU_interal_program)))
-			
-		# unpack fluids
-		# fluids |= ((OCB350_0_reading) & 0x01) << 0;
-		# fluids |= ((OCB350_0_debounced) & 0x01) << 1;
-		# fluids |= ((OCB350_1_reading) & 0x01) << 2;
-		# fluids |= ((OCB350_1_debounced) & 0x01) << 3;
-		# fluids |= (((SLF3X_0_readings[SLF3X_FLAG_IDX] & SLF3X_NO_FLUID) != 0) & 0x01) << 4;
-		# fluids |= ((SLF3X_0_debounced) & 0x01) << 5;
-		bubble_0 =      ((fluids  & (0x01 << 0)) != 0)
-		bubble_0_db =   ((fluids  & (0x01 << 1)) != 0)
-		bubble_1 =      ((fluids  & (0x01 << 2)) != 0)
-		bubble_1_db =   ((fluids  & (0x01 << 3)) != 0)
-		flow_fluid =    ((fluids  & (0x01 << 4)) != 0)
-		flow_fluid_db = ((fluids  & (0x01 << 5)) != 0)
-		
+
 		measurement_selector_valve_position = msg[9]
 		measurement_pump_power = float((int(msg[10])<<8)+msg[11])/65535
 		_vacuum_raw  = constrain((int(msg[12])<<8) + msg[13],MCU_CONSTANTS._output_min,MCU_CONSTANTS._output_max)
@@ -757,59 +700,48 @@ class FluidController(QObject):
 		measurement_pressure = (_pressure_raw - MCU_CONSTANTS._output_min) * (MCU_CONSTANTS._p_max - MCU_CONSTANTS._p_min) / (MCU_CONSTANTS._output_max - MCU_CONSTANTS._output_min) + MCU_CONSTANTS._p_min
 		measurement_vacuum = (_vacuum_raw - MCU_CONSTANTS._output_min) * (MCU_CONSTANTS._p_max - MCU_CONSTANTS._p_min) / (MCU_CONSTANTS._output_max - MCU_CONSTANTS._output_min) + MCU_CONSTANTS._p_min
 		
-		_iirvacuum_raw  = constrain((int(msg[18])<<8) + msg[19],MCU_CONSTANTS._output_min,MCU_CONSTANTS._output_max)
-		_iirpressure_raw = constrain((int(msg[23])<<8) + msg[24],MCU_CONSTANTS._output_min,MCU_CONSTANTS._output_max)
-		measurement_iirpressure = (_iirpressure_raw - MCU_CONSTANTS._output_min) * (MCU_CONSTANTS._p_max - MCU_CONSTANTS._p_min) / (MCU_CONSTANTS._output_max - MCU_CONSTANTS._output_min) + MCU_CONSTANTS._p_min
-		measurement_iirvacuum = (_iirvacuum_raw - MCU_CONSTANTS._output_min) * (MCU_CONSTANTS._p_max - MCU_CONSTANTS._p_min) / (MCU_CONSTANTS._output_max - MCU_CONSTANTS._output_min) + MCU_CONSTANTS._p_min
-		
-		#bubble_sensor_1_state = MCU_valve_A_B_and_bubble_sensors & 0b00001000
-		#bubble_sensor_2_state = MCU_valve_A_B_and_bubble_sensors & 0b00000100
-		flow_upstream = float(int.from_bytes(msg[16:17+1], byteorder='big', signed=True))/MCU_CONSTANTS.SCALE_FACTOR_FLOW
-		# print(flow_upstream)
-		volume_ul = (float(int.from_bytes(msg[21:22+1], byteorder='big', signed=True))/32767)*MCU_CONSTANTS.VOLUME_UL_MAX
+		bubble_sensor_1_state = MCU_valve_A_B_and_bubble_sensors & 0b00001000
+		bubble_sensor_2_state = MCU_valve_A_B_and_bubble_sensors & 0b00000100
+
+		flow_upstream = float(np.int16((int(msg[18])<<8)+msg[19]))/MCU_CONSTANTS.SCALE_FACTOR_FLOW
+		volume_ul = (float(np.int16((int(msg[21])<<8)+msg[22]))/65535)*MCU_CONSTANTS.VOLUME_UL_MAX
 
 		self.signal_MCU_CMD_UID.emit(MCU_received_command_UID)
 		self.signal_MCU_CMD.emit(MCU_received_command) # @@@ to-do: map the command to the command description
+		self.signal_MCU_CMD_status.emit(str(MCU_command_execution_status)) # @@@ to-do: map the numerical value to text description
+		# self.signal_MCU_internal_program.emit(str(MCU_interal_program)) # @@@ to-do: map the numerical value to text description
+		self.signal_MCU_internal_program.emit(MCU_INTERNAL_PROGRAMS[MCU_interal_program])
 		self.signal_MCU_CMD_time_elapsed.emit(MCU_CMD_time_elapsed)
-
-		try:
-			self.signal_MCU_CMD_status.emit(MCU_STATUS[MCU_command_execution_status])
-		except:
-			self.signal_MCU_CMD_status.emit(str(MCU_command_execution_status))
-		try:
-			self.signal_MCU_internal_program.emit(MCU_INTERNAL_PROGRAMS[MCU_interal_program])
-		except:
-			self.signal_MCU_internal_program.emit(str(MCU_interal_program))
 
 		self.signal_pump_power.emit('{:.2f}'.format(measurement_pump_power))
 		self.signal_selector_valve_position.emit(measurement_selector_valve_position)
 		self.signal_pressure.emit('{:.2f}'.format(measurement_pressure))
 		self.signal_vacuum.emit('{:.2f}'.format(measurement_vacuum))
 
-		self.signal_bubble_sensor_1.emit(bubble_0>0)
-		self.signal_bubble_sensor_2.emit(bubble_1>0)
+		self.signal_bubble_sensor_1.emit(bubble_sensor_1_state>0)
+		self.signal_bubble_sensor_2.emit(bubble_sensor_2_state>0)
 
 		self.signal_flow_upstream.emit('{:.1f}'.format(flow_upstream))
 		self.signal_volume_ul.emit('{:.1f}'.format(volume_ul))
 
 		# step 1: check if MCU is "up to date" with the computer in terms of command
-		#if (MCU_received_command_UID != self.computer_to_MCU_command_counter) or (MCU_received_command != self.computer_to_MCU_command):
-		#	if PRINT_DEBUG_INFO:
-		#		print('computer\t UID = ' + str(self.computer_to_MCU_command_counter) + ', CMD = ' + str(self.computer_to_MCU_command))
-		#		print('MCU\t\t UID = ' + str(MCU_received_command_UID) + ', CMD = ' + str(MCU_received_command))
-		#		print('----------------')
-		#	if self.timestamp_last_computer_mcu_mismatch == None:
-		#		self.timestamp_last_computer_mcu_mismatch = time.time() # new mismatch, record time stamp
-		#		if PRINT_DEBUG_INFO:
-		#			print('a new MCU received cmd out of sync with computer cmd occured')
-		#	else:
-		#		t_diff = time.time() - self.timestamp_last_computer_mcu_mismatch
-		#		if t_diff > T_DIFF_COMPUTER_MCU_MISMATCH_FAULT_THRESHOLD_SECONDS:
-		#			print('Fault! MCU and computer out of sync for more than 3 seconds')
-		#			# @@@@@ to-do: add error handling @@@@@ #
-		#	return
-		#else:
-		#	self.timestamp_last_computer_mcu_mismatch = None
+		if (MCU_received_command_UID != self.computer_to_MCU_command_counter) or (MCU_received_command != self.computer_to_MCU_command):
+			if PRINT_DEBUG_INFO:
+					print('computer\t UID = ' + str(self.computer_to_MCU_command_counter) + ', CMD = ' + str(self.computer_to_MCU_command))
+					print('MCU\t\t UID = ' + str(MCU_received_command_UID) + ', CMD = ' + str(MCU_received_command))
+					print('----------------')
+			if self.timestamp_last_computer_mcu_mismatch == None:
+				self.timestamp_last_computer_mcu_mismatch = time.time() # new mismatch, record time stamp
+				if PRINT_DEBUG_INFO:
+					print('a new MCU received cmd out of sync with computer cmd occured')
+			else:
+				t_diff = time.time() - self.timestamp_last_computer_mcu_mismatch
+				if t_diff > T_DIFF_COMPUTER_MCU_MISMATCH_FAULT_THRESHOLD_SECONDS:
+					print('Fault! MCU and computer out of sync for more than 3 seconds')
+					# @@@@@ to-do: add error handling @@@@@ #
+			return
+		else:
+			self.timestamp_last_computer_mcu_mismatch = None
 
 		# step 2: check command execution on MCU
 		if (MCU_command_execution_status != CMD_EXECUTION_STATUS.IN_PROGRESS) and (MCU_command_execution_status != CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS):
@@ -865,7 +797,7 @@ class FluidController(QObject):
 				pass
 			# return # no need to return here
 
-		if (MCU_command_execution_status == CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS) and (MCU_received_command_UID == self.computer_to_MCU_command_counter):
+		if MCU_command_execution_status == CMD_EXECUTION_STATUS.COMPLETED_WITHOUT_ERRORS:
 			# command execucation has completed, can move to the next command
 			# important: only move to the next subsequence upon completion of a *MCU* subsequence
 			if self.mcu_subsequence_in_progress:
@@ -898,35 +830,28 @@ class FluidController(QObject):
 				str(MCU_received_command) + ',' + \
 				str(MCU_command_execution_status) + ',' + \
 				str(MCU_interal_program) + ',' + \
+				str(MCU_valve_A_B_and_bubble_sensors) + ',' + \
 				str(MCU_CMD_time_elapsed) + ',' + \
 				str(measurement_selector_valve_position) + ',' + \
-				str(int(bubble_0)) + ',' + \
-				str(int(bubble_0_db)) + ',' + \
-				str(int(bubble_1)) + ',' + \
-				str(int(bubble_1_db)) + ',' + \
-				str(int(flow_fluid)) + ',' + \
-				str(int(flow_fluid_db)) + ',' + \
 				"{:.2f}".format(measurement_pump_power) + ',' + \
 				"{:.2f}".format(measurement_pressure) + ',' + \
 				"{:.2f}".format(measurement_vacuum) + ',' + \
-				"{:.2f}".format(measurement_iirpressure) + ',' + \
-				"{:.2f}".format(measurement_iirvacuum) + ',' + \
+				str(bubble_sensor_1_state) + ',' + \
+				str(bubble_sensor_2_state) + ',' + \
 				"{:.2f}".format(flow_upstream) + ',' + \
 				"{:.2f}".format(volume_ul) + '\n'
 			self.measurement_file.write(line)
 			self.counter_measurement_file_flush = self.counter_measurement_file_flush + 1
-			# print(self.counter_measurement_file_flush)
 			if self.counter_measurement_file_flush>=500:
 				self.counter_measurement_file_flush = 0
 				self.measurement_file.flush()
 
-	def add_sequence(self,sequence_name,fluidic_port=None,flow_time_s=None,incubation_time_min=None,post_fluidic_port=None,post_flow_time_s=None,pressure_setting=None,aspiration_pump_power=None,aspiration_time_s=None,round_=1,port_name=None):
-		print('adding sequence to the queue ' + sequence_name + ' - flow time: ' + str(flow_time_s) + ' s, incubation time: ' + str(incubation_time_min) + ' min, post-flow clear time: ' + str(post_flow_time_s) + 's [negative number means no removal]')
-		sequence_to_add = Sequence(sequence_name,fluidic_port,flow_time_s,incubation_time_min,post_fluidic_port,post_flow_time_s,pressure_setting,aspiration_pump_power,aspiration_time_s,round_,port_name)
+	def add_sequence(self,sequence_name,fluidic_port=None,flow_time_s=None,incubation_time_min=None,pressure_setting=None,aspiration_pump_power=None,aspiration_time_s=None,round_=1,port_name=None):
+		print('adding sequence to the queue ' + sequence_name + ' - flow time: ' + str(flow_time_s) + ' s, incubation time: ' + str(incubation_time_min) + ' s [negative number means no removal]')
+		sequence_to_add = Sequence(sequence_name,fluidic_port,flow_time_s,incubation_time_min,pressure_setting,aspiration_pump_power,aspiration_time_s,round_,port_name)
 		self.queue_sequence.put(sequence_to_add)
 		if sequence_to_add.disable_manual_control == True:
 			self.signal_uncheck_manual_control_enabled.emit()
-		
 			
 	def request_abort_sequences(self):
 		self.abort_sequences_requested = True
